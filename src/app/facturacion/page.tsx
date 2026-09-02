@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+
+type AccountTransaction = {
+  id: string;
+  date: string;
+  amount: number;
+};
 
 type Client = {
   id: string;
@@ -8,6 +14,7 @@ type Client = {
   name: string;
   currentFee: number;
   professionalLabel: string;
+  accountTransactions: AccountTransaction[];
 };
 
 export default function FacturacionPage() {
@@ -16,11 +23,16 @@ export default function FacturacionPage() {
   const [ediciones, setEdiciones] = useState<Record<string, number>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [billingDate, setBillingDate] = useState(() => new Date().toISOString().split('T')[0]);
+  
+  // Sorting state
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>(null);
 
   const fetchClientes = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/clientes');
+      const res = await fetch('/api/facturacion');
       const data = await res.json();
       setClientes(data);
     } catch (error) {
@@ -34,6 +46,39 @@ export default function FacturacionPage() {
     fetchClientes();
   }, []);
 
+  const sortedClientes = useMemo(() => {
+    let sortableItems = [...clientes];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue: any = a[sortConfig.key];
+        let bValue: any = b[sortConfig.key];
+        
+        if (sortConfig.key === 'code') {
+          // Intentar ordenar como número si es posible
+          const aNum = parseInt(aValue);
+          const bNum = parseInt(bValue);
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            aValue = aNum;
+            bValue = bNum;
+          }
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [clientes, sortConfig]);
+
+  const requestSort = (key: keyof Client) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
   const handleFeeChange = (id: string, value: string) => {
     setEdiciones(prev => ({
       ...prev,
@@ -41,12 +86,24 @@ export default function FacturacionPage() {
     }));
   };
 
+  const toggleSelection = (id: string) => {
+    const newSelection = new Set(selectedIds);
+    if (newSelection.has(id)) newSelection.delete(id);
+    else newSelection.add(id);
+    setSelectedIds(newSelection);
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === clientes.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(clientes.map(c => c.id)));
+    }
+  };
+
   const guardarCambiosMasivos = async () => {
     const updates = Object.entries(ediciones).map(([id, currentFee]) => ({ id, currentFee }));
-    if (updates.length === 0) {
-      alert('No hay cambios para guardar.');
-      return;
-    }
+    if (updates.length === 0) return;
 
     setIsSaving(true);
     try {
@@ -55,7 +112,6 @@ export default function FacturacionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ updates })
       });
-
       if (res.ok) {
         alert('Valores actualizados exitosamente.');
         setEdiciones({});
@@ -71,7 +127,9 @@ export default function FacturacionPage() {
   };
 
   const ejecutarProcesoMensual = async () => {
-    if (!confirm('¿Estás seguro de que deseas facturar el abono actual a todos los clientes? Esto generará los cargos en sus cuentas corrientes.')) {
+    const targetClients = selectedIds.size > 0 ? Array.from(selectedIds) : clientes.map(c => c.id);
+    
+    if (!confirm(`¿Emitir abonos para ${targetClients.length} clientes seleccionados con fecha ${billingDate}?`)) {
       return;
     }
 
@@ -80,12 +138,18 @@ export default function FacturacionPage() {
       const res = await fetch('/api/facturacion/procesar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: 'Abono Mensual' })
+        body: JSON.stringify({ 
+          description: 'Abono Mensual',
+          billingDate,
+          clientIds: targetClients
+        })
       });
 
       const data = await res.json();
       if (res.ok) {
         alert(data.message);
+        fetchClientes(); // Refresh to show the new history
+        setSelectedIds(new Set());
       } else {
         alert('Hubo un error en la facturación masiva.');
       }
@@ -96,74 +160,164 @@ export default function FacturacionPage() {
     }
   };
 
+  // Extraer los últimos 12 meses (agrupados por fecha de transacción para los headers de la tabla)
+  // En un caso real se agruparía por mes, aquí extraemos las fechas únicas recientes de las transacciones.
+  const historyDates = useMemo(() => {
+    const dates = new Set<string>();
+    clientes.forEach(c => {
+      c.accountTransactions?.forEach(t => {
+        const monthYear = new Date(t.date).toISOString().slice(0, 7); // YYYY-MM
+        dates.add(monthYear);
+      });
+    });
+    // Sort oldest to newest (left to right)
+    return Array.from(dates).sort().slice(-12);
+  }, [clientes]);
+
+  // Totales
+  const totales = useMemo(() => {
+    let F = 0, FJ = 0, JF = 0, General = 0;
+    clientes.forEach(c => {
+      const fee = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
+      General += fee;
+      if (c.professionalLabel === 'F') F += fee;
+      if (c.professionalLabel === 'FJ') FJ += fee;
+      if (c.professionalLabel === 'JF') JF += fee;
+    });
+    return { F, FJ, JF, General };
+  }, [clientes, ediciones]);
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Facturación (Abonos)</h1>
-        <div className="flex gap-4">
+        <h1 className="text-2xl font-bold tracking-tight">Abonos</h1>
+        <div className="flex items-center gap-3">
+          <input 
+            type="date" 
+            value={billingDate}
+            onChange={e => setBillingDate(e.target.value)}
+            className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+          />
           <button 
             onClick={guardarCambiosMasivos} 
             disabled={isSaving || Object.keys(ediciones).length === 0}
-            className="rounded-md bg-white border border-gray-300 py-2 px-4 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="rounded-md bg-white border border-gray-300 py-1.5 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
           >
-            {isSaving ? 'Guardando...' : 'Guardar Cambios de Importes'}
+            {isSaving ? 'Guardando...' : 'Guardar Importes'}
           </button>
           
           <button 
             onClick={ejecutarProcesoMensual}
             disabled={isProcessing}
-            className="rounded-md bg-indigo-600 py-2 px-4 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 py-1.5 px-3 text-sm font-medium text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
           >
-            {isProcessing ? 'Procesando...' : '▶ Ejecutar Proceso Mensual'}
+            {isProcessing ? 'Procesando...' : `▶ Ejecutar (${selectedIds.size > 0 ? selectedIds.size : 'Todos'})`}
           </button>
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+      <div className="rounded-lg border bg-white shadow-sm overflow-hidden flex flex-col h-[calc(100vh-140px)]">
+        <div className="overflow-x-auto flex-1">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <thead className="bg-gray-100 sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cód</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Etiqueta</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abono Actual ($)</th>
+                <th className="px-2 py-2 text-center w-10">
+                  <input 
+                    type="checkbox" 
+                    checked={clientes.length > 0 && selectedIds.size === clientes.length}
+                    onChange={toggleAll}
+                    className="rounded border-gray-300 text-indigo-600"
+                  />
+                </th>
+                <th className="px-2 py-2 text-left font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
+                <th className="px-2 py-2 text-left font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Cliente</th>
+                <th className="px-2 py-2 text-center font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('professionalLabel')}>Etiq</th>
+                <th className="px-2 py-2 text-right font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Actual</th>
+                {historyDates.map(date => (
+                  <th key={date} className="px-2 py-2 text-right font-medium text-gray-500 whitespace-nowrap">{date}</th>
+                ))}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center text-gray-500">Cargando...</td></tr>
-              ) : clientes.length === 0 ? (
-                <tr><td colSpan={4} className="px-6 py-4 text-center text-gray-500">No hay clientes.</td></tr>
+                <tr><td colSpan={5 + historyDates.length} className="px-2 py-8 text-center text-gray-500">Cargando...</td></tr>
               ) : (
-                clientes.map((c) => {
+                sortedClientes.map((c) => {
                   const currentValue = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
                   const isEdited = ediciones[c.id] !== undefined;
 
                   return (
-                    <tr key={c.id} className={isEdited ? 'bg-yellow-50' : ''}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{c.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 text-xs font-semibold leading-5 text-blue-800">
+                    <tr key={c.id} className={`${isEdited ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
+                      <td className="px-2 py-1 text-center">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedIds.has(c.id)}
+                          onChange={() => toggleSelection(c.id)}
+                          className="rounded border-gray-300 text-indigo-600"
+                        />
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-900">{c.code}</td>
+                      <td className="px-2 py-1 whitespace-nowrap text-gray-900 font-medium truncate max-w-[200px]" title={c.name}>{c.name}</td>
+                      <td className="px-2 py-1 whitespace-nowrap text-center">
+                        <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-bold ${
+                          c.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
+                          c.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
+                          'bg-blue-200 text-blue-900'
+                        }`}>
                           {c.professionalLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <td className="px-2 py-1 whitespace-nowrap text-right">
                         <input 
                           type="number"
                           min="0"
                           step="1"
                           value={currentValue}
                           onChange={(e) => handleFeeChange(c.id, e.target.value)}
-                          className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-1 border"
+                          className="w-24 text-right rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm p-1 border font-bold text-gray-900 bg-transparent"
                         />
                       </td>
+                      {historyDates.map(month => {
+                        // Buscar si el cliente tiene un cargo en este mes
+                        const tx = c.accountTransactions?.find(t => t.date.startsWith(month));
+                        return (
+                          <td key={month} className="px-2 py-1 whitespace-nowrap text-right text-gray-600 font-semibold">
+                            {tx ? tx.amount.toLocaleString('es-AR') : '-'}
+                          </td>
+                        );
+                      })}
                     </tr>
                   )
                 })
               )}
             </tbody>
+            {/* Totales */}
+            <tfoot className="bg-gray-100 font-bold sticky bottom-0 z-10 border-t-2 border-gray-300">
+              <tr>
+                <td colSpan={3} className="px-2 py-2 text-right">Totales (Todos)</td>
+                <td className="px-2 py-2 text-center text-gray-500">-</td>
+                <td className="px-2 py-2 text-right text-indigo-900">{totales.General.toLocaleString('es-AR')}</td>
+                <td colSpan={historyDates.length}></td>
+              </tr>
+              <tr>
+                <td colSpan={3} className="px-2 py-1 text-right text-green-800">Total F</td>
+                <td className="px-2 py-1 text-center"><span className="bg-green-200 text-green-900 px-1 rounded text-xs">F</span></td>
+                <td className="px-2 py-1 text-right text-green-900">{totales.F.toLocaleString('es-AR')}</td>
+                <td colSpan={historyDates.length}></td>
+              </tr>
+              <tr>
+                <td colSpan={3} className="px-2 py-1 text-right text-orange-800">Total FJ</td>
+                <td className="px-2 py-1 text-center"><span className="bg-orange-200 text-orange-900 px-1 rounded text-xs">FJ</span></td>
+                <td className="px-2 py-1 text-right text-orange-900">{totales.FJ.toLocaleString('es-AR')}</td>
+                <td colSpan={historyDates.length}></td>
+              </tr>
+              <tr>
+                <td colSpan={3} className="px-2 py-1 text-right text-blue-800">Total JF</td>
+                <td className="px-2 py-1 text-center"><span className="bg-blue-200 text-blue-900 px-1 rounded text-xs">JF</span></td>
+                <td className="px-2 py-1 text-right text-blue-900">{totales.JF.toLocaleString('es-AR')}</td>
+                <td colSpan={historyDates.length}></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

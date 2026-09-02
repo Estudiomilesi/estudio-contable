@@ -6,26 +6,31 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     const description = data.description || 'Abono Mensual';
+    const billingDate = data.billingDate ? new Date(data.billingDate) : new Date();
+    const clientIds = data.clientIds || [];
     
-    const now = new Date();
     const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-    const mesActual = meses[now.getMonth()];
-    const anoActual = now.getFullYear();
+    const mesActual = meses[billingDate.getMonth()];
+    const anoActual = billingDate.getFullYear();
     const periodoStr = `${mesActual} ${anoActual}`;
 
-    // Obtener todos los clientes con abono mayor a 0
+    // Obtener los clientes (todos los activos, o solo los seleccionados)
     const clientes = await prisma.client.findMany({
-      where: { currentFee: { gt: 0 } }
+      where: { 
+        isActive: true,
+        currentFee: { gt: 0 },
+        ...(clientIds.length > 0 ? { id: { in: clientIds } } : {})
+      }
     });
 
     let emailsEnviados = 0;
     const transacciones = [];
 
     for (const cliente of clientes) {
-      // Registrar transaccion
       const transaccion = await prisma.accountTransaction.create({
         data: {
           clientId: cliente.id,
+          date: billingDate,
           type: 'CHARGE',
           amount: cliente.currentFee,
           description: `${description} - ${periodoStr}`

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { Pencil, Trash2 } from 'lucide-react';
 
 type Client = {
   id: string;
@@ -9,24 +10,34 @@ type Client = {
   email: string;
   professionalLabel: string;
   currentFee: number;
+  cuit: string | null;
+  fiscalCondition: string | null;
+  cellphone: string | null;
+  address: string | null;
+  contact: string | null;
+  isActive: boolean;
+};
+
+const initialForm = {
+  id: '',
+  code: '',
+  name: '',
+  email: '',
+  address: '',
+  cuit: '',
+  cellphone: '',
+  contact: '',
+  fiscalCondition: '',
+  professionalLabel: 'F',
+  currentFee: 0,
+  isActive: true,
 };
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
-  // Form state
-  const [formData, setFormData] = useState({
-    code: '',
-    name: '',
-    email: '',
-    address: '',
-    cuit: '',
-    cellphone: '',
-    contact: '',
-    professionalLabel: 'F',
-    currentFee: 0,
-  });
+  const [formData, setFormData] = useState(initialForm);
+  const [isEditing, setIsEditing] = useState(false);
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -47,19 +58,58 @@ export default function ClientesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const method = isEditing ? 'PUT' : 'POST';
+    const url = isEditing ? `/api/clientes/${formData.id}` : '/api/clientes';
+
     try {
-      const res = await fetch('/api/clientes', {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
+
       if (res.ok) {
-        setFormData({
-          code: '', name: '', email: '', address: '', cuit: '', cellphone: '', contact: '', professionalLabel: 'F', currentFee: 0
-        });
+        setFormData(initialForm);
+        setIsEditing(false);
         fetchClientes();
       } else {
-        alert('Error al guardar el cliente');
+        const errorData = await res.json();
+        alert(errorData.error || 'Error al guardar el cliente');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handleEdit = (c: Client) => {
+    setFormData({
+      id: c.id,
+      code: c.code || '',
+      name: c.name || '',
+      email: c.email || '',
+      address: c.address || '',
+      cuit: c.cuit || '',
+      cellphone: c.cellphone || '',
+      contact: c.contact || '',
+      fiscalCondition: c.fiscalCondition || '',
+      professionalLabel: c.professionalLabel,
+      currentFee: c.currentFee,
+      isActive: c.isActive,
+    });
+    setIsEditing(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Seguro que deseas eliminar este cliente? Solo es posible si no tiene movimientos.')) return;
+    
+    try {
+      const res = await fetch(`/api/clientes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchClientes();
+      } else {
+        const err = await res.json();
+        alert(err.error);
       }
     } catch (error) {
       console.error(error);
@@ -75,8 +125,20 @@ export default function ClientesPage() {
       <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {/* Formulario */}
         <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-xl font-semibold">Nuevo Cliente</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">{isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
+            {isEditing && (
+              <button type="button" onClick={() => { setIsEditing(false); setFormData(initialForm); }} className="text-sm text-gray-500 hover:text-gray-700">
+                Cancelar Edición
+              </button>
+            )}
+          </div>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="isActive" checked={formData.isActive} onChange={e => setFormData({...formData, isActive: e.target.checked})} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+              <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Cliente Activo</label>
+            </div>
+            
             <div>
               <label className="block text-sm font-medium text-gray-700">Código *</label>
               <input type="text" required value={formData.code} onChange={e => setFormData({...formData, code: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
@@ -104,7 +166,7 @@ export default function ClientesPage() {
               </div>
             </div>
             {/* Opcionales */}
-            <details className="text-sm text-gray-600">
+            <details className="text-sm text-gray-600" open={isEditing}>
               <summary className="cursor-pointer font-medium text-indigo-600">Más opciones (Opcional)</summary>
               <div className="mt-4 space-y-4">
                 <div>
@@ -117,7 +179,7 @@ export default function ClientesPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700">Condición Fiscal</label>
-                  <input type="text" value={(formData as any).fiscalCondition || ''} onChange={e => setFormData({...formData, fiscalCondition: e.target.value} as any)} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm" />
+                  <input type="text" value={formData.fiscalCondition} onChange={e => setFormData({...formData, fiscalCondition: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700">Celular</label>
@@ -130,7 +192,7 @@ export default function ClientesPage() {
               </div>
             </details>
             <button type="submit" className="w-full rounded-md bg-indigo-600 py-2 px-4 text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-              Guardar Cliente
+              {isEditing ? 'Guardar Cambios' : 'Crear Cliente'}
             </button>
           </form>
         </div>
@@ -143,28 +205,41 @@ export default function ClientesPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cód</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Etiqueta</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Abono</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
-                  <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">Cargando...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-500">Cargando...</td></tr>
                 ) : clientes.length === 0 ? (
-                  <tr><td colSpan={5} className="px-6 py-4 text-center text-gray-500">No hay clientes registrados.</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-500">No hay clientes registrados.</td></tr>
                 ) : (
                   clientes.map((c) => (
-                    <tr key={c.id}>
+                    <tr key={c.id} className={!c.isActive ? 'opacity-50 bg-gray-50' : ''}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.code}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.email}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="inline-flex rounded-full bg-blue-100 px-2 text-xs font-semibold leading-5 text-blue-800">
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${c.professionalLabel === 'F' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
                           {c.professionalLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${c.currentFee.toLocaleString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                        ${c.currentFee.toLocaleString('es-AR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {c.isActive ? (
+                          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500"></span> Activo</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500"></span> Inactivo</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
+                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 p-1"><Pencil size={18} /></button>
+                        <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 p-1"><Trash2 size={18} /></button>
+                      </td>
                     </tr>
                   ))
                 )}
