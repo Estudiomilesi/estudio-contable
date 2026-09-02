@@ -28,6 +28,7 @@ export default function FacturacionPage() {
   
   // Sorting state
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>(null);
+  const [filterLabel, setFilterLabel] = useState<string>('ALL');
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -46,15 +47,19 @@ export default function FacturacionPage() {
     fetchClientes();
   }, []);
 
-  const sortedClientes = useMemo(() => {
-    let sortableItems = [...clientes];
+  const filteredAndSortedClientes = useMemo(() => {
+    let result = [...clientes];
+    
+    if (filterLabel !== 'ALL') {
+      result = result.filter(c => c.professionalLabel === filterLabel);
+    }
+
     if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
+      result.sort((a, b) => {
         let aValue: any = a[sortConfig.key];
         let bValue: any = b[sortConfig.key];
         
         if (sortConfig.key === 'code') {
-          // Intentar ordenar como número si es posible
           const aNum = parseInt(aValue);
           const bNum = parseInt(bValue);
           if (!isNaN(aNum) && !isNaN(bNum)) {
@@ -68,8 +73,8 @@ export default function FacturacionPage() {
         return 0;
       });
     }
-    return sortableItems;
-  }, [clientes, sortConfig]);
+    return result;
+  }, [clientes, sortConfig, filterLabel]);
 
   const requestSort = (key: keyof Client) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -174,17 +179,19 @@ export default function FacturacionPage() {
     return Array.from(dates).sort().slice(-12);
   }, [clientes]);
 
-  // Totales
+  // Totals
   const totales = useMemo(() => {
     let F = 0, FJ = 0, JF = 0, General = 0;
+    let countF = 0, countFJ = 0, countJF = 0, countGeneral = 0;
     clientes.forEach(c => {
       const fee = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
       General += fee;
-      if (c.professionalLabel === 'F') F += fee;
-      if (c.professionalLabel === 'FJ') FJ += fee;
-      if (c.professionalLabel === 'JF') JF += fee;
+      countGeneral++;
+      if (c.professionalLabel === 'F') { F += fee; countF++; }
+      if (c.professionalLabel === 'FJ') { FJ += fee; countFJ++; }
+      if (c.professionalLabel === 'JF') { JF += fee; countJF++; }
     });
-    return { F, FJ, JF, General };
+    return { F, FJ, JF, General, countF, countFJ, countJF, countGeneral };
   }, [clientes, ediciones]);
 
   return (
@@ -231,7 +238,21 @@ export default function FacturacionPage() {
                 </th>
                 <th className="px-2 py-2 text-left font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
                 <th className="px-2 py-2 text-left font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Cliente</th>
-                <th className="px-2 py-2 text-center font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('professionalLabel')}>Etiq</th>
+                <th className="px-2 py-2 text-center font-medium text-gray-600">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiq</span>
+                    <select 
+                      value={filterLabel} 
+                      onChange={e => setFilterLabel(e.target.value)}
+                      className="text-xs border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-5"
+                    >
+                      <option value="ALL">Todas</option>
+                      <option value="F">F</option>
+                      <option value="FJ">FJ</option>
+                      <option value="JF">JF</option>
+                    </select>
+                  </div>
+                </th>
                 <th className="px-2 py-2 text-right font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Actual</th>
                 {historyDates.map(date => (
                   <th key={date} className="px-2 py-2 text-right font-medium text-gray-500 whitespace-nowrap">{date}</th>
@@ -242,7 +263,7 @@ export default function FacturacionPage() {
               {isLoading ? (
                 <tr><td colSpan={5 + historyDates.length} className="px-2 py-8 text-center text-gray-500">Cargando...</td></tr>
               ) : (
-                sortedClientes.map((c) => {
+                filteredAndSortedClientes.map((c) => {
                   const currentValue = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
                   const isEdited = ediciones[c.id] !== undefined;
 
@@ -294,26 +315,40 @@ export default function FacturacionPage() {
             {/* Totales */}
             <tfoot className="bg-gray-100 font-bold sticky bottom-0 z-10 border-t-2 border-gray-300">
               <tr>
-                <td colSpan={3} className="px-2 py-2 text-right">Totales (Todos)</td>
-                <td className="px-2 py-2 text-center text-gray-500">-</td>
+                <td colSpan={3} className="px-2 py-2 text-right">
+                  Totales ({totales.countGeneral} Abonos)
+                </td>
+                <td className="px-2 py-2 text-center text-gray-500">100%</td>
                 <td className="px-2 py-2 text-right text-indigo-900">{totales.General.toLocaleString('es-AR')}</td>
                 <td colSpan={historyDates.length}></td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-2 py-1 text-right text-green-800">Total F</td>
-                <td className="px-2 py-1 text-center"><span className="bg-green-200 text-green-900 px-1 rounded text-xs">F</span></td>
+                <td colSpan={3} className="px-2 py-1 text-right text-green-800">
+                  Total F ({totales.countF} | {totales.countGeneral ? ((totales.countF / totales.countGeneral) * 100).toFixed(1) : 0}%)
+                </td>
+                <td className="px-2 py-1 text-center">
+                  <span className="text-green-900 px-1 rounded text-xs">{totales.General ? ((totales.F / totales.General) * 100).toFixed(1) : 0}%</span>
+                </td>
                 <td className="px-2 py-1 text-right text-green-900">{totales.F.toLocaleString('es-AR')}</td>
                 <td colSpan={historyDates.length}></td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-2 py-1 text-right text-orange-800">Total FJ</td>
-                <td className="px-2 py-1 text-center"><span className="bg-orange-200 text-orange-900 px-1 rounded text-xs">FJ</span></td>
+                <td colSpan={3} className="px-2 py-1 text-right text-orange-800">
+                  Total FJ ({totales.countFJ} | {totales.countGeneral ? ((totales.countFJ / totales.countGeneral) * 100).toFixed(1) : 0}%)
+                </td>
+                <td className="px-2 py-1 text-center">
+                  <span className="text-orange-900 px-1 rounded text-xs">{totales.General ? ((totales.FJ / totales.General) * 100).toFixed(1) : 0}%</span>
+                </td>
                 <td className="px-2 py-1 text-right text-orange-900">{totales.FJ.toLocaleString('es-AR')}</td>
                 <td colSpan={historyDates.length}></td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-2 py-1 text-right text-blue-800">Total JF</td>
-                <td className="px-2 py-1 text-center"><span className="bg-blue-200 text-blue-900 px-1 rounded text-xs">JF</span></td>
+                <td colSpan={3} className="px-2 py-1 text-right text-blue-800">
+                  Total JF ({totales.countJF} | {totales.countGeneral ? ((totales.countJF / totales.countGeneral) * 100).toFixed(1) : 0}%)
+                </td>
+                <td className="px-2 py-1 text-center">
+                  <span className="text-blue-900 px-1 rounded text-xs">{totales.General ? ((totales.JF / totales.General) * 100).toFixed(1) : 0}%</span>
+                </td>
                 <td className="px-2 py-1 text-right text-blue-900">{totales.JF.toLocaleString('es-AR')}</td>
                 <td colSpan={historyDates.length}></td>
               </tr>
