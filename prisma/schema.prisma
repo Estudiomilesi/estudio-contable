@@ -70,12 +70,6 @@ model PaymentApplication {
   createdAt DateTime @default(now())
 }
 
-enum TreasuryAccount {
-  CAJA
-  BANCOS
-  CHEQUES
-}
-
 enum TreasuryMovementType {
   INCOME     // Cobros de honorarios
   EXPENSE    // Gastos
@@ -86,7 +80,7 @@ enum TreasuryMovementType {
 model TreasuryTransaction {
   id          String               @id @default(cuid())
   date        DateTime             @default(now())
-  account     TreasuryAccount
+  account     String
   type        TreasuryMovementType
   category    String               // e.g., "Gastos Sistemas", "Retiro Fede"
   description String?

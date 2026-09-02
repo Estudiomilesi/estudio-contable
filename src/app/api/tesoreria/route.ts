@@ -11,9 +11,16 @@ export async function GET() {
     // Obtener saldos de las cuentas sumando los montos (ingresos positivos, egresos negativos)
     // Para simplificar, lo calcularemos en memoria para devolver los totales
     const allTxs = await prisma.treasuryTransaction.findMany();
-    const saldos = { CAJA: 0, BANCOS: 0, CHEQUES: 0 };
+    const saldos: Record<string, number> = { 
+      'CAJA': 0, 
+      'CAJA IVA': 0, 
+      'BANCOS FEDE': 0, 
+      'BANCOS JUANMA': 0, 
+      'CHEQUES': 0 
+    };
     
     allTxs.forEach(t => {
+      if (saldos[t.account] === undefined) saldos[t.account] = 0;
       saldos[t.account] += t.amount;
     });
 

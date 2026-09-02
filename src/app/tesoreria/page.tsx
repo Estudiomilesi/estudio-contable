@@ -14,15 +14,17 @@ type TreasuryTransaction = {
 
 export default function TesoreriaPage() {
   const [transacciones, setTransacciones] = useState<TreasuryTransaction[]>([]);
-  const [saldos, setSaldos] = useState({ CAJA: 0, BANCOS: 0, CHEQUES: 0 });
+  const [saldos, setSaldos] = useState<Record<string, number>>({ 
+    'CAJA': 0, 'CAJA IVA': 0, 'BANCOS FEDE': 0, 'BANCOS JUANMA': 0, 'CHEQUES': 0 
+  });
   const [clientes, setClientes] = useState<{id: string, name: string}[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    type: 'INCOME', // INCOME, EXPENSE
-    account: 'CAJA', // CAJA, BANCOS, CHEQUES
-    category: 'Honorarios', // Honorarios, Gastos, Retiro Fede, Retiro Juanma, Otros
+    type: 'INCOME',
+    account: 'CAJA',
+    category: 'Honorarios',
     amount: '',
     description: '',
     clientId: ''
@@ -34,7 +36,7 @@ export default function TesoreriaPage() {
       const resT = await fetch('/api/tesoreria');
       const dataT = await resT.json();
       setTransacciones(dataT.transacciones || []);
-      setSaldos(dataT.saldos || { CAJA: 0, BANCOS: 0, CHEQUES: 0 });
+      setSaldos(dataT.saldos || {});
 
       const resC = await fetch('/api/clientes');
       const dataC = await resC.json();
@@ -53,9 +55,7 @@ export default function TesoreriaPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Ajustar monto según tipo (ingreso positivo, egreso negativo)
       const amount = formData.type === 'EXPENSE' ? -Math.abs(parseFloat(formData.amount)) : Math.abs(parseFloat(formData.amount));
-      
       const payload = { ...formData, amount };
 
       const res = await fetch('/api/tesoreria', {
@@ -75,29 +75,37 @@ export default function TesoreriaPage() {
     }
   };
 
-  const saldoTotal = saldos.CAJA + saldos.BANCOS + saldos.CHEQUES;
+  const saldoTotal = Object.values(saldos).reduce((acc, val) => acc + val, 0);
 
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight">Tesorería</h1>
 
       {/* Saldos Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
         <div className="rounded-xl border bg-white p-6 shadow-sm border-l-4 border-l-indigo-500">
           <h3 className="text-sm font-medium text-gray-700">Total Disponible</h3>
-          <p className="mt-2 text-3xl font-bold text-gray-900">${saldoTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+          <p className="mt-2 text-2xl font-bold text-gray-900">${saldoTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
           <h3 className="text-sm font-medium text-gray-700">Caja</h3>
-          <p className="mt-2 text-2xl font-semibold text-gray-700">${saldos.CAJA.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CAJA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-700">Bancos</h3>
-          <p className="mt-2 text-2xl font-semibold text-gray-700">${saldos.BANCOS.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <h3 className="text-sm font-medium text-gray-700">Caja IVA</h3>
+          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CAJA IVA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-6 shadow-sm">
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <h3 className="text-sm font-medium text-gray-700">Bcos Fede</h3>
+          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['BANCOS FEDE'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+        </div>
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <h3 className="text-sm font-medium text-gray-700">Bcos Juanma</h3>
+          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['BANCOS JUANMA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+        </div>
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
           <h3 className="text-sm font-medium text-gray-700">Cheques</h3>
-          <p className="mt-2 text-2xl font-semibold text-gray-700">${saldos.CHEQUES.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CHEQUES'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
       </div>
 
@@ -125,7 +133,9 @@ export default function TesoreriaPage() {
                 <label className="block text-sm font-medium text-gray-700">Cuenta</label>
                 <select value={formData.account} onChange={e => setFormData({...formData, account: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                   <option value="CAJA">Caja</option>
-                  <option value="BANCOS">Bancos</option>
+                  <option value="CAJA IVA">Caja IVA</option>
+                  <option value="BANCOS FEDE">Bancos Fede</option>
+                  <option value="BANCOS JUANMA">Bancos Juanma</option>
                   <option value="CHEQUES">Cheques</option>
                 </select>
               </div>
