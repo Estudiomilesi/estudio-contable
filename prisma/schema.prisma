@@ -35,6 +35,7 @@ model Client {
 
   accountTransactions AccountTransaction[]
   treasuryTransactions TreasuryTransaction[]
+  checks              Check[]
 }
 
 enum TransactionType {
@@ -77,18 +78,46 @@ enum TreasuryMovementType {
   TRANSFER   // Pases de caja
 }
 
+enum CheckStatus {
+  IN_PORTFOLIO
+  DELIVERED
+}
+
+model Check {
+  id           String               @id @default(cuid())
+  number       String
+  bank         String
+  issueDate    DateTime             @default(now())
+  dueDate      DateTime
+  amount       Float
+  status       CheckStatus          @default(IN_PORTFOLIO)
+  
+  clientId     String?
+  client       Client?              @relation(fields: [clientId], references: [id])
+  
+  incomingTxId String?
+  incomingTx   TreasuryTransaction? @relation("IncomingChecks", fields: [incomingTxId], references: [id])
+  
+  outgoingTxId String?
+  outgoingTx   TreasuryTransaction? @relation("OutgoingChecks", fields: [outgoingTxId], references: [id])
+  
+  createdAt    DateTime             @default(now())
+}
+
 model TreasuryTransaction {
-  id          String               @id @default(cuid())
-  date        DateTime             @default(now())
-  account     String
-  type        TreasuryMovementType
-  category    String               // e.g., "Gastos Sistemas", "Retiro Fede"
-  description String?
-  amount      Float
+  id             String               @id @default(cuid())
+  date           DateTime             @default(now())
+  account        String
+  type           TreasuryMovementType
+  category       String
+  description    String?
+  amount         Float
   
-  // Si es un cobro, se asocia al cliente
-  clientId    String?
-  client      Client?              @relation(fields: [clientId], references: [id])
+  clientId       String?
+  client         Client?              @relation(fields: [clientId], references: [id])
   
-  createdAt   DateTime             @default(now())
+  incomingChecks Check[]              @relation("IncomingChecks")
+  outgoingChecks Check[]              @relation("OutgoingChecks")
+  
+  createdAt      DateTime             @default(now())
 }

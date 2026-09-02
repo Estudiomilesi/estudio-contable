@@ -12,13 +12,35 @@ type TreasuryTransaction = {
   description: string | null;
 };
 
+type Check = {
+  id: string;
+  number: string;
+  bank: string;
+  issueDate: string;
+  dueDate: string;
+  amount: number;
+  status: string;
+  clientId: string | null;
+  client?: { name: string };
+};
+
 export default function TesoreriaPage() {
   const [transacciones, setTransacciones] = useState<TreasuryTransaction[]>([]);
   const [saldos, setSaldos] = useState<Record<string, number>>({ 
     'CAJA': 0, 'CAJA IVA': 0, 'BANCOS FEDE': 0, 'BANCOS JUANMA': 0, 'CHEQUES': 0 
   });
   const [clientes, setClientes] = useState<{id: string, name: string}[]>([]);
+  const [cartera, setCartera] = useState<Check[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Estados para Cheques
+  const [checkDetails, setCheckDetails] = useState({
+    number: '',
+    bank: '',
+    issueDate: new Date().toISOString().split('T')[0],
+    dueDate: new Date().toISOString().split('T')[0]
+  });
+  const [selectedCheckIds, setSelectedCheckIds] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -37,6 +59,7 @@ export default function TesoreriaPage() {
       const dataT = await resT.json();
       setTransacciones(dataT.transacciones || []);
       setSaldos(dataT.saldos || {});
+      setCartera(dataT.cartera || []);
 
       const resC = await fetch('/api/clientes');
       const dataC = await resC.json();
@@ -56,7 +79,13 @@ export default function TesoreriaPage() {
     e.preventDefault();
     try {
       const amount = formData.type === 'EXPENSE' ? -Math.abs(parseFloat(formData.amount)) : Math.abs(parseFloat(formData.amount));
-      const payload = { ...formData, amount };
+      
+      const payload = { 
+        ...formData, 
+        amount,
+        checkDetails: formData.account === 'CHEQUES' && formData.type === 'INCOME' ? checkDetails : undefined,
+        selectedCheckIds: formData.account === 'CHEQUES' && formData.type !== 'INCOME' ? selectedCheckIds : undefined
+      };
 
       const res = await fetch('/api/tesoreria', {
         method: 'POST',
@@ -66,9 +95,12 @@ export default function TesoreriaPage() {
 
       if (res.ok) {
         setFormData({ ...formData, amount: '', description: '', clientId: '' });
+        setCheckDetails({ number: '', bank: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] });
+        setSelectedCheckIds([]);
         fetchData();
       } else {
-        alert('Error al guardar el movimiento');
+        const errorData = await res.json();
+        alert('Error: ' + (errorData.error || 'Error al guardar el movimiento'));
       }
     } catch (error) {
       console.error(error);
@@ -77,9 +109,46 @@ export default function TesoreriaPage() {
 
   const saldoTotal = Object.values(saldos).reduce((acc, val) => acc + val, 0);
 
+  // Calcular alertas de cheques (vencen en <= 15 días)
+  const today = new Date();
+  const alertDays = 15;
+  const expiringChecks = cartera.filter(c => {
+    const diffTime = new Date(c.dueDate).getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays >= 0 && diffDays <= alertDays;
+  });
+
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold tracking-tight">Tesorería</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Tesorería</h1>
+      </div>
+
+      {expiringChecks.length > 0 && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Atención: Hay {expiringChecks.length} {expiringChecks.length === 1 ? 'cheque' : 'cheques'} por vencer en los próximos 15 días.
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <ul className="list-disc pl-5 space-y-1">
+                  {expiringChecks.map(c => (
+                    <li key={c.id}>
+                      {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR')} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Saldos Cards */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
@@ -111,13 +180,16 @@ export default function TesoreriaPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Formulario */}
-        <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm h-fit">
+        <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm h-fit max-h-[800px] overflow-y-auto">
           <h2 className="mb-4 text-xl font-semibold">Registrar Movimiento</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-medium">
+                <select value={formData.type} onChange={e => {
+                  setFormData({...formData, type: e.target.value});
+                  setSelectedCheckIds([]);
+                }} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-medium">
                   <option value="INCOME">Ingreso</option>
                   <option value="EXPENSE">Egreso</option>
                 </select>
@@ -131,7 +203,10 @@ export default function TesoreriaPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Cuenta</label>
-                <select value={formData.account} onChange={e => setFormData({...formData, account: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <select value={formData.account} onChange={e => {
+                  setFormData({...formData, account: e.target.value});
+                  setSelectedCheckIds([]);
+                }} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                   <option value="CAJA">Caja</option>
                   <option value="CAJA IVA">Caja IVA</option>
                   <option value="BANCOS FEDE">Bancos Fede</option>
@@ -139,11 +214,81 @@ export default function TesoreriaPage() {
                   <option value="CHEQUES">Cheques</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Importe ($)</label>
-                <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold" />
-              </div>
+              
+              {!(formData.account === 'CHEQUES' && formData.type === 'EXPENSE') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Importe ($)</label>
+                  <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold" />
+                </div>
+              )}
             </div>
+
+            {/* CHECK INCOME FIELDS */}
+            {formData.account === 'CHEQUES' && formData.type === 'INCOME' && (
+              <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 space-y-3">
+                <h4 className="text-sm font-bold text-yellow-800">Detalles del Cheque</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700">Banco</label>
+                    <input type="text" required value={checkDetails.bank} onChange={e => setCheckDetails({...checkDetails, bank: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" placeholder="Ej: Galicia" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700">Número</label>
+                    <input type="text" required value={checkDetails.number} onChange={e => setCheckDetails({...checkDetails, number: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" placeholder="Ej: 12345678" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700">Fecha Emisión</label>
+                    <input type="date" required value={checkDetails.issueDate} onChange={e => setCheckDetails({...checkDetails, issueDate: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700">Vencimiento</label>
+                    <input type="date" required value={checkDetails.dueDate} onChange={e => setCheckDetails({...checkDetails, dueDate: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* CHECK EXPENSE FIELDS */}
+            {formData.account === 'CHEQUES' && formData.type === 'EXPENSE' && (
+              <div className="bg-blue-50 p-4 rounded-md border border-blue-200 space-y-3">
+                <h4 className="text-sm font-bold text-blue-800">Seleccionar Cheques para el pago</h4>
+                {cartera.length === 0 ? (
+                  <p className="text-sm text-red-600">No hay cheques en cartera.</p>
+                ) : (
+                  <div className="max-h-40 overflow-y-auto space-y-2">
+                    {cartera.map(c => {
+                      const isSelected = selectedCheckIds.includes(c.id);
+                      return (
+                        <label key={c.id} className={`flex items-center p-2 rounded cursor-pointer border ${isSelected ? 'bg-blue-100 border-blue-400' : 'bg-white border-gray-200'}`}>
+                          <input 
+                            type="checkbox" 
+                            className="mr-2"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) setSelectedCheckIds([...selectedCheckIds, c.id]);
+                              else setSelectedCheckIds(selectedCheckIds.filter(id => id !== c.id));
+                            }}
+                          />
+                          <div className="flex-1 text-xs">
+                            <div className="font-bold">{c.bank} N° {c.number}</div>
+                            <div className="text-gray-600">Vence: {new Date(c.dueDate).toLocaleDateString('es-AR')}</div>
+                          </div>
+                          <div className="text-sm font-bold text-gray-900">${c.amount.toLocaleString('es-AR')}</div>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+                <div className="pt-2 border-t border-blue-200 flex justify-between items-center">
+                  <span className="text-sm font-medium">Total Seleccionado:</span>
+                  <span className="text-lg font-bold text-blue-900">
+                    ${cartera.filter(c => selectedCheckIds.includes(c.id)).reduce((acc, c) => acc + c.amount, 0).toLocaleString('es-AR')}
+                  </span>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700">Categoría</label>
@@ -166,7 +311,7 @@ export default function TesoreriaPage() {
 
             {formData.category === 'Honorarios' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700">Cliente (Para Cta. Corriente)</label>
+                <label className="block text-sm font-medium text-gray-700">Cliente (Para Cta. Corriente y Origen del Cheque)</label>
                 <select value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                   <option value="">-- Seleccionar Cliente --</option>
                   {clientes.map(c => (
@@ -181,7 +326,7 @@ export default function TesoreriaPage() {
               <input type="text" required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ej: Pago internet, Factura N°123..." />
             </div>
             
-            <button type="submit" className={`w-full rounded-md py-2 px-4 text-white font-medium focus:ring-2 focus:ring-offset-2 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-red-600 hover:bg-red-700 focus:ring-red-500'}`}>
+            <button type="submit" disabled={formData.account === 'CHEQUES' && formData.type === 'EXPENSE' && selectedCheckIds.length === 0} className={`w-full rounded-md py-2 px-4 text-white font-medium focus:ring-2 focus:ring-offset-2 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-red-600 hover:bg-red-700 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed'}`}>
               Registrar {formData.type === 'INCOME' ? 'Ingreso' : 'Egreso'}
             </button>
           </form>
@@ -231,6 +376,63 @@ export default function TesoreriaPage() {
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      {/* Cartera de Cheques Completa */}
+      <div className="rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col h-[500px]">
+        <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
+          <h2 className="font-semibold text-gray-700">Cartera de Cheques</h2>
+          <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{cartera.length} en cartera</span>
+        </div>
+        <div className="overflow-y-auto flex-1 p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50 sticky top-0">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">F. Emisión</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">F. Cobro</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Cliente</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Banco y N°</th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Importe</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {isLoading ? (
+                <tr><td colSpan={5} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>
+              ) : cartera.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-4 text-center text-gray-700">La cartera de cheques está vacía.</td></tr>
+              ) : (
+                cartera.map((c) => {
+                  const diffTime = new Date(c.dueDate).getTime() - today.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  const isExpiring = diffDays >= 0 && diffDays <= alertDays;
+                  const isExpired = diffDays < 0;
+
+                  return (
+                    <tr key={c.id} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-50' : isExpiring ? 'bg-yellow-50' : ''}`}>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
+                        {new Date(c.issueDate).toLocaleDateString('es-AR')}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-sm font-semibold flex items-center gap-2">
+                        {new Date(c.dueDate).toLocaleDateString('es-AR')}
+                        {isExpiring && <span className="bg-yellow-400 text-yellow-900 text-[10px] px-1.5 py-0.5 rounded-full">Vence en {diffDays} días</span>}
+                        {isExpired && <span className="bg-red-400 text-red-900 text-[10px] px-1.5 py-0.5 rounded-full">Vencido</span>}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900">
+                        {c.client ? c.client.name : 'Sin cliente'}
+                      </td>
+                      <td className="px-4 py-2 text-sm text-gray-900 font-medium">
+                        {c.bank} - N° {c.number}
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                        ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
