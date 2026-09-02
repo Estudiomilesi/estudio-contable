@@ -42,6 +42,8 @@ export default function TesoreriaPage() {
   });
   const [selectedCheckIds, setSelectedCheckIds] = useState<string[]>([]);
 
+  const [selectedFilterAccount, setSelectedFilterAccount] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     type: 'INCOME',
@@ -152,27 +154,45 @@ export default function TesoreriaPage() {
 
       {/* Saldos Cards */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
-        <div className="rounded-xl border bg-white p-6 shadow-sm border-l-4 border-l-indigo-500">
+        <div 
+          onClick={() => setSelectedFilterAccount(null)}
+          className={`rounded-xl border bg-white p-6 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === null ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
+        >
           <h3 className="text-sm font-medium text-gray-700">Total Disponible</h3>
           <p className="mt-2 text-2xl font-bold text-gray-900">${saldoTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div 
+          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CAJA' ? null : 'CAJA')}
+          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'CAJA' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
+        >
           <h3 className="text-sm font-medium text-gray-700">Caja</h3>
           <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CAJA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div 
+          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CAJA IVA' ? null : 'CAJA IVA')}
+          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'CAJA IVA' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
+        >
           <h3 className="text-sm font-medium text-gray-700">Caja IVA</h3>
           <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CAJA IVA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div 
+          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'BANCOS FEDE' ? null : 'BANCOS FEDE')}
+          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'BANCOS FEDE' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
+        >
           <h3 className="text-sm font-medium text-gray-700">Bcos Fede</h3>
           <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['BANCOS FEDE'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div 
+          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'BANCOS JUANMA' ? null : 'BANCOS JUANMA')}
+          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'BANCOS JUANMA' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
+        >
           <h3 className="text-sm font-medium text-gray-700">Bcos Juanma</h3>
           <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['BANCOS JUANMA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div 
+          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CHEQUES' ? null : 'CHEQUES')}
+          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'CHEQUES' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
+        >
           <h3 className="text-sm font-medium text-gray-700">Cheques</h3>
           <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CHEQUES'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
@@ -348,12 +368,18 @@ export default function TesoreriaPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {isLoading ? (
-                  <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>
-                ) : transacciones.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">No hay movimientos.</td></tr>
-                ) : (
-                  transacciones.map((t) => (
+                {(() => {
+                  if (isLoading) return <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>;
+                  
+                  const displayedTransacciones = selectedFilterAccount 
+                    ? transacciones.filter(t => t.account === selectedFilterAccount)
+                    : transacciones;
+
+                  if (displayedTransacciones.length === 0) {
+                    return <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">No hay movimientos.</td></tr>;
+                  }
+
+                  return displayedTransacciones.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50">
                       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
                         {new Date(t.date).toLocaleDateString('es-AR')}
@@ -371,8 +397,8 @@ export default function TesoreriaPage() {
                         {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>
                     </tr>
-                  ))
-                )}
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
