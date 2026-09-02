@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProfessionalLabel {
+  F
+  FJ
+  JF
+}
+
+model Client {
+  id                String             @id @default(cuid())
+  code              String             @unique
+  name              String
+  address           String?
+  cuit              String?
+  email             String
+  cellphone         String?
+  contact           String?
+  professionalLabel ProfessionalLabel
+  currentFee        Float              @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  accountTransactions AccountTransaction[]
+  treasuryTransactions TreasuryTransaction[]
+}
+
+enum TransactionType {
+  CHARGE  // Cargo por abono mensual (Suma a la deuda)
+  PAYMENT // Pago de honorarios (Resta a la deuda)
+}
+
+model AccountTransaction {
+  id          String          @id @default(cuid())
+  clientId    String
+  client      Client          @relation(fields: [clientId], references: [id])
+  date        DateTime        @default(now())
+  type        TransactionType
+  amount      Float
+  description String?
+  createdAt   DateTime        @default(now())
+}
+
+enum TreasuryAccount {
+  CAJA
+  BANCOS
+  CHEQUES
+}
+
+enum TreasuryMovementType {
+  INCOME     // Cobros de honorarios
+  EXPENSE    // Gastos
+  WITHDRAWAL // Retiros de socios / Sueldos
+  TRANSFER   // Pases de caja
+}
+
+model TreasuryTransaction {
+  id          String               @id @default(cuid())
+  date        DateTime             @default(now())
+  account     TreasuryAccount
+  type        TreasuryMovementType
+  category    String               // e.g., "Gastos Sistemas", "Retiro Fede"
+  description String?
+  amount      Float
+  
+  // Si es un cobro, se asocia al cliente
+  clientId    String?
+  client      Client?              @relation(fields: [clientId], references: [id])
+  
+  createdAt   DateTime             @default(now())
+}
