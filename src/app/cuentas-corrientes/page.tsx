@@ -13,6 +13,7 @@ type Transaction = {
   type: 'CHARGE' | 'PAYMENT';
   amount: number;
   description: string;
+  runningBalance: number;
   paymentsApplied?: PaymentApplication[];
   chargesCovered?: PaymentApplication[];
 };
@@ -32,6 +33,7 @@ export default function CuentasCorrientesPage() {
   const [clientes, setClientes] = useState<ClientWithBalance[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'ALL' | 'PENDING'>('ALL');
 
   // Application Modal state
   const [applyingPayment, setApplyingPayment] = useState<Transaction | null>(null);
@@ -256,7 +258,7 @@ export default function CuentasCorrientesPage() {
       <div className="w-2/3 flex flex-col border rounded-xl bg-white shadow-sm overflow-hidden relative">
         {selectedClient ? (
           <>
-            <div className="p-6 border-b bg-gray-50 flex justify-between items-center">
+            <div className="p-6 border-b bg-gray-50 flex justify-between items-start">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{selectedClient.name}</h2>
                 <p className="text-sm text-gray-700 mt-1">
@@ -264,8 +266,24 @@ export default function CuentasCorrientesPage() {
                   Cargos impagos: <span className="font-semibold text-red-700">${selectedClient.unpaidCharges.toLocaleString('es-AR')}</span>
                 </p>
               </div>
-              <div className={`text-3xl font-black ${selectedClient.balance > 0 ? 'text-red-700' : selectedClient.balance < 0 ? 'text-green-700' : 'text-gray-900'}`}>
-                Saldo: ${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+              <div className="text-right">
+                <div className={`text-3xl font-black mb-2 ${selectedClient.balance > 0 ? 'text-red-700' : selectedClient.balance < 0 ? 'text-green-700' : 'text-gray-900'}`}>
+                  Saldo: ${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                </div>
+                <div className="inline-flex bg-gray-200 p-1 rounded-md">
+                  <button 
+                    onClick={() => setViewMode('ALL')}
+                    className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'ALL' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    Todos
+                  </button>
+                  <button 
+                    onClick={() => setViewMode('PENDING')}
+                    className={`px-3 py-1 text-xs font-bold rounded ${viewMode === 'PENDING' ? 'bg-white shadow text-gray-900' : 'text-gray-600 hover:text-gray-900'}`}
+                  >
+                    Composición de Saldos
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -277,14 +295,23 @@ export default function CuentasCorrientesPage() {
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Detalle</th>
                     <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Debe (Cargo)</th>
                     <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Haber (Pago)</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Saldo</th>
                     <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
-                  {selectedClient.transactions.length === 0 ? (
-                    <tr><td colSpan={5} className="p-8 text-center text-gray-500">No hay movimientos.</td></tr>
-                  ) : (
-                    selectedClient.transactions.map(tx => {
+                  {(() => {
+                    const displayedTransactions = selectedClient.transactions.filter(tx => {
+                      if (viewMode === 'ALL') return true;
+                      const applied = getAppliedAmount(tx);
+                      return applied < tx.amount; // Only keep pending ones
+                    });
+
+                    if (displayedTransactions.length === 0) {
+                      return <tr><td colSpan={6} className="p-8 text-center text-gray-500">No hay movimientos pendientes.</td></tr>;
+                    }
+
+                    return displayedTransactions.map(tx => {
                       const applied = getAppliedAmount(tx);
                       const isFullyApplied = applied >= tx.amount;
                       
@@ -301,6 +328,9 @@ export default function CuentasCorrientesPage() {
                           </td>
                           <td className="px-4 py-3 text-right text-sm font-semibold text-green-700">
                             {tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : ''}
+                          </td>
+                          <td className={`px-4 py-3 text-right text-sm font-bold ${tx.runningBalance > 0 ? 'text-red-700' : tx.runningBalance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
+                            ${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}
                           </td>
                           <td className="px-4 py-3 text-center text-sm">
                             {tx.type === 'CHARGE' ? (
@@ -326,8 +356,8 @@ export default function CuentasCorrientesPage() {
                           </td>
                         </tr>
                       )
-                    })
-                  )}
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>

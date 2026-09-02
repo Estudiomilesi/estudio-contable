@@ -36,6 +36,17 @@ export async function GET() {
         }
       });
 
+      let runningBalance = 0;
+      
+      // Sort ascending to calculate running balance
+      const sortedTransactions = [...client.accountTransactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      
+      const transactionsWithBalance = sortedTransactions.map(tx => {
+        if (tx.type === 'CHARGE') runningBalance += tx.amount;
+        else runningBalance -= tx.amount;
+        return { ...tx, runningBalance };
+      });
+
       return {
         id: client.id,
         code: client.code,
@@ -44,7 +55,7 @@ export async function GET() {
         balance,
         unappliedPayments,
         unpaidCharges,
-        transactions: client.accountTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        transactions: transactionsWithBalance.reverse() // Return newest first for the UI
       };
     });
 
