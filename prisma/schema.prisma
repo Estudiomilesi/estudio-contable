@@ -51,6 +51,7 @@ model AccountTransaction {
   type        TransactionType
   amount      Float
   description String?
+  dueDate     DateTime?
   createdAt   DateTime        @default(now())
 
   // Relaciones para composición de saldos

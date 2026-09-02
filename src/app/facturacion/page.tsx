@@ -26,6 +26,18 @@ export default function FacturacionPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [billingDate, setBillingDate] = useState(() => new Date().toISOString().split('T')[0]);
   
+  const [activeTab, setActiveTab] = useState<'ABONOS' | 'INDIVIDUAL'>('ABONOS');
+
+  // Estado para la nueva solapa
+  const [indForm, setIndForm] = useState({
+    clientId: '',
+    date: new Date().toISOString().split('T')[0],
+    dueDate: new Date().toISOString().split('T')[0],
+    concept: '',
+    amount: ''
+  });
+  const [isSubmittingInd, setIsSubmittingInd] = useState(false);
+
   // Sorting state
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
@@ -165,6 +177,35 @@ export default function FacturacionPage() {
     }
   };
 
+  const handleIndividualSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingInd(true);
+    try {
+      const res = await fetch('/api/facturacion/individual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(indForm)
+      });
+      if (res.ok) {
+        alert('Comprobante emitido exitosamente');
+        setIndForm({
+          ...indForm,
+          concept: '',
+          amount: ''
+        });
+        fetchClientes(); // Refresh
+      } else {
+        const err = await res.json();
+        alert('Error: ' + (err.error || 'Error al emitir'));
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error de red');
+    } finally {
+      setIsSubmittingInd(false);
+    }
+  };
+
   // Extraer los últimos 12 meses (agrupados por fecha de transacción para los headers de la tabla)
   // En un caso real se agruparía por mes, aquí extraemos las fechas únicas recientes de las transacciones.
   const historyDates = useMemo(() => {
@@ -196,8 +237,28 @@ export default function FacturacionPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Abonos</h1>
+      <div className="flex items-center justify-between border-b pb-2">
+        <h1 className="text-2xl font-bold tracking-tight">Facturación</h1>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setActiveTab('ABONOS')} 
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'ABONOS' ? 'bg-white border-t border-x border-gray-200 text-indigo-700 shadow-sm relative top-[9px]' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            Abonos Mensuales
+          </button>
+          <button 
+            onClick={() => setActiveTab('INDIVIDUAL')} 
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${activeTab === 'INDIVIDUAL' ? 'bg-white border-t border-x border-gray-200 text-indigo-700 shadow-sm relative top-[9px]' : 'text-gray-500 hover:bg-gray-50'}`}
+          >
+            Facturación Individual
+          </button>
+        </div>
+      </div>
+
+      {activeTab === 'ABONOS' && (
+        <>
+          <div className="flex items-center justify-between mt-6">
+            <h2 className="text-lg font-semibold text-gray-700">Facturación Masiva de Abonos</h2>
         <div className="flex items-center gap-3">
           <input 
             type="date" 
@@ -356,6 +417,93 @@ export default function FacturacionPage() {
           </table>
         </div>
       </div>
+        </>
+      )}
+
+      {activeTab === 'INDIVIDUAL' && (
+        <div className="max-w-2xl mx-auto mt-8">
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-xl font-bold text-gray-800 mb-6">Emitir Comprobante Individual</h2>
+            
+            <form onSubmit={handleIndividualSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
+                <select 
+                  required
+                  value={indForm.clientId}
+                  onChange={e => setIndForm({...indForm, clientId: e.target.value})}
+                  className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="">-- Seleccionar Cliente --</option>
+                  {clientes.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Comprobante</label>
+                  <input 
+                    type="date" 
+                    required
+                    value={indForm.date}
+                    onChange={e => setIndForm({...indForm, date: e.target.value, dueDate: e.target.value})} // Al cambiar fecha, por defecto cambia vencimiento
+                    className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de Vencimiento</label>
+                  <input 
+                    type="date" 
+                    required
+                    value={indForm.dueDate}
+                    onChange={e => setIndForm({...indForm, dueDate: e.target.value})}
+                    className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Concepto / Descripción del Trabajo</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="Ej: Certificación de ingresos, Balance anual..."
+                  value={indForm.concept}
+                  onChange={e => setIndForm({...indForm, concept: e.target.value})}
+                  className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Importe ($)</label>
+                <input 
+                  type="number" 
+                  required
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={indForm.amount}
+                  onChange={e => setIndForm({...indForm, amount: e.target.value})}
+                  className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold text-lg"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-gray-100 mt-6">
+                <button 
+                  type="submit"
+                  disabled={isSubmittingInd}
+                  className="w-full rounded-lg bg-indigo-600 py-3 px-4 text-white font-bold hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 transition-colors"
+                >
+                  {isSubmittingInd ? 'Emitiendo...' : 'Emitir y Cargar a Cuenta Corriente'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

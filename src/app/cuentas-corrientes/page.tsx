@@ -13,6 +13,7 @@ type Transaction = {
   type: 'CHARGE' | 'PAYMENT';
   amount: number;
   description: string;
+  dueDate?: string | null;
   runningBalance: number;
   paymentsApplied?: PaymentApplication[];
   chargesCovered?: PaymentApplication[];
@@ -292,6 +293,7 @@ export default function CuentasCorrientesPage() {
                 <thead className="bg-gray-100 sticky top-0">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Fecha</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Vto.</th>
                     <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Detalle</th>
                     <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Debe (Cargo)</th>
                     <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Haber (Pago)</th>
@@ -308,7 +310,7 @@ export default function CuentasCorrientesPage() {
                     });
 
                     if (displayedTransactions.length === 0) {
-                      return <tr><td colSpan={6} className="p-8 text-center text-gray-500">No hay movimientos pendientes.</td></tr>;
+                      return <tr><td colSpan={7} className="p-8 text-center text-gray-500">No hay movimientos pendientes.</td></tr>;
                     }
 
                     return displayedTransactions.map(tx => {
@@ -319,6 +321,13 @@ export default function CuentasCorrientesPage() {
                         <tr key={tx.id} className="hover:bg-gray-50">
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
                             {new Date(tx.date).toLocaleDateString('es-AR')}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
+                            {tx.type === 'CHARGE' ? (
+                              <span className={((tx.dueDate && new Date(tx.dueDate) < new Date()) || (!tx.dueDate && new Date(tx.date) < new Date())) && !isFullyApplied ? 'text-red-600' : 'text-gray-700'}>
+                                {new Date(tx.dueDate || tx.date).toLocaleDateString('es-AR')}
+                              </span>
+                            ) : '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
                             {tx.description}
