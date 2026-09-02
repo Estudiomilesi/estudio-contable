@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { clientId, date, dueDate, concept, amount } = body;
+    const { clientId, date, dueDate, concept, amount, comprobanteType } = body;
 
-    if (!clientId || !date || !concept || !amount) {
+    if (!clientId || !date || !concept || !amount || !comprobanteType) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
 
@@ -21,11 +21,11 @@ export async function POST(request: Request) {
     const transaction = await prisma.accountTransaction.create({
       data: {
         clientId,
-        type: 'CHARGE',
+        type: comprobanteType === 'NOTA_CREDITO' ? 'PAYMENT' : 'CHARGE',
         amount: parsedAmount,
         date: txDate,
-        dueDate: txDueDate,
-        description: concept,
+        dueDate: comprobanteType === 'NOTA_CREDITO' ? null : txDueDate,
+        description: comprobanteType === 'NOTA_CREDITO' ? `NC: ${concept}` : concept,
       }
     });
 

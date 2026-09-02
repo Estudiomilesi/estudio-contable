@@ -13,6 +13,7 @@ export default function Sidebar() {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Clientes', path: '/clientes', icon: Users },
     { name: 'Abonos', path: '/facturacion', icon: FileText },
+    { name: 'Comprobantes', path: '/comprobantes', icon: FileText },
     { name: 'Cuentas Corrientes', path: '/cuentas-corrientes', icon: UserCheck },
     { name: 'Tesorería', path: '/tesoreria', icon: Wallet },
     { name: 'Reportes', path: '/reportes', icon: BarChart3 },
