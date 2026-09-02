@@ -1,33 +1,81 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/mailer';
 
 export async function POST(request: Request) {
   try {
     const data = await request.json();
     const description = data.description || 'Abono Mensual';
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+    
+    const now = new Date();
+    const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const mesActual = meses[now.getMonth()];
+    const anoActual = now.getFullYear();
+    const periodoStr = `${mesActual} ${anoActual}`;
 
     // Obtener todos los clientes con abono mayor a 0
     const clientes = await prisma.client.findMany({
       where: { currentFee: { gt: 0 } }
     });
 
-    // Validar si ya se facturó este mes? Opcional. 
-    // Para simplificar, insertamos los cargos.
-    const transacciones = clientes.map(cliente => ({
-      clientId: cliente.id,
-      type: 'CHARGE' as const,
-      amount: cliente.currentFee,
-      description: `${description} - ${currentMonth}`
-    }));
+    let emailsEnviados = 0;
+    const transacciones = [];
 
-    await prisma.accountTransaction.createMany({
-      data: transacciones
-    });
+    for (const cliente of clientes) {
+      // Registrar transaccion
+      const transaccion = await prisma.accountTransaction.create({
+        data: {
+          clientId: cliente.id,
+          type: 'CHARGE',
+          amount: cliente.currentFee,
+          description: `${description} - ${periodoStr}`
+        }
+      });
+      transacciones.push(transaccion);
 
-    return NextResponse.json({ message: `Se facturó exitosamente a ${transacciones.length} clientes.` }, { status: 200 });
+      // Enviar email si tiene un email válido (asumimos que tienen email)
+      if (cliente.email && cliente.email !== 'falta@email.com') {
+        const correosDestino = cliente.email.split(',').map(e => e.trim()).join(', ');
+        
+        const htmlEmail = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
+            <h2 style="color: #333;">Comprobante de Abono Mensual</h2>
+            <p>Estimado/a <strong>${cliente.name}</strong>,</p>
+            <p>Le enviamos el detalle del abono correspondiente al mes en curso.</p>
+            
+            <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Período:</strong> ${periodoStr}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Concepto:</strong> Honorarios Contables - Abono Mensual</p>
+              <p style="margin: 0; font-size: 18px;"><strong>Importe a abonar:</strong> $${cliente.currentFee.toLocaleString('es-AR')}</p>
+            </div>
+            
+            <p>Por favor, recuerde enviar el comprobante de transferencia o pago una vez realizado.</p>
+            <p>Ante cualquier duda, estamos a su disposición.</p>
+            
+            <br/>
+            <p style="color: #666; font-size: 14px;">Atentamente,<br/><strong>Estudio Milesi</strong></p>
+          </div>
+        `;
+
+        try {
+          await sendEmail(
+            correosDestino, 
+            `Abono Mensual Estudio Milesi - ${periodoStr} - ${cliente.name}`, 
+            htmlEmail
+          );
+          emailsEnviados++;
+        } catch (mailErr) {
+          console.error(`Error enviando email a ${cliente.email}:`, mailErr);
+        }
+      }
+    }
+
+    return NextResponse.json({ 
+      message: `Se facturó a ${transacciones.length} clientes y se enviaron ${emailsEnviados} correos electrónicos automáticamente.` 
+    }, { status: 200 });
+
   } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ error: 'Error al procesar facturación masiva' }, { status: 500 });
+    return NextResponse.json({ error: 'Error al procesar facturación masiva y enviar correos' }, { status: 500 });
   }
 }
