@@ -51,6 +51,23 @@ model AccountTransaction {
   amount      Float
   description String?
   createdAt   DateTime        @default(now())
+
+  // Relaciones para composición de saldos
+  paymentsApplied PaymentApplication[] @relation("ChargeApplications")
+  chargesCovered  PaymentApplication[] @relation("PaymentApplications")
+}
+
+model PaymentApplication {
+  id        String   @id @default(cuid())
+  
+  chargeId  String
+  charge    AccountTransaction @relation("ChargeApplications", fields: [chargeId], references: [id])
+  
+  paymentId String
+  payment   AccountTransaction @relation("PaymentApplications", fields: [paymentId], references: [id])
+  
+  amount    Float
+  createdAt DateTime @default(now())
 }
 
 enum TreasuryAccount {

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { LayoutDashboard, Users, FileText, Wallet, BarChart3, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Wallet, BarChart3, UserCheck, ChevronRight, ChevronLeft } from 'lucide-react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -13,6 +13,7 @@ export default function Sidebar() {
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'Clientes', path: '/clientes', icon: Users },
     { name: 'Abonos', path: '/facturacion', icon: FileText },
+    { name: 'Cuentas Corrientes', path: '/cuentas-corrientes', icon: UserCheck },
     { name: 'Tesorería', path: '/tesoreria', icon: Wallet },
     { name: 'Reportes', path: '/reportes', icon: BarChart3 },
   ];

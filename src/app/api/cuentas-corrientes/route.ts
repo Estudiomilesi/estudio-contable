@@ -1,0 +1,56 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+
+export async function GET() {
+  try {
+    const clients = await prisma.client.findMany({
+      include: {
+        accountTransactions: {
+          include: {
+            paymentsApplied: true,
+            chargesCovered: true
+          }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    const clientsWithBalances = clients.map(client => {
+      let balance = 0; // Positive means debt (owes us), Negative means favor (we owe them)
+      let unappliedPayments = 0;
+      let unpaidCharges = 0;
+
+      client.accountTransactions.forEach(tx => {
+        if (tx.type === 'CHARGE') {
+          balance += tx.amount;
+          const appliedToThis = tx.paymentsApplied.reduce((sum, app) => sum + app.amount, 0);
+          if (appliedToThis < tx.amount) {
+            unpaidCharges += (tx.amount - appliedToThis);
+          }
+        } else { // PAYMENT
+          balance -= tx.amount;
+          const usedFromThis = tx.chargesCovered.reduce((sum, app) => sum + app.amount, 0);
+          if (usedFromThis < tx.amount) {
+            unappliedPayments += (tx.amount - usedFromThis);
+          }
+        }
+      });
+
+      return {
+        id: client.id,
+        code: client.code,
+        name: client.name,
+        professionalLabel: client.professionalLabel,
+        balance,
+        unappliedPayments,
+        unpaidCharges,
+        transactions: client.accountTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      };
+    });
+
+    return NextResponse.json(clientsWithBalances);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Error al obtener cuentas corrientes' }, { status: 500 });
+  }
+}
