@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         account: data.account, // CAJA | BANCOS | CHEQUES
         category: data.category, // Honorarios, Gastos, Retiro Fede, etc
         description: data.description || null,
-        referenceId: data.referenceId || null,
+        clientId: data.clientId || null,
       }
     });
 
@@ -51,7 +51,6 @@ export async function POST(request: Request) {
           type: 'PAYMENT',
           amount: parseFloat(data.amount),
           description: `Pago ingresado en ${data.account} - ${data.description || ''}`,
-          treasuryTransactionId: nuevaTransaccion.id
         }
       });
     }
