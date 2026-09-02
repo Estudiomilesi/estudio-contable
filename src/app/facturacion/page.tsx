@@ -27,7 +27,7 @@ export default function FacturacionPage() {
   const [billingDate, setBillingDate] = useState(() => new Date().toISOString().split('T')[0]);
   
   // Sorting state
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
 
   const fetchClientes = async () => {

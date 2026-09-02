@@ -38,7 +38,7 @@ export default function ClientesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState(initialForm);
   const [isEditing, setIsEditing] = useState(false);
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -153,18 +153,18 @@ export default function ClientesPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Gestión de Clientes</h1>
       </div>
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {/* Formulario */}
-        <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm">
+        <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm sticky top-6 h-fit max-h-[calc(100vh-40px)] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">{isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
             {isEditing && (
-              <button type="button" onClick={() => { setIsEditing(false); setFormData(initialForm); }} className="text-sm text-gray-700 hover:text-gray-700">
+              <button type="button" onClick={() => { setIsEditing(false); setFormData(initialForm); }} className="text-sm text-gray-500 hover:text-gray-700">
                 Cancelar Edición
               </button>
             )}
@@ -234,20 +234,20 @@ export default function ClientesPage() {
         </div>
 
         {/* Tabla */}
-        <div className="col-span-1 md:col-span-2 rounded-xl border bg-white shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="col-span-1 md:col-span-2 rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col h-[calc(100vh-100px)]">
+          <div className="overflow-x-auto flex-1 p-0">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('code')}>Cód</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('name')}>Nombre</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('professionalLabel')}>Etiqueta</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('currentFee')}>Abono</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('isActive')}>Estado</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('professionalLabel')}>Etiqueta</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('isActive')}>Estado</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {isLoading ? (
                   <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-700">Cargando...</td></tr>
                 ) : sortedClientes.length === 0 ? (
