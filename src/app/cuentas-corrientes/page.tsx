@@ -38,6 +38,9 @@ export default function CuentasCorrientesPage() {
   const [targetChargeId, setTargetChargeId] = useState<string>('');
   const [applyAmount, setApplyAmount] = useState<string>('');
 
+  const [sortConfig, setSortConfig] = useState<{ key: keyof ClientWithBalance, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
+  const [filterLabel, setFilterLabel] = useState<string>('ALL');
+
   const fetchClientes = async () => {
     setIsLoading(true);
     try {
@@ -54,6 +57,56 @@ export default function CuentasCorrientesPage() {
   useEffect(() => {
     fetchClientes();
   }, []);
+
+  const filteredAndSortedClientes = useMemo(() => {
+    let result = [...clientes];
+    
+    if (filterLabel !== 'ALL') {
+      result = result.filter(c => c.professionalLabel === filterLabel);
+    }
+
+    if (sortConfig !== null) {
+      result.sort((a, b) => {
+        let aValue: any = a[sortConfig.key];
+        let bValue: any = b[sortConfig.key];
+        
+        if (sortConfig.key === 'code' || sortConfig.key === 'balance') {
+          const aNum = parseFloat(aValue as string);
+          const bNum = parseFloat(bValue as string);
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            aValue = aNum;
+            bValue = bNum;
+          }
+        } else if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = (bValue as string).toLowerCase();
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
+  }, [clientes, sortConfig, filterLabel]);
+
+  const requestSort = (key: keyof ClientWithBalance) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const listTotals = useMemo(() => {
+    let debt = 0; // Lo que nos deben
+    let credit = 0; // Lo que debemos
+    filteredAndSortedClientes.forEach(c => {
+      if (c.balance > 0) debt += c.balance;
+      else if (c.balance < 0) credit += Math.abs(c.balance);
+    });
+    return { debt, credit, total: debt - credit };
+  }, [filteredAndSortedClientes]);
 
   const selectedClient = useMemo(() => {
     return clientes.find(c => c.id === selectedClientId) || null;
@@ -108,38 +161,89 @@ export default function CuentasCorrientesPage() {
     <div className="flex h-[calc(100vh-100px)] gap-6">
       {/* Columna Izquierda: Lista de clientes */}
       <div className="w-1/3 flex flex-col border rounded-xl bg-white shadow-sm overflow-hidden">
-        <div className="p-4 border-b bg-gray-50">
-          <h2 className="font-bold text-gray-800 text-lg">Cuentas Corrientes</h2>
-        </div>
-        <div className="overflow-y-auto flex-1">
-          {isLoading ? (
-            <div className="p-4 text-center text-gray-500">Cargando...</div>
-          ) : (
-            <ul className="divide-y divide-gray-100">
-              {clientes.map(c => (
-                <li 
-                  key={c.id} 
-                  onClick={() => setSelectedClientId(c.id)}
-                  className={`p-4 cursor-pointer hover:bg-indigo-50 transition-colors ${selectedClientId === c.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : ''}`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="font-bold text-gray-900">{c.name}</span>
-                      <div className="text-xs text-gray-500 mt-1">Cód: {c.code} | Etiq: {c.professionalLabel}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className={`font-bold ${c.balance > 0 ? 'text-red-700' : c.balance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
+        <div className="overflow-y-auto flex-1 p-0">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
+              <tr>
+                <th colSpan={3} className="px-3 py-3 border-b border-gray-200 bg-gray-50 text-left text-lg font-bold text-gray-800">
+                  Cuentas Corrientes
+                </th>
+              </tr>
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>
+                  Cliente
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-bold text-gray-700 uppercase">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiq</span>
+                    <select 
+                      value={filterLabel} 
+                      onChange={e => setFilterLabel(e.target.value)}
+                      className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-4"
+                    >
+                      <option value="ALL">Todas</option>
+                      <option value="F">F</option>
+                      <option value="FJ">FJ</option>
+                      <option value="JF">JF</option>
+                    </select>
+                  </div>
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 uppercase cursor-pointer hover:bg-gray-200" onClick={() => requestSort('balance')}>
+                  Saldo
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {isLoading ? (
+                <tr><td colSpan={3} className="p-4 text-center text-gray-500">Cargando...</td></tr>
+              ) : filteredAndSortedClientes.length === 0 ? (
+                <tr><td colSpan={3} className="p-4 text-center text-gray-500">No hay clientes.</td></tr>
+              ) : (
+                filteredAndSortedClientes.map(c => (
+                  <tr 
+                    key={c.id} 
+                    onClick={() => setSelectedClientId(c.id)}
+                    className={`cursor-pointer hover:bg-indigo-50 transition-colors ${selectedClientId === c.id ? 'bg-indigo-50 border-l-4 border-indigo-600' : 'border-l-4 border-transparent'}`}
+                  >
+                    <td className="px-3 py-2 text-sm text-gray-900 font-medium">
+                      <span className="text-gray-500 text-xs mr-1">[{c.code}]</span>
+                      {c.name}
+                    </td>
+                    <td className="px-3 py-2 text-center">
+                      <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        c.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
+                        c.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
+                        'bg-blue-200 text-blue-900'
+                      }`}>
+                        {c.professionalLabel}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <div className={`text-sm font-bold ${c.balance > 0 ? 'text-red-700' : c.balance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
                         ${Math.abs(c.balance).toLocaleString('es-AR', {minimumFractionDigits: 2})}
                       </div>
-                      <div className="text-[10px] uppercase font-semibold text-gray-500">
-                        {c.balance > 0 ? 'Deudor' : c.balance < 0 ? 'A Favor' : 'Saldado'}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            <tfoot className="bg-gray-100 font-bold sticky bottom-0 z-10 border-t-2 border-gray-300 text-xs">
+              <tr>
+                <td colSpan={2} className="px-3 py-1 text-right text-red-800">A Cobrar</td>
+                <td className="px-3 py-1 text-right text-red-900">${listTotals.debt.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="px-3 py-1 text-right text-green-800">Saldos a Favor</td>
+                <td className="px-3 py-1 text-right text-green-900">${listTotals.credit.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+              </tr>
+              <tr>
+                <td colSpan={2} className="px-3 py-1.5 text-right text-gray-800 border-t border-gray-300">Total Neto</td>
+                <td className={`px-3 py-1.5 text-right border-t border-gray-300 ${listTotals.total > 0 ? 'text-red-900' : listTotals.total < 0 ? 'text-green-900' : 'text-gray-900'}`}>
+                  ${Math.abs(listTotals.total).toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
 
