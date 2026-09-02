@@ -30,6 +30,7 @@ export async function POST(request: Request) {
         email: data.email,
         cellphone: data.cellphone || null,
         contact: data.contact || null,
+        fiscalCondition: data.fiscalCondition || null,
         professionalLabel: data.professionalLabel,
         currentFee: parseFloat(data.currentFee || 0),
       },

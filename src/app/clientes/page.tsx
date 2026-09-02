@@ -116,6 +116,10 @@ export default function ClientesPage() {
                   <input type="text" value={formData.cuit} onChange={e => setFormData({...formData, cuit: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm" />
                 </div>
                 <div>
+                  <label className="block text-xs font-medium text-gray-700">Condición Fiscal</label>
+                  <input type="text" value={(formData as any).fiscalCondition || ''} onChange={e => setFormData({...formData, fiscalCondition: e.target.value} as any)} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm" />
+                </div>
+                <div>
                   <label className="block text-xs font-medium text-gray-700">Celular</label>
                   <input type="text" value={formData.cellphone} onChange={e => setFormData({...formData, cellphone: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm" />
                 </div>

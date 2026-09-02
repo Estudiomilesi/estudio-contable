@@ -26,6 +26,7 @@ model Client {
   email             String
   cellphone         String?
   contact           String?
+  fiscalCondition   String?
   professionalLabel ProfessionalLabel
   currentFee        Float              @default(0)
   createdAt         DateTime           @default(now())
