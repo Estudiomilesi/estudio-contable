@@ -236,9 +236,9 @@ export default function FacturacionPage() {
                     className="rounded border-gray-300 text-indigo-600"
                   />
                 </th>
-                <th className="px-2 py-2 text-left font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
-                <th className="px-2 py-2 text-left font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Cliente</th>
-                <th className="px-2 py-2 text-center font-medium text-gray-600">
+                <th className="px-2 py-2 text-left font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
+                <th className="px-2 py-2 text-left font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Cliente</th>
+                <th className="px-2 py-2 text-center font-medium text-gray-800">
                   <div className="flex items-center justify-center gap-1">
                     <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiq</span>
                     <select 
@@ -253,15 +253,15 @@ export default function FacturacionPage() {
                     </select>
                   </div>
                 </th>
-                <th className="px-2 py-2 text-right font-medium text-gray-600 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Actual</th>
+                <th className="px-2 py-2 text-right font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Actual</th>
                 {historyDates.map(date => (
-                  <th key={date} className="px-2 py-2 text-right font-medium text-gray-500 whitespace-nowrap">{date}</th>
+                  <th key={date} className="px-2 py-2 text-right font-medium text-gray-700 whitespace-nowrap">{date}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={5 + historyDates.length} className="px-2 py-8 text-center text-gray-500">Cargando...</td></tr>
+                <tr><td colSpan={5 + historyDates.length} className="px-2 py-8 text-center text-gray-700">Cargando...</td></tr>
               ) : (
                 filteredAndSortedClientes.map((c) => {
                   const currentValue = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
@@ -302,7 +302,7 @@ export default function FacturacionPage() {
                         // Buscar si el cliente tiene un cargo en este mes
                         const tx = c.accountTransactions?.find(t => t.date.startsWith(month));
                         return (
-                          <td key={month} className="px-2 py-1 whitespace-nowrap text-right text-gray-600 font-semibold">
+                          <td key={month} className="px-2 py-1 whitespace-nowrap text-right text-gray-800 font-semibold">
                             {tx ? tx.amount.toLocaleString('es-AR') : '-'}
                           </td>
                         );
@@ -318,7 +318,7 @@ export default function FacturacionPage() {
                 <td colSpan={3} className="px-2 py-2 text-right">
                   Totales ({totales.countGeneral} Abonos)
                 </td>
-                <td className="px-2 py-2 text-center text-gray-500">100%</td>
+                <td className="px-2 py-2 text-center text-gray-700">100%</td>
                 <td className="px-2 py-2 text-right text-indigo-900">{totales.General.toLocaleString('es-AR')}</td>
                 <td colSpan={historyDates.length}></td>
               </tr>

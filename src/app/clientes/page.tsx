@@ -164,7 +164,7 @@ export default function ClientesPage() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">{isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}</h2>
             {isEditing && (
-              <button type="button" onClick={() => { setIsEditing(false); setFormData(initialForm); }} className="text-sm text-gray-500 hover:text-gray-700">
+              <button type="button" onClick={() => { setIsEditing(false); setFormData(initialForm); }} className="text-sm text-gray-700 hover:text-gray-700">
                 Cancelar Edición
               </button>
             )}
@@ -202,7 +202,7 @@ export default function ClientesPage() {
               </div>
             </div>
             {/* Opcionales */}
-            <details className="text-sm text-gray-600" open={isEditing}>
+            <details className="text-sm text-gray-800" open={isEditing}>
               <summary className="cursor-pointer font-medium text-indigo-600">Más opciones (Opcional)</summary>
               <div className="mt-4 space-y-4">
                 <div>
@@ -239,33 +239,33 @@ export default function ClientesPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('code')}>Cód</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('name')}>Nombre</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('professionalLabel')}>Etiqueta</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('currentFee')}>Abono</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('isActive')}>Estado</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('code')}>Cód</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('name')}>Nombre</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('professionalLabel')}>Etiqueta</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('currentFee')}>Abono</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onClick={() => requestSort('isActive')}>Estado</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
-                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-500">Cargando...</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-700">Cargando...</td></tr>
                 ) : sortedClientes.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-500">No hay clientes registrados.</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-700">No hay clientes registrados.</td></tr>
                 ) : (
                   sortedClientes.map((c) => (
                     <tr key={c.id} className={!c.isActive ? 'opacity-50 bg-gray-50' : ''}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{c.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${c.professionalLabel === 'F' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
                           {c.professionalLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
                         ${c.currentFee.toLocaleString('es-AR')}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {c.isActive ? (
                           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500"></span> Activo</span>
                         ) : (

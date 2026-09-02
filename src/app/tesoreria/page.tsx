@@ -84,19 +84,19 @@ export default function TesoreriaPage() {
       {/* Saldos Cards */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <div className="rounded-xl border bg-white p-6 shadow-sm border-l-4 border-l-indigo-500">
-          <h3 className="text-sm font-medium text-gray-500">Total Disponible</h3>
+          <h3 className="text-sm font-medium text-gray-700">Total Disponible</h3>
           <p className="mt-2 text-3xl font-bold text-gray-900">${saldoTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
         </div>
         <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Caja</h3>
+          <h3 className="text-sm font-medium text-gray-700">Caja</h3>
           <p className="mt-2 text-2xl font-semibold text-gray-700">${saldos.CAJA.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
         <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Bancos</h3>
+          <h3 className="text-sm font-medium text-gray-700">Bancos</h3>
           <p className="mt-2 text-2xl font-semibold text-gray-700">${saldos.BANCOS.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
         <div className="rounded-xl border bg-white p-6 shadow-sm">
-          <h3 className="text-sm font-medium text-gray-500">Cheques</h3>
+          <h3 className="text-sm font-medium text-gray-700">Cheques</h3>
           <p className="mt-2 text-2xl font-semibold text-gray-700">${saldos.CHEQUES.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
         </div>
       </div>
@@ -186,21 +186,21 @@ export default function TesoreriaPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cuenta</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Categoría / Detalle</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Importe</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Fecha</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Cuenta</th>
+                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Categoría / Detalle</th>
+                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Importe</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {isLoading ? (
-                  <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-500">Cargando...</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>
                 ) : transacciones.length === 0 ? (
-                  <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-500">No hay movimientos.</td></tr>
+                  <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">No hay movimientos.</td></tr>
                 ) : (
                   transacciones.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
                         {new Date(t.date).toLocaleDateString('es-AR')}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm">
@@ -210,7 +210,7 @@ export default function TesoreriaPage() {
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-900">
                         <div className="font-medium">{t.category}</div>
-                        <div className="text-gray-500 text-xs truncate max-w-xs" title={t.description || ''}>{t.description}</div>
+                        <div className="text-gray-700 text-xs truncate max-w-xs" title={t.description || ''}>{t.description}</div>
                       </td>
                       <td className={`px-4 py-2 whitespace-nowrap text-right text-sm font-bold ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
