@@ -5,7 +5,10 @@ import { recalculatePaymentIva } from '@/lib/iva';
 export async function GET() {
   try {
     const allTxs = await prisma.treasuryTransaction.findMany({
-      orderBy: { date: 'asc' },
+      orderBy: [
+        { date: 'asc' },
+        { createdAt: 'asc' }
+      ],
       include: { client: true }
     });
 
