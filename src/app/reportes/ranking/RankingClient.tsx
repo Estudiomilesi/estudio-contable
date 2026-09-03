@@ -79,9 +79,9 @@ export default function RankingClient({ data, months, isFacturado }: { data: Row
       </div>
 
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[70vh]">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0">
+            <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('name')}>
                   Cliente {renderSortIcon('name')}
