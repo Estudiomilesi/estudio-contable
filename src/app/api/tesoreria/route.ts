@@ -103,7 +103,7 @@ export async function POST(request: Request) {
 
     // Si es un ingreso por "Honorarios" y tiene un clientId asociado, registrar el pago en cuenta corriente
     if (data.type === 'INCOME' && data.category === 'Honorarios' && data.clientId) {
-      await prisma.accountTransaction.create({
+      const accountTx = await prisma.accountTransaction.create({
         data: {
           clientId: data.clientId,
           date: data.date ? new Date(data.date) : new Date(),
@@ -112,6 +112,36 @@ export async function POST(request: Request) {
           description: `Pago ingresado en ${data.account} - ${data.description || ''}`,
         }
       });
+
+      // Si nos pasaron cargos seleccionados desde Tesorería, aplicar el pago a esos cargos
+      if (data.selectedChargeIds && Array.isArray(data.selectedChargeIds) && data.selectedChargeIds.length > 0) {
+        const charges = await prisma.accountTransaction.findMany({
+          where: { id: { in: data.selectedChargeIds } },
+          include: { paymentsApplied: true },
+          orderBy: { date: 'asc' }
+        });
+
+        let remainingPayment = Math.abs(txAmount);
+
+        for (const charge of charges) {
+          if (remainingPayment <= 0.001) break;
+
+          const appliedToCharge = charge.paymentsApplied.reduce((sum, app) => sum + app.amount, 0);
+          const chargeDebt = charge.amount - appliedToCharge;
+
+          if (chargeDebt > 0.001) {
+            const amountToApply = Math.min(remainingPayment, chargeDebt);
+            await prisma.paymentApplication.create({
+              data: {
+                chargeId: charge.id,
+                paymentId: accountTx.id,
+                amount: amountToApply
+              }
+            });
+            remainingPayment -= amountToApply;
+          }
+        }
+      }
     }
 
     return NextResponse.json(nuevaTransaccion, { status: 201 });

@@ -33,7 +33,6 @@ export default function TesoreriaPage() {
   const [cartera, setCartera] = useState<Check[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Estados para Cheques
   const [checkDetails, setCheckDetails] = useState({
     number: '',
     bank: '',
@@ -41,6 +40,11 @@ export default function TesoreriaPage() {
     dueDate: new Date().toISOString().split('T')[0]
   });
   const [selectedCheckIds, setSelectedCheckIds] = useState<string[]>([]);
+
+  // Estados para Cuentas Corrientes (Aplicar pagos)
+  const [pendingCharges, setPendingCharges] = useState<any[]>([]);
+  const [selectedChargeIds, setSelectedChargeIds] = useState<Set<string>>(new Set());
+  const [isFetchingCharges, setIsFetchingCharges] = useState(false);
 
   const [selectedFilterAccount, setSelectedFilterAccount] = useState<string | null>(null);
 
@@ -77,6 +81,46 @@ export default function TesoreriaPage() {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (formData.clientId && formData.type === 'INCOME' && formData.category === 'Honorarios') {
+      const fetchCharges = async () => {
+        setIsFetchingCharges(true);
+        try {
+          const res = await fetch(`/api/cuentas-corrientes/pendientes/${formData.clientId}`);
+          if (res.ok) {
+            const data = await res.json();
+            setPendingCharges(data);
+          }
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setIsFetchingCharges(false);
+        }
+      };
+      fetchCharges();
+    } else {
+      setPendingCharges([]);
+    }
+    setSelectedChargeIds(new Set());
+  }, [formData.clientId, formData.type, formData.category]);
+
+  const toggleChargeSelection = (id: string) => {
+    const newSet = new Set(selectedChargeIds);
+    if (newSet.has(id)) newSet.delete(id);
+    else newSet.add(id);
+    setSelectedChargeIds(newSet);
+    
+    // Opcional: auto-sumar el importe
+    let total = 0;
+    newSet.forEach(chargeId => {
+      const charge = pendingCharges.find(c => c.id === chargeId);
+      if (charge) total += charge.debt;
+    });
+    if (total > 0 && formData.account !== 'CHEQUES') {
+      setFormData(prev => ({ ...prev, amount: total.toString() }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -86,7 +130,8 @@ export default function TesoreriaPage() {
         ...formData, 
         amount,
         checkDetails: formData.account === 'CHEQUES' && formData.type === 'INCOME' ? checkDetails : undefined,
-        selectedCheckIds: formData.account === 'CHEQUES' && formData.type !== 'INCOME' ? selectedCheckIds : undefined
+        selectedCheckIds: formData.account === 'CHEQUES' && formData.type !== 'INCOME' ? selectedCheckIds : undefined,
+        selectedChargeIds: Array.from(selectedChargeIds)
       };
 
       const res = await fetch('/api/tesoreria', {
@@ -330,14 +375,60 @@ export default function TesoreriaPage() {
             </div>
 
             {formData.category === 'Honorarios' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Cliente (Para Cta. Corriente y Origen del Cheque)</label>
-                <select value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                  <option value="">-- Seleccionar Cliente --</option>
-                  {clientes.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Cliente (Para Cta. Corriente y Origen del Cheque)</label>
+                  <select value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">-- Seleccionar Cliente --</option>
+                    {clientes.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {formData.clientId && formData.type === 'INCOME' && (
+                  <div className="bg-indigo-50 p-4 rounded-md border border-indigo-200 space-y-2">
+                    <h4 className="text-sm font-bold text-indigo-800">Aplicar Cobranza a Comprobantes (Opcional)</h4>
+                    {isFetchingCharges ? (
+                      <p className="text-xs text-indigo-600">Buscando deuda...</p>
+                    ) : pendingCharges.length === 0 ? (
+                      <p className="text-xs text-green-700 font-bold">¡El cliente no tiene cargos pendientes de pago!</p>
+                    ) : (
+                      <>
+                        <div className="max-h-40 overflow-y-auto space-y-2 pr-1">
+                          {pendingCharges.map(c => {
+                            const isSelected = selectedChargeIds.has(c.id);
+                            return (
+                              <label key={c.id} className={`flex flex-col p-2 rounded cursor-pointer border ${isSelected ? 'bg-indigo-100 border-indigo-400' : 'bg-white border-gray-200'}`}>
+                                <div className="flex items-center">
+                                  <input 
+                                    type="checkbox" 
+                                    className="mr-2"
+                                    checked={isSelected}
+                                    onChange={() => toggleChargeSelection(c.id)}
+                                  />
+                                  <div className="flex-1 text-xs">
+                                    <div className="font-bold text-gray-900">{new Date(c.date).toLocaleDateString('es-AR')} - {c.description}</div>
+                                  </div>
+                                  <div className="text-sm font-bold text-red-700">Debe ${c.debt.toLocaleString('es-AR')}</div>
+                                </div>
+                              </label>
+                            )
+                          })}
+                        </div>
+                        <div className="pt-2 border-t border-indigo-200 flex justify-between items-center">
+                          <span className="text-xs font-medium text-indigo-800">Total Seleccionado:</span>
+                          <span className="text-sm font-bold text-indigo-900">
+                            ${Array.from(selectedChargeIds).reduce((acc, id) => {
+                              const ch = pendingCharges.find(p => p.id === id);
+                              return acc + (ch ? ch.debt : 0);
+                            }, 0).toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 
