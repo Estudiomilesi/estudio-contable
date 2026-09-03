@@ -69,7 +69,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
     where: {
       type: 'PAYMENT',
       date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
-      NOT: { description: { startsWith: 'NC:' } },
+      NOT: [
+        { description: { startsWith: 'NC:' } },
+        { description: { contains: 'saldo a favor' } }
+      ],
       ...txWhere
     },
     _sum: { amount: true }
