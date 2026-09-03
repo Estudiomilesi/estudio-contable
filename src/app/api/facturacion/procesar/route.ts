@@ -8,6 +8,7 @@ export async function POST(request: Request) {
     const description = data.description || 'Abono Mensual';
     const billingDate = data.billingDate ? new Date(data.billingDate) : new Date();
     const clientIds = data.clientIds || [];
+    const billingProfileOverrides = data.billingProfileOverrides || {};
     
     const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
     const mesActual = meses[billingDate.getMonth()];
@@ -27,12 +28,28 @@ export async function POST(request: Request) {
     const transacciones = [];
 
     for (const cliente of clientes) {
+      // Determinar perfil a usar: override > default
+      let profile = billingProfileOverrides[cliente.id] || cliente.defaultBillingProfile;
+      if (!profile) profile = 'NO_FISCAL';
+
+      const netAmount = cliente.currentFee;
+      let ivaAmount = 0;
+
+      if (profile === 'FEDE_RI') {
+        ivaAmount = netAmount * 0.21;
+      }
+
+      const totalAmount = netAmount + ivaAmount;
+
       const transaccion = await prisma.accountTransaction.create({
         data: {
           clientId: cliente.id,
           date: billingDate,
           type: 'CHARGE',
-          amount: cliente.currentFee,
+          amount: totalAmount,
+          netAmount,
+          ivaAmount,
+          billingProfile: profile,
           description: `${description} - ${periodoStr}`
         }
       });
@@ -51,7 +68,7 @@ export async function POST(request: Request) {
             <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
               <p style="margin: 0 0 10px 0;"><strong>Período:</strong> ${periodoStr}</p>
               <p style="margin: 0 0 10px 0;"><strong>Concepto:</strong> Honorarios Contables - Abono Mensual</p>
-              <p style="margin: 0; font-size: 18px;"><strong>Importe a abonar:</strong> $${cliente.currentFee.toLocaleString('es-AR')}</p>
+              <p style="margin: 0; font-size: 18px;"><strong>Importe a abonar:</strong> $${totalAmount.toLocaleString('es-AR')}</p>
             </div>
             
             <p>Por favor, recuerde enviar el comprobante de transferencia o pago una vez realizado.</p>

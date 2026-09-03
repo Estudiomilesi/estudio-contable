@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 type Client = {
   id: string;
   name: string;
+  defaultBillingProfile: string;
 };
 
 export default function ComprobantesPage() {
@@ -17,6 +18,7 @@ export default function ComprobantesPage() {
     date: new Date().toISOString().split('T')[0],
     dueDate: new Date().toISOString().split('T')[0],
     concept: '',
+    billingProfile: 'NO_FISCAL',
     amount: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,6 +37,19 @@ export default function ComprobantesPage() {
     };
     fetchClientes();
   }, []);
+
+  const handleClientChange = (clientId: string) => {
+    const client = clientes.find(c => c.id === clientId);
+    setForm(prev => ({
+      ...prev,
+      clientId,
+      billingProfile: client?.defaultBillingProfile || 'NO_FISCAL'
+    }));
+  };
+
+  const netAmountNum = parseFloat(form.amount) || 0;
+  const ivaAmountNum = form.billingProfile === 'FEDE_RI' ? netAmountNum * 0.21 : 0;
+  const totalAmountNum = netAmountNum + ivaAmountNum;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +112,7 @@ export default function ComprobantesPage() {
               <select 
                 required
                 value={form.clientId}
-                onChange={e => setForm({...form, clientId: e.target.value})}
+                onChange={e => handleClientChange(e.target.value)}
                 className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               >
                 <option value="">-- Seleccionar Cliente --</option>
@@ -133,34 +148,62 @@ export default function ComprobantesPage() {
             )}
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Perfil de Facturación</label>
+              <select 
+                required
+                value={form.billingProfile}
+                onChange={e => setForm({...form, billingProfile: e.target.value})}
+                className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-semibold text-indigo-900"
+              >
+                <option value="NO_FISCAL">No Fiscal</option>
+                <option value="FEDE_RI">Fede RI (+21% IVA)</option>
+                <option value="JUANMA_MONO">JuanMa Mono</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Concepto / Descripción</label>
+              <input 
+                type="text" 
+                required
+                placeholder={form.comprobanteType === 'FACTURA' ? "Ej: Certificación de ingresos, Balance..." : "Ej: Anulación de factura N° 123..."}
+                value={form.concept}
+                onChange={e => setForm({...form, concept: e.target.value})}
+                className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Concepto / Descripción</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Monto Neto ($)</label>
             <input 
-              type="text" 
+              type="number" 
               required
-              placeholder={form.comprobanteType === 'FACTURA' ? "Ej: Certificación de ingresos, Balance..." : "Ej: Anulación de factura N° 123..."}
-              value={form.concept}
-              onChange={e => setForm({...form, concept: e.target.value})}
+              min="0.01"
+              step="0.01"
+              placeholder="Importe sin IVA..."
+              value={form.amount}
+              onChange={e => setForm({...form, amount: e.target.value})}
               className="w-full rounded-md border border-gray-300 p-2.5 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Importe ($)</label>
-            <input 
-              type="number" 
-              required
-              min="0"
-              step="0.01"
-              placeholder="0.00"
-              value={form.amount}
-              onChange={e => setForm({...form, amount: e.target.value})}
-              className={`w-full rounded-md border p-2.5 shadow-sm focus:ring-2 font-bold text-lg ${
-                form.comprobanteType === 'FACTURA' 
-                ? 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-gray-900' 
-                : 'border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500 text-green-800'
-              }`}
-            />
+          <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div className="flex justify-between text-sm mb-1 text-gray-600">
+              <span>Importe Neto:</span>
+              <span>${netAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+            </div>
+            {form.billingProfile === 'FEDE_RI' && (
+              <div className="flex justify-between text-sm mb-1 text-gray-600">
+                <span>IVA (21%):</span>
+                <span>${ivaAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-bold text-lg text-indigo-900 mt-2 pt-2 border-t border-gray-200">
+              <span>Total en Cta. Cte.:</span>
+              <span>${totalAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+            </div>
           </div>
 
           <div className="pt-4 border-t border-gray-100 mt-6">

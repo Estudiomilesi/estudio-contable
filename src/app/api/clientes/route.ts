@@ -32,6 +32,7 @@ export async function POST(request: Request) {
         contact: data.contact || null,
         fiscalCondition: data.fiscalCondition || null,
         professionalLabel: data.professionalLabel,
+        defaultBillingProfile: data.defaultBillingProfile || 'NO_FISCAL',
         currentFee: parseFloat(data.currentFee || 0),
         hasAbono: data.hasAbono ?? true,
       },

@@ -16,6 +16,7 @@ type Client = {
   name: string;
   currentFee: number;
   professionalLabel: string;
+  defaultBillingProfile: string;
   accountTransactions: AccountTransaction[];
 };
 
@@ -23,6 +24,7 @@ export default function FacturacionPage() {
   const [clientes, setClientes] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [ediciones, setEdiciones] = useState<Record<string, number>>({});
+  const [billingProfileEdiciones, setBillingProfileEdiciones] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -86,12 +88,22 @@ export default function FacturacionPage() {
     setSortConfig({ key, direction });
   };
 
-  const handleFeeChange = (id: string, value: string) => {
+  const handleFeeChange = (clientId: string, value: string) => {
+    const numValue = parseFloat(value);
     setEdiciones(prev => ({
       ...prev,
-      [id]: parseFloat(value) || 0
+      [clientId]: isNaN(numValue) ? 0 : numValue
     }));
   };
+
+  const handleProfileChange = (clientId: string, value: string) => {
+    setBillingProfileEdiciones(prev => ({
+      ...prev,
+      [clientId]: value
+    }));
+  };
+
+
 
   const toggleSelection = (id: string) => {
     const newSelection = new Set(selectedIds);
@@ -148,7 +160,8 @@ export default function FacturacionPage() {
         body: JSON.stringify({ 
           description: 'Abono Mensual',
           billingDate,
-          clientIds: targetClients
+          clientIds: targetClients,
+          billingProfileOverrides: billingProfileEdiciones
         })
       });
 
@@ -278,7 +291,8 @@ export default function FacturacionPage() {
                     </select>
                   </div>
                 </th>
-                <th className="px-2 py-2 text-right font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Actual</th>
+                <th className="px-2 py-2 text-center font-medium text-gray-800">Perfil Facturación</th>
+                <th className="px-2 py-2 text-right font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Neto</th>
                 <th className="px-2 py-2 text-center font-medium text-gray-800">Quitar</th>
                 {historyDates.map(date => (
                   <th key={date} className="px-2 py-2 text-right font-medium text-gray-700 whitespace-nowrap">{date}</th>
@@ -313,6 +327,23 @@ export default function FacturacionPage() {
                         }`}>
                           {c.professionalLabel}
                         </span>
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-center">
+                        <select 
+                          value={billingProfileEdiciones[c.id] || c.defaultBillingProfile || 'NO_FISCAL'}
+                          onChange={e => handleProfileChange(c.id, e.target.value)}
+                          className={`text-[10px] rounded border-gray-300 p-0 h-5 font-medium ${
+                            (billingProfileEdiciones[c.id] || c.defaultBillingProfile) === 'FEDE_RI' 
+                              ? 'bg-blue-50 text-blue-800' 
+                              : (billingProfileEdiciones[c.id] || c.defaultBillingProfile) === 'JUANMA_MONO' 
+                                ? 'bg-orange-50 text-orange-800' 
+                                : 'bg-gray-50 text-gray-800'
+                          }`}
+                        >
+                          <option value="NO_FISCAL">No Fiscal</option>
+                          <option value="FEDE_RI">Fede RI (+21%)</option>
+                          <option value="JUANMA_MONO">JuanMa Mono</option>
+                        </select>
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-right">
                         <input 
@@ -354,6 +385,7 @@ export default function FacturacionPage() {
                   Totales ({totales.countGeneral} Abonos)
                 </td>
                 <td className="px-2 py-2 text-center text-gray-700">100%</td>
+                <td className="px-2 py-2"></td>
                 <td className="px-2 py-2 text-right text-indigo-900">{totales.General.toLocaleString('es-AR')}</td>
                 <td colSpan={historyDates.length}></td>
               </tr>

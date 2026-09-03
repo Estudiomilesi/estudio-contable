@@ -17,6 +17,12 @@ enum ProfessionalLabel {
   JF
 }
 
+enum BillingProfile {
+  FEDE_RI
+  JUANMA_MONO
+  NO_FISCAL
+}
+
 model Client {
   id                String             @id @default(cuid())
   code              String             @unique
@@ -28,6 +34,7 @@ model Client {
   contact           String?
   fiscalCondition   String?
   professionalLabel ProfessionalLabel
+  defaultBillingProfile BillingProfile @default(NO_FISCAL)
   currentFee        Float              @default(0)
   hasAbono          Boolean            @default(true)
   isActive          Boolean            @default(true)
@@ -50,6 +57,9 @@ model AccountTransaction {
   client      Client          @relation(fields: [clientId], references: [id])
   date        DateTime        @default(now())
   type        TransactionType
+  billingProfile BillingProfile @default(NO_FISCAL)
+  netAmount   Float           @default(0)
+  ivaAmount   Float           @default(0)
   amount      Float
   description String?
   dueDate     DateTime?

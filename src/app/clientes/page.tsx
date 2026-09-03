@@ -17,6 +17,7 @@ type Client = {
   contact: string | null;
   isActive: boolean;
   hasAbono: boolean;
+  defaultBillingProfile: string;
 };
 
 const initialForm = {
@@ -30,6 +31,7 @@ const initialForm = {
   contact: '',
   fiscalCondition: '',
   professionalLabel: 'F',
+  defaultBillingProfile: 'NO_FISCAL',
   currentFee: 0,
   isActive: true,
   hasAbono: true,
@@ -131,6 +133,7 @@ export default function ClientesPage() {
       contact: c.contact || '',
       fiscalCondition: c.fiscalCondition || '',
       professionalLabel: c.professionalLabel,
+      defaultBillingProfile: c.defaultBillingProfile || 'NO_FISCAL',
       currentFee: c.currentFee,
       isActive: c.isActive,
       hasAbono: c.hasAbono,
@@ -196,7 +199,7 @@ export default function ClientesPage() {
               <label className="block text-sm font-medium text-gray-700">Email *</label>
               <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Etiqueta</label>
                 <select value={formData.professionalLabel} onChange={e => setFormData({...formData, professionalLabel: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -206,7 +209,15 @@ export default function ClientesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Abono ($)</label>
+                <label className="block text-sm font-medium text-gray-700">Perfil Fac.</label>
+                <select value={formData.defaultBillingProfile} onChange={e => setFormData({...formData, defaultBillingProfile: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                  <option value="NO_FISCAL">No Fiscal</option>
+                  <option value="FEDE_RI">Fede RI (+21%)</option>
+                  <option value="JUANMA_MONO">JuanMa Mono</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Abono Neto($)</label>
                 <input type="number" min="0" step="0.01" value={formData.currentFee} onChange={e => setFormData({...formData, currentFee: parseFloat(e.target.value)})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
               </div>
             </div>
