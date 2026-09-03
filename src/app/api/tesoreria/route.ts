@@ -4,13 +4,11 @@ import { recalculatePaymentIva } from '@/lib/iva';
 
 export async function GET() {
   try {
-    const transacciones = await prisma.treasuryTransaction.findMany({
-      include: { client: true },
-      orderBy: { date: 'desc' },
-      take: 100, // Traer las últimas 100
+    const allTxs = await prisma.treasuryTransaction.findMany({
+      orderBy: { date: 'asc' },
+      include: { client: true }
     });
 
-    const allTxs = await prisma.treasuryTransaction.findMany();
     const saldos: Record<string, number> = { 
       'CAJA': 0, 
       'CAJA IVA': 0, 
@@ -19,10 +17,17 @@ export async function GET() {
       'CHEQUES': 0 
     };
     
-    allTxs.forEach(t => {
+    const txsWithBalance = allTxs.map(t => {
       if (saldos[t.account] === undefined) saldos[t.account] = 0;
       saldos[t.account] += t.amount;
+      return {
+        ...t,
+        runningBalance: saldos[t.account]
+      };
     });
+
+    // Transacciones recientes (últimas 100)
+    const transacciones = txsWithBalance.reverse().slice(0, 100);
 
     const checksEnCartera = await prisma.check.findMany({
       where: { status: 'IN_PORTFOLIO' },

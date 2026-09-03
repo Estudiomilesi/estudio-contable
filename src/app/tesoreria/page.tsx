@@ -11,6 +11,7 @@ type TreasuryTransaction = {
   category: string;
   description: string | null;
   client?: { name: string };
+  runningBalance?: number;
 };
 
 type Check = {
@@ -443,21 +444,29 @@ export default function TesoreriaPage() {
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Fecha</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Cuenta</th>
+                  {!selectedFilterAccount && <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Cuenta</th>}
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Categoría / Detalle</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Importe</th>
+                  {selectedFilterAccount ? (
+                    <>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Debe</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Haber</th>
+                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Saldo</th>
+                    </>
+                  ) : (
+                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Importe</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {(() => {
-                  if (isLoading) return <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>;
+                  if (isLoading) return <tr><td colSpan={selectedFilterAccount ? 5 : 4} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>;
                   
                   const displayedTransacciones = selectedFilterAccount 
                     ? transacciones.filter(t => t.account === selectedFilterAccount)
                     : transacciones;
 
                   if (displayedTransacciones.length === 0) {
-                    return <tr><td colSpan={4} className="px-4 py-4 text-center text-gray-700">No hay movimientos.</td></tr>;
+                    return <tr><td colSpan={selectedFilterAccount ? 5 : 4} className="px-4 py-4 text-center text-gray-700">No hay movimientos.</td></tr>;
                   }
 
                   return displayedTransacciones.map((t) => (
@@ -465,20 +474,36 @@ export default function TesoreriaPage() {
                       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
                         {new Date(t.date).toLocaleDateString('es-AR')}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm">
-                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold ${ACCOUNT_COLORS[t.account]?.badgeBg || ACCOUNT_COLORS['DEFAULT'].badgeBg}`}>
-                          {t.account}
-                        </span>
-                      </td>
+                      {!selectedFilterAccount && (
+                        <td className="px-4 py-2 whitespace-nowrap text-sm">
+                          <span className={`inline-flex rounded-full px-2 text-xs font-semibold ${ACCOUNT_COLORS[t.account]?.badgeBg || ACCOUNT_COLORS['DEFAULT'].badgeBg}`}>
+                            {t.account}
+                          </span>
+                        </td>
+                      )}
                       <td className="px-4 py-2 text-sm text-gray-900">
                         <div className="font-medium">
                           {t.category} {t.client ? `- ${t.client.name}` : ''}
                         </div>
                         <div className="text-gray-700 text-xs truncate max-w-xs" title={t.description || ''}>{t.description}</div>
                       </td>
-                      <td className={`px-4 py-2 whitespace-nowrap text-right text-sm font-bold ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                      </td>
+                      {selectedFilterAccount ? (
+                        <>
+                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-green-600">
+                            {t.amount >= 0 ? t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ''}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-red-600">
+                            {t.amount < 0 ? Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ''}
+                          </td>
+                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                            ${(t.runningBalance || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </td>
+                        </>
+                      ) : (
+                        <td className={`px-4 py-2 whitespace-nowrap text-right text-sm font-bold ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </td>
+                      )}
                     </tr>
                   ));
                 })()}
