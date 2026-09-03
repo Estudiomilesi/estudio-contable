@@ -101,11 +101,15 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
     else if (c.client?.professionalLabel === 'FJ' || c.client?.professionalLabel === 'JF') ingresosFJ += amt;
   });
 
-  // 3. Egresos de Tesorería del mes actual
+  // 3. Egresos y Reintegros de Tesorería del mes actual
   const egresos = await prisma.treasuryTransaction.findMany({
     where: {
-      type: 'EXPENSE',
-      date: { gte: firstDay, lte: lastDay }
+      date: { gte: firstDay, lte: lastDay },
+      OR: [
+        { type: 'EXPENSE' }, // Todos los gastos
+        { category: 'Retiro Fede' }, // Reintegros de Fede (INCOME)
+        { category: 'Retiro Juanma' } // Reintegros de Juanma (INCOME)
+      ]
     },
     include: { client: { select: { professionalLabel: true } } }
   });
@@ -116,24 +120,27 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
   let retirosJuanma = 0;
 
   egresos.forEach(e => {
+    const amt = Math.abs(e.amount);
     if (e.category === 'Retiro Fede') {
-      retirosFede += e.amount;
+      // If it's an EXPENSE it's a withdrawal (+ to retiros), if it's an INCOME it's a return (- to retiros)
+      retirosFede += e.type === 'EXPENSE' ? amt : -amt;
     } else if (e.category === 'Retiro Juanma') {
-      retirosJuanma += e.amount;
+      retirosJuanma += e.type === 'EXPENSE' ? amt : -amt;
     } else if (e.category === 'Participacion') {
       // Gastos directos al ER correspondiente
       if (e.client?.professionalLabel === 'F') {
-        gastos.F += e.amount;
+        gastos.F += e.type === 'EXPENSE' ? amt : -amt;
       } else if (e.client?.professionalLabel === 'FJ' || e.client?.professionalLabel === 'JF') {
-        gastos.FJ += e.amount;
+        gastos.FJ += e.type === 'EXPENSE' ? amt : -amt;
       }
-      gastos.Consolidado += e.amount;
+      gastos.Consolidado += e.type === 'EXPENSE' ? amt : -amt;
       gastosDetalle.push({ ...e, assignedTo: e.client?.professionalLabel === 'F' ? 'F' : 'FJ' });
     } else {
       // Gastos comunes prorrateables (Sueldos, Alquiler, Sistemas, etc)
-      gastos.F += e.amount * propF;
-      gastos.FJ += e.amount * propFJ;
-      gastos.Consolidado += e.amount;
+      const expenseAmt = e.type === 'EXPENSE' ? amt : -amt;
+      gastos.F += expenseAmt * propF;
+      gastos.FJ += expenseAmt * propFJ;
+      gastos.Consolidado += expenseAmt;
       gastosDetalle.push({ ...e, assignedTo: 'PRORRATEO' });
     }
   });

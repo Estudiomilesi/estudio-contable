@@ -115,6 +115,7 @@ export async function POST(request: Request) {
       });
     }
 
+    let participacionPagaEnTesoreria = 0;
     // Si es un ingreso por "Honorarios" y tiene un clientId asociado, registrar el pago en cuenta corriente
     if (data.type === 'INCOME' && data.category === 'Honorarios' && data.clientId) {
       const accountTx = await prisma.accountTransaction.create({
@@ -137,6 +138,7 @@ export async function POST(request: Request) {
 
         let remainingPayment = Math.abs(txAmount);
 
+        const createdApplications = [];
         for (const charge of charges) {
           if (remainingPayment <= 0.001) break;
 
@@ -152,11 +154,57 @@ export async function POST(request: Request) {
                 amount: amountToApply
               }
             });
+            createdApplications.push({ amount: amountToApply, charge });
             remainingPayment -= amountToApply;
           }
         }
         
         await recalculatePaymentIva(accountTx.id);
+
+        // Calculate participacion paid to net the withdrawal
+        for (const app of createdApplications) {
+          if (app.charge.collaboratorAmount && app.charge.collaboratorAmount > 0) {
+            const proportion = app.amount / app.charge.amount;
+            participacionPagaEnTesoreria += app.charge.collaboratorAmount * proportion;
+          }
+        }
+      }
+    }
+
+    // 5. Automatización: Retiros y Reintegros automáticos en Bancos
+    if (data.account === 'BANCOS FEDE' || data.account === 'BANCOS JUANMA') {
+      const retiroSocio = data.account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
+
+      if (data.type === 'INCOME') {
+        const retiroAmount = Math.max(0, Math.abs(txAmount) - participacionPagaEnTesoreria);
+        if (retiroAmount > 0) {
+          await prisma.treasuryTransaction.create({
+            data: {
+              date: parseDate(data.date),
+              amount: -retiroAmount,
+              type: 'EXPENSE',
+              account: data.account,
+              category: retiroSocio,
+              description: `Retiro automático s/ cobro ${data.description || ''}`,
+              clientId: data.clientId || null
+            }
+          });
+        }
+      } else if (data.type === 'EXPENSE') {
+        // Si el banco pagó un gasto que no es un retiro (ej. Alquiler), registrar un Reintegro de Retiro para llevar la caja a 0
+        if (data.category !== 'Retiro Fede' && data.category !== 'Retiro Juanma' && data.category !== 'Participacion') {
+          await prisma.treasuryTransaction.create({
+            data: {
+              date: parseDate(data.date),
+              amount: Math.abs(txAmount),
+              type: 'INCOME',
+              account: data.account,
+              category: retiroSocio,
+              description: `Reintegro automático por pago de gasto ${data.description || ''}`,
+              clientId: data.clientId || null
+            }
+          });
+        }
       }
     }
 

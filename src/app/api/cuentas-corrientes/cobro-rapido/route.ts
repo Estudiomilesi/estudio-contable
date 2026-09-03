@@ -92,6 +92,7 @@ export async function POST(request: Request) {
 
     let remainingPayment = txAmount;
 
+    const createdApplications = [];
     for (const charge of charges) {
       if (remainingPayment <= 0.001) break; // Ya se agotó el pago
 
@@ -100,20 +101,50 @@ export async function POST(request: Request) {
 
       if (chargeDebt > 0.001) {
         const amountToApply = Math.min(remainingPayment, chargeDebt);
-
-        await prisma.paymentApplication.create({
+        
+        const newApp = await prisma.paymentApplication.create({
           data: {
             chargeId: charge.id,
             paymentId: accountTx.id,
             amount: amountToApply
           }
         });
-
+        createdApplications.push({ amount: amountToApply, charge });
         remainingPayment -= amountToApply;
       }
     }
 
+    // Recalcular IVA del pago en base a lo que cubrió
     await recalculatePaymentIva(accountTx.id);
+
+    // 5. Automatización: Retiros automáticos en Bancos (neteando participaciones pagadas)
+    if (account === 'BANCOS FEDE' || account === 'BANCOS JUANMA') {
+      const retiroSocio = account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
+      
+      let participacionPaga = 0;
+      for (const app of createdApplications) {
+        if (app.charge.collaboratorAmount && app.charge.collaboratorAmount > 0) {
+          // Proporción de la participación basada en cuánto se pagó del cargo original
+          const proportion = app.amount / app.charge.amount;
+          participacionPaga += app.charge.collaboratorAmount * proportion;
+        }
+      }
+      
+      const retiroAmount = Math.max(0, txAmount - participacionPaga);
+      if (retiroAmount > 0) {
+        await prisma.treasuryTransaction.create({
+          data: {
+            date: txDate,
+            amount: -retiroAmount,
+            type: 'EXPENSE',
+            account: account,
+            category: retiroSocio,
+            description: `Retiro automático s/ cobro ${description || ''}`,
+            clientId: clientId
+          }
+        });
+      }
+    }
 
     return NextResponse.json({ success: true, treasuryTxId: treasuryTx.id, accountTxId: accountTx.id }, { status: 201 });
   } catch (error) {
