@@ -25,9 +25,7 @@ export async function GET() {
     // Traer todos los comprobantes recientes para mostrar en la tabla (ej. últimos 100)
     const comprobantes = await prisma.accountTransaction.findMany({
       where: {
-        description: {
-          not: 'Abono Mensual' // Excluimos los masivos, o no, depende, pero pidieron los comprobantes
-        }
+        type: 'CHARGE'
       },
       include: { client: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
