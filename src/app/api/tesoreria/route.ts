@@ -69,9 +69,16 @@ export async function POST(request: Request) {
       txAmount = -totalChecks; // Egresos son negativos en nuestra lógica de TreasuryTransaction
     }
 
+    // Evitar desfase de zona horaria usando T12:00:00
+    const parseDate = (dString: string) => {
+      if (!dString) return new Date();
+      if (dString.includes('T')) return new Date(dString);
+      return new Date(`${dString}T12:00:00`);
+    };
+
     const nuevaTransaccion = await prisma.treasuryTransaction.create({
       data: {
-        date: data.date ? new Date(data.date) : new Date(),
+        date: parseDate(data.date),
         amount: txAmount,
         type: data.type, // INCOME | EXPENSE
         account: data.account, // CAJA | BANCOS | CHEQUES
@@ -91,8 +98,8 @@ export async function POST(request: Request) {
         data: {
           number: data.checkDetails.number,
           bank: data.checkDetails.bank,
-          issueDate: new Date(data.checkDetails.issueDate || data.date),
-          dueDate: new Date(data.checkDetails.dueDate),
+          issueDate: parseDate(data.checkDetails.issueDate || data.date),
+          dueDate: parseDate(data.checkDetails.dueDate),
           amount: Math.abs(txAmount),
           clientId: data.clientId || null,
           incomingTxId: nuevaTransaccion.id
@@ -113,7 +120,7 @@ export async function POST(request: Request) {
       const accountTx = await prisma.accountTransaction.create({
         data: {
           clientId: data.clientId,
-          date: data.date ? new Date(data.date) : new Date(),
+          date: parseDate(data.date),
           type: 'PAYMENT',
           amount: Math.abs(txAmount),
           description: `Pago ingresado en ${data.account} - ${data.description || ''}`,

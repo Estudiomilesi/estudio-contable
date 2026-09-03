@@ -46,8 +46,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
 
-    const txDate = new Date(date);
-    const txDueDate = dueDate ? new Date(dueDate) : txDate;
+    const parseDate = (dString: string) => {
+      if (!dString) return new Date();
+      if (dString.includes('T')) return new Date(dString);
+      return new Date(`${dString}T12:00:00`);
+    };
+
+    const txDate = parseDate(date);
+    const txDueDate = dueDate ? parseDate(dueDate) : txDate;
     const netAmount = parseFloat(amount);
 
     if (isNaN(netAmount) || netAmount <= 0) {

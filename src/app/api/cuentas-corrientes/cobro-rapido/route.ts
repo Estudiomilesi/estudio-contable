@@ -28,7 +28,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Faltan detalles del cheque' }, { status: 400 });
     }
 
-    const txDate = date ? new Date(date) : new Date();
+    const parseDate = (dString: string) => {
+      if (!dString) return new Date();
+      if (dString.includes('T')) return new Date(dString);
+      return new Date(`${dString}T12:00:00`);
+    };
+
+    const txDate = parseDate(date);
 
     // 1. Crear el movimiento en Tesorería
     const treasuryTx = await prisma.treasuryTransaction.create({

@@ -6,7 +6,13 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     const description = data.description || 'Abono Mensual';
-    const billingDate = data.billingDate ? new Date(data.billingDate) : new Date();
+    const parseDate = (dString: string) => {
+      if (!dString) return new Date();
+      if (dString.includes('T')) return new Date(dString);
+      return new Date(`${dString}T12:00:00`);
+    };
+
+    const billingDate = parseDate(data.billingDate);
     const clientIds = data.clientIds || [];
     const billingProfileOverrides = data.billingProfileOverrides || {};
     
