@@ -2,23 +2,34 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const txs = await prisma.accountTransaction.findMany({
-    where: {
-      type: 'PAYMENT',
-      date: { gte: firstDayOfMonth },
-      NOT: [
-        { description: { startsWith: 'NC:' } },
-        { description: { contains: 'saldo a favor' } }
-      ]
-    },
-    include: { client: { select: { name: true } } }
+  const chargeId = 'cmtknb43x00lfu6uggf987z3h';
+  const paymentId = 'cmtljz3ev0009jo046zu8rioz';
+  
+  const amount = 1005447.08;
+  const net = amount / 1.21;
+  const iva = amount - net;
+  
+  // Fix charge
+  await prisma.accountTransaction.update({
+    where: { id: chargeId },
+    data: {
+      netAmount: net,
+      ivaAmount: iva,
+      billingProfile: 'FEDE_RI'
+    }
   });
   
-  console.log('Count:', txs.length);
-  const total = txs.reduce((sum, t) => sum + t.amount, 0);
-  console.log('Total:', total);
-  txs.forEach(t => console.log(t.amount, t.description, t.client?.name));
+  // Fix payment
+  await prisma.accountTransaction.update({
+    where: { id: paymentId },
+    data: {
+      netAmount: net,
+      ivaAmount: iva,
+      billingProfile: 'FEDE_RI'
+    }
+  });
+  
+  console.log('Fixed IVA for charge and payment');
 }
 
 main().catch(console.error).finally(() => prisma.$disconnect());
