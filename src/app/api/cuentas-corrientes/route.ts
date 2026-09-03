@@ -9,7 +9,11 @@ export async function GET() {
           include: {
             paymentsApplied: true,
             chargesCovered: true
-          }
+          },
+          orderBy: [
+            { date: 'desc' },
+            { createdAt: 'desc' }
+          ]
         }
       },
       orderBy: { name: 'asc' }
@@ -39,7 +43,11 @@ export async function GET() {
       let runningBalance = 0;
       
       // Sort ascending to calculate running balance
-      const sortedTransactions = [...client.accountTransactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const sortedTransactions = [...client.accountTransactions].sort((a, b) => {
+        const timeDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+        if (timeDiff !== 0) return timeDiff;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
       
       const transactionsWithBalance = sortedTransactions.map(tx => {
         if (tx.type === 'CHARGE') runningBalance += tx.amount;
@@ -55,7 +63,7 @@ export async function GET() {
         balance,
         unappliedPayments,
         unpaidCharges,
-        transactions: transactionsWithBalance.reverse() // Return newest first for the UI
+        transactions: transactionsWithBalance.reverse()
       };
     });
 

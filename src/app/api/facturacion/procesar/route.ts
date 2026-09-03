@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseToUtcNoon } from '@/lib/dateUtils';
 import { sendEmail } from '@/lib/mailer';
 
 export async function POST(request: Request) {
@@ -12,7 +13,7 @@ export async function POST(request: Request) {
       return new Date(`${dString}T12:00:00`);
     };
 
-    const billingDate = parseDate(data.billingDate);
+    const billingDate = parseToUtcNoon(data.billingDate);
     const clientIds = data.clientIds || [];
     const billingProfileOverrides = data.billingProfileOverrides || {};
     

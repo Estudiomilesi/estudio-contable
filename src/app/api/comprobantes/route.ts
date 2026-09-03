@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseToUtcNoon } from '@/lib/dateUtils';
 
 // Función auxiliar para extraer número de AFIP de un buffer PDF
 async function extractAfipNumber(pdfBuffer: Buffer): Promise<string | null> {
@@ -52,8 +53,8 @@ export async function POST(request: Request) {
       return new Date(`${dString}T12:00:00`);
     };
 
-    const txDate = parseDate(date);
-    const txDueDate = dueDate ? parseDate(dueDate) : txDate;
+    const txDate = parseToUtcNoon(date);
+    const txDueDate = dueDate ? parseToUtcNoon(dueDate) : txDate;
     const netAmount = parseFloat(amount);
 
     if (isNaN(netAmount) || netAmount <= 0) {

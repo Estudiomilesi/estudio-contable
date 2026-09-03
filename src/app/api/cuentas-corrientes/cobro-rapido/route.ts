@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseToUtcNoon } from '@/lib/dateUtils';
 import { recalculatePaymentIva } from '@/lib/iva';
 
 export async function POST(request: Request) {
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
       return new Date(`${dString}T12:00:00`);
     };
 
-    const txDate = parseDate(date);
+    const txDate = parseToUtcNoon(date);
 
     // 1. Crear el movimiento en Tesorería
     const treasuryTx = await prisma.treasuryTransaction.create({

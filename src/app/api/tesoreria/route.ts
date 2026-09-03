@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { parseToUtcNoon } from '@/lib/dateUtils';
 import { recalculatePaymentIva } from '@/lib/iva';
 
 export async function GET() {
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
 
     const nuevaTransaccion = await prisma.treasuryTransaction.create({
       data: {
-        date: parseDate(data.date),
+        date: parseToUtcNoon(data.date),
         amount: txAmount,
         type: data.type, // INCOME | EXPENSE
         account: data.account, // CAJA | BANCOS | CHEQUES
@@ -101,8 +102,8 @@ export async function POST(request: Request) {
         data: {
           number: data.checkDetails.number,
           bank: data.checkDetails.bank,
-          issueDate: parseDate(data.checkDetails.issueDate || data.date),
-          dueDate: parseDate(data.checkDetails.dueDate),
+          issueDate: parseToUtcNoon(data.checkDetails.issueDate || data.date),
+          dueDate: parseToUtcNoon(data.checkDetails.dueDate),
           amount: Math.abs(txAmount),
           clientId: data.clientId || null,
           incomingTxId: nuevaTransaccion.id
@@ -124,7 +125,7 @@ export async function POST(request: Request) {
       const accountTx = await prisma.accountTransaction.create({
         data: {
           clientId: data.clientId,
-          date: parseDate(data.date),
+          date: parseToUtcNoon(data.date),
           type: 'PAYMENT',
           amount: Math.abs(txAmount),
           description: `Pago ingresado en ${data.account} - ${data.description || ''}`,
@@ -183,7 +184,7 @@ export async function POST(request: Request) {
         if (retiroAmount > 0) {
           await prisma.treasuryTransaction.create({
             data: {
-              date: parseDate(data.date),
+              date: parseToUtcNoon(data.date),
               amount: -retiroAmount,
               type: 'EXPENSE',
               account: data.account,
@@ -198,7 +199,7 @@ export async function POST(request: Request) {
         if (data.category !== 'Retiro Fede' && data.category !== 'Retiro Juanma' && data.category !== 'Participacion') {
           await prisma.treasuryTransaction.create({
             data: {
-              date: parseDate(data.date),
+              date: parseToUtcNoon(data.date),
               amount: Math.abs(txAmount),
               type: 'INCOME',
               account: data.account,
