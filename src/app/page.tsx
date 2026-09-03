@@ -71,7 +71,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
       date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
       NOT: [
         { description: { startsWith: 'NC:' } },
-        { description: { contains: 'saldo a favor' } }
+        { description: { contains: 'aldo a favor' } }
       ],
       ...txWhere
     },
