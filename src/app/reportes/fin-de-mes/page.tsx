@@ -21,8 +21,8 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
   const firstDayPrev = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 1);
   const lastDayPrev = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0, 23, 59, 59);
 
-  // 1. Proporción de Abonos del mes anterior
-  const abonosPrev = await prisma.accountTransaction.findMany({
+  // 1. Proporción de Abonos
+  let abonosPeriod = await prisma.accountTransaction.findMany({
     where: {
       type: 'CHARGE',
       date: { gte: firstDayPrev, lte: lastDayPrev },
@@ -31,11 +31,39 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
     include: { client: { select: { professionalLabel: true } } }
   });
 
+  // Si no hay abonos en el mes anterior, buscar el último mes conocido con abonos
+  if (abonosPeriod.length === 0) {
+    const lastAbono = await prisma.accountTransaction.findFirst({
+      where: {
+        type: 'CHARGE',
+        date: { lt: firstDayPrev },
+        description: { contains: 'Abono Mensual' }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    if (lastAbono) {
+      const knownYear = lastAbono.date.getFullYear();
+      const knownMonth = lastAbono.date.getMonth(); // 0-indexed
+      const knownFirstDay = new Date(knownYear, knownMonth, 1);
+      const knownLastDay = new Date(knownYear, knownMonth + 1, 0, 23, 59, 59);
+
+      abonosPeriod = await prisma.accountTransaction.findMany({
+        where: {
+          type: 'CHARGE',
+          date: { gte: knownFirstDay, lte: knownLastDay },
+          description: { contains: 'Abono Mensual' }
+        },
+        include: { client: { select: { professionalLabel: true } } }
+      });
+    }
+  }
+
   let totalAbonosF = 0;
   let totalAbonosFJ = 0;
   let totalAbonos = 0;
 
-  abonosPrev.forEach(a => {
+  abonosPeriod.forEach(a => {
     const amt = a.netAmount || a.amount;
     totalAbonos += amt;
     if (a.client?.professionalLabel === 'F') totalAbonosF += amt;
@@ -45,7 +73,7 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
   let propF = totalAbonos > 0 ? totalAbonosF / totalAbonos : 0;
   let propFJ = totalAbonos > 0 ? totalAbonosFJ / totalAbonos : 0;
 
-  // Fallback a los porcentajes indicados si no hay abonos el mes anterior
+  // Fallback definitivo a los porcentajes indicados solo si nunca hubo abonos históricos
   if (totalAbonos === 0) {
     propF = 0.365; // F 36.5%
     propFJ = 0.312 + 0.323; // FJ 31.2% + JF 32.3% = 63.5%
