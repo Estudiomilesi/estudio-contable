@@ -33,8 +33,8 @@ export default function FacturacionPage() {
   // Sorting state
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
-
   const [filterBillingProfile, setFilterBillingProfile] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -62,6 +62,14 @@ export default function FacturacionPage() {
 
     if (filterBillingProfile !== 'ALL') {
       result = result.filter(c => c.defaultBillingProfile === filterBillingProfile);
+    }
+
+    if (searchTerm && searchTerm.length >= 3) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(c => 
+        (c.name?.toLowerCase().includes(lowerSearch) || false) || 
+        (c.code?.toLowerCase().includes(lowerSearch) || false)
+      );
     }
 
     if (sortConfig !== null) {
@@ -268,6 +276,24 @@ export default function FacturacionPage() {
       </div>
 
       <div className="rounded-lg border bg-white shadow-sm overflow-hidden flex flex-col h-[calc(100vh-140px)]">
+        <div className="p-2 border-b bg-gray-50 flex items-center justify-between sticky top-0 z-20">
+          <div className="relative w-64">
+            <input 
+              type="text" 
+              placeholder="Buscar (min 3 letras)..." 
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full text-sm border-gray-300 rounded-md p-1.5 pl-8 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+            />
+            <svg className="w-4 h-4 text-gray-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div className="text-xs text-gray-500 font-medium">
+            {filteredAndSortedClientes.length} cliente(s)
+          </div>
+        </div>
+
         <div className="overflow-x-auto flex-1">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-100 sticky top-0 z-10">

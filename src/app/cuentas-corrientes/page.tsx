@@ -56,6 +56,7 @@ export default function CuentasCorrientesPage() {
 
   const [sortConfig, setSortConfig] = useState<{ key: keyof ClientWithBalance, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -79,6 +80,14 @@ export default function CuentasCorrientesPage() {
     
     if (filterLabel !== 'ALL') {
       result = result.filter(c => c.professionalLabel === filterLabel);
+    }
+
+    if (searchTerm && searchTerm.length >= 3) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(c => 
+        (c.name?.toLowerCase().includes(lowerSearch) || false) || 
+        (c.code?.toLowerCase().includes(lowerSearch) || false)
+      );
     }
 
     if (sortConfig !== null) {
@@ -343,12 +352,24 @@ export default function CuentasCorrientesPage() {
             <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th colSpan={4} className="px-3 py-3 border-b border-gray-200 bg-gray-50 text-left text-lg font-bold text-gray-800">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-3">
                     <span>Cuentas Corrientes</span>
                     <div className="flex gap-2 text-gray-500">
                       <button onClick={exportGlobalExcel} title="Exportar a Excel" className="hover:text-green-600 transition-colors"><FileSpreadsheet size={18} /></button>
                       <button onClick={exportGlobalPDF} title="Exportar a PDF" className="hover:text-red-600 transition-colors"><FileText size={18} /></button>
                     </div>
+                  </div>
+                  <div className="relative w-full">
+                    <input 
+                      type="text" 
+                      placeholder="Buscar (min 3 letras)..." 
+                      value={searchTerm}
+                      onChange={e => setSearchTerm(e.target.value)}
+                      className="w-full text-sm font-normal border-gray-300 rounded-md p-1.5 pl-8 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+                    />
+                    <svg className="w-4 h-4 text-gray-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                   </div>
                 </th>
               </tr>

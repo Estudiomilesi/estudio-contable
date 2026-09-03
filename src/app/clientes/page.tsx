@@ -40,12 +40,13 @@ const initialForm = {
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [formData, setFormData] = useState(initialForm);
   const [isEditing, setIsEditing] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
+  const [filterLabel, setFilterLabel] = useState<string>('ALL');
+  const [filterBillingProfile, setFilterBillingProfile] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const [filterLabel, setFilterLabel] = useState('ALL');
-  const [filterBillingProfile, setFilterBillingProfile] = useState('ALL');
+  const [formData, setFormData] = useState(initialForm);
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -64,19 +65,29 @@ export default function ClientesPage() {
     fetchClientes();
   }, []);
 
-  const sortedClientes = useMemo(() => {
-    let sortableItems = [...clientes];
-
-    if (filterLabel !== 'ALL') {
-      sortableItems = sortableItems.filter(c => c.professionalLabel === filterLabel);
-    }
+  const filteredAndSortedClientes = useMemo(() => {
+    let result = [...clientes];
     
+    if (filterLabel !== 'ALL') {
+      result = result.filter(c => c.professionalLabel === filterLabel);
+    }
+
     if (filterBillingProfile !== 'ALL') {
-      sortableItems = sortableItems.filter(c => c.defaultBillingProfile === filterBillingProfile);
+      result = result.filter(c => c.defaultBillingProfile === filterBillingProfile);
+    }
+
+    if (searchTerm && searchTerm.length >= 3) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(c => 
+        (c.name?.toLowerCase().includes(lowerSearch) || false) || 
+        (c.code?.toLowerCase().includes(lowerSearch) || false) ||
+        (c.email?.toLowerCase().includes(lowerSearch) || false) ||
+        (c.cuit?.toLowerCase().includes(lowerSearch) || false)
+      );
     }
 
     if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
+      result.sort((a, b) => {
         let aValue: any = a[sortConfig.key];
         let bValue: any = b[sortConfig.key];
         
@@ -97,8 +108,8 @@ export default function ClientesPage() {
         return 0;
       });
     }
-    return sortableItems;
-  }, [clientes, sortConfig]);
+    return result;
+  }, [clientes, sortConfig, filterLabel, filterBillingProfile, searchTerm]);
 
   const requestSort = (key: keyof Client) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -275,6 +286,25 @@ export default function ClientesPage() {
 
         {/* Tabla */}
         <div className="col-span-1 md:col-span-2 rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col h-[calc(100vh-100px)]">
+          
+          <div className="p-3 border-b bg-gray-50 flex items-center justify-between sticky top-0 z-20">
+            <div className="relative w-64">
+              <input 
+                type="text" 
+                placeholder="Buscar (min 3 letras)..." 
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full text-sm border-gray-300 rounded-md p-2 pl-8 focus:ring-indigo-500 focus:border-indigo-500 shadow-sm"
+              />
+              <svg className="w-4 h-4 text-gray-400 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <div className="text-xs text-gray-500 font-medium">
+              {filteredAndSortedClientes.length} cliente(s)
+            </div>
+          </div>
+
           <div className="overflow-x-auto flex-1 p-0">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
@@ -311,10 +341,10 @@ export default function ClientesPage() {
               <tbody className="bg-white divide-y divide-gray-100">
                 {isLoading ? (
                   <tr><td colSpan={8} className="px-6 py-4 text-center text-gray-700">Cargando...</td></tr>
-                ) : sortedClientes.length === 0 ? (
-                  <tr><td colSpan={8} className="px-6 py-4 text-center text-gray-700">No hay clientes registrados.</td></tr>
+                ) : filteredAndSortedClientes.length === 0 ? (
+                  <tr><td colSpan={8} className="p-4 text-center text-gray-500">No hay clientes.</td></tr>
                 ) : (
-                  sortedClientes.map((c) => (
+                  filteredAndSortedClientes.map((c: Client) => (
                     <tr key={c.id} className={!c.isActive ? 'opacity-50 bg-gray-50' : ''}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.code}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{c.name}</td>
