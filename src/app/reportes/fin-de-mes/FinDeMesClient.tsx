@@ -92,7 +92,7 @@ export default function FinDeMesClient({
                   <span className="text-gray-600"> (Por cliente {a.clientName} - {a.chargeDesc})</span>
                 </div>
                 <div className="font-bold text-red-700">
-                  ${a.amount.toLocaleString('es-AR', {minimumFractionDigits:2})}
+                  ${a.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
               </li>
             ))}
@@ -107,24 +107,24 @@ export default function FinDeMesClient({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">100% Resultado Estudio F:</span>
-              <span className="font-semibold">${resultadoF.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              <span className="font-semibold">${resultadoF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">50% Resultado Estudio FJ:</span>
-              <span className="font-semibold">${(resultadoFJ * 0.5).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              <span className="font-semibold">${(resultadoFJ * 0.5).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             <div className="flex justify-between border-t pt-2 font-bold text-indigo-900">
               <span>Total a Distribuir:</span>
-              <span>${fedeShare.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              <span>${fedeShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             <div className="flex justify-between text-red-600 pt-2">
               <span>(-) Retiros Fede:</span>
-              <span>-${retirosFede.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              <span>-${retirosFede.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
           </div>
           <div className={`mt-4 p-3 rounded-lg text-center ${fedeBalance > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             <span className="text-sm font-bold block">{fedeBalance > 0 ? 'Saldo a retirar' : 'Debe devolver'}</span>
-            <span className="text-2xl font-black">${Math.abs(fedeBalance).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+            <span className="text-2xl font-black">${Math.abs(fedeBalance).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
         </div>
 
@@ -133,20 +133,20 @@ export default function FinDeMesClient({
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">50% Resultado Estudio FJ:</span>
-              <span className="font-semibold">${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              <span className="font-semibold">${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             <div className="flex justify-between border-t pt-2 font-bold text-indigo-900 mt-[26px]">
               <span>Total a Distribuir:</span>
-              <span>${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              <span>${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             <div className="flex justify-between text-red-600 pt-2">
               <span>(-) Retiros Juanma:</span>
-              <span>-${retirosJuanma.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              <span>-${retirosJuanma.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
           </div>
           <div className={`mt-4 p-3 rounded-lg text-center ${juanmaBalance > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
             <span className="text-sm font-bold block">{juanmaBalance > 0 ? 'Saldo a retirar' : 'Debe devolver'}</span>
-            <span className="text-2xl font-black">${Math.abs(juanmaBalance).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+            <span className="text-2xl font-black">${Math.abs(juanmaBalance).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
         </div>
       </div>
@@ -164,33 +164,33 @@ export default function FinDeMesClient({
           <thead className="bg-gray-800 text-white">
             <tr>
               <th className="px-6 py-4 text-left text-sm font-semibold uppercase tracking-wider">Concepto</th>
-              <th className="px-6 py-4 text-right text-sm font-semibold uppercase tracking-wider border-l border-gray-600 bg-green-900">Estudio F</th>
-              <th className="px-6 py-4 text-right text-sm font-semibold uppercase tracking-wider border-l border-gray-600 bg-orange-900">Estudio FJ</th>
-              <th className="px-6 py-4 text-right text-sm font-semibold uppercase tracking-wider border-l border-gray-600">Consolidado</th>
+              <th className="px-6 py-4 text-right tabular-nums text-sm font-semibold uppercase tracking-wider border-l border-gray-600 bg-green-900">Estudio F</th>
+              <th className="px-6 py-4 text-right tabular-nums text-sm font-semibold uppercase tracking-wider border-l border-gray-600 bg-orange-900">Estudio FJ</th>
+              <th className="px-6 py-4 text-right tabular-nums text-sm font-semibold uppercase tracking-wider border-l border-gray-600">Consolidado</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {/* Ingresos */}
             <tr className="bg-gray-50">
               <td className="px-6 py-3 font-bold text-gray-900">Ingresos (Cobranzas)</td>
-              <td className="px-6 py-3 text-right text-green-700 font-bold border-l border-gray-200">${ingresosF.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
-              <td className="px-6 py-3 text-right text-orange-700 font-bold border-l border-gray-200">${ingresosFJ.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
-              <td className="px-6 py-3 text-right text-gray-900 font-bold border-l border-gray-200">${ingresosConsolidado.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
+              <td className="px-6 py-3 text-right tabular-nums text-green-700 font-bold border-l border-gray-200">${ingresosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td className="px-6 py-3 text-right tabular-nums text-orange-700 font-bold border-l border-gray-200">${ingresosFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td className="px-6 py-3 text-right tabular-nums text-gray-900 font-bold border-l border-gray-200">${ingresosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             </tr>
             {/* Gastos */}
             <tr>
               <td className="px-6 py-3 font-bold text-red-800">Egresos Operativos</td>
-              <td className="px-6 py-3 text-right text-red-600 border-l border-gray-200">-${gastosF.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
-              <td className="px-6 py-3 text-right text-red-600 border-l border-gray-200">-${gastosFJ.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
-              <td className="px-6 py-3 text-right text-red-600 font-bold border-l border-gray-200">-${gastosConsolidado.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
+              <td className="px-6 py-3 text-right tabular-nums text-red-600 border-l border-gray-200">-${gastosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td className="px-6 py-3 text-right tabular-nums text-red-600 border-l border-gray-200">-${gastosFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td className="px-6 py-3 text-right tabular-nums text-red-600 font-bold border-l border-gray-200">-${gastosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             </tr>
           </tbody>
           <tfoot className="bg-gray-100 font-black text-lg">
             <tr>
               <td className="px-6 py-4 text-gray-900">Resultado Neto</td>
-              <td className="px-6 py-4 text-right border-l border-gray-300 text-green-900">${resultadoF.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
-              <td className="px-6 py-4 text-right border-l border-gray-300 text-orange-900">${resultadoFJ.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
-              <td className="px-6 py-4 text-right border-l border-gray-300 text-indigo-900">${resultadoConsolidado.toLocaleString('es-AR', {minimumFractionDigits:2})}</td>
+              <td className="px-6 py-4 text-right tabular-nums border-l border-gray-300 text-green-900">${resultadoF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td className="px-6 py-4 text-right tabular-nums border-l border-gray-300 text-orange-900">${resultadoFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              <td className="px-6 py-4 text-right tabular-nums border-l border-gray-300 text-indigo-900">${resultadoConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             </tr>
           </tfoot>
         </table>
@@ -207,8 +207,8 @@ export default function FinDeMesClient({
                 <th className="px-4 py-2 text-left font-medium text-gray-500">Fecha</th>
                 <th className="px-4 py-2 text-left font-medium text-gray-500">Categoría</th>
                 <th className="px-4 py-2 text-left font-medium text-gray-500">Detalle</th>
-                <th className="px-4 py-2 text-right font-medium text-gray-500">Asignación</th>
-                <th className="px-4 py-2 text-right font-medium text-gray-500">Importe Total</th>
+                <th className="px-4 py-2 text-right tabular-nums font-medium text-gray-500">Asignación</th>
+                <th className="px-4 py-2 text-right tabular-nums font-medium text-gray-500">Importe Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -217,7 +217,7 @@ export default function FinDeMesClient({
                   <td className="px-4 py-2 text-gray-600">{new Date(g.date).toLocaleDateString('es-AR')}</td>
                   <td className="px-4 py-2 font-medium text-gray-900">{g.category}</td>
                   <td className="px-4 py-2 text-gray-600">{g.description || '-'}</td>
-                  <td className="px-4 py-2 text-right">
+                  <td className="px-4 py-2 text-right tabular-nums">
                     {g.assignedTo === 'PRORRATEO' ? (
                       <span className="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-xs">Prorrateo</span>
                     ) : (
@@ -226,8 +226,8 @@ export default function FinDeMesClient({
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-2 text-right font-bold text-red-700">
-                    ${g.amount.toLocaleString('es-AR', {minimumFractionDigits:2})}
+                  <td className="px-4 py-2 text-right tabular-nums font-bold text-red-700">
+                    ${g.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
                 </tr>
               ))}

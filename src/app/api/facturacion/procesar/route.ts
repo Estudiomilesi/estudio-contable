@@ -74,7 +74,7 @@ export async function POST(request: Request) {
             <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
               <p style="margin: 0 0 10px 0;"><strong>Período:</strong> ${periodoStr}</p>
               <p style="margin: 0 0 10px 0;"><strong>Concepto:</strong> Honorarios Contables - Abono Mensual</p>
-              <p style="margin: 0; font-size: 18px;"><strong>Importe a abonar:</strong> $${totalAmount.toLocaleString('es-AR')}</p>
+              <p style="margin: 0; font-size: 18px;"><strong>Importe a abonar:</strong> $${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             </div>
             
             <p>Por favor, recuerde enviar el comprobante de transferencia o pago una vez realizado.</p>

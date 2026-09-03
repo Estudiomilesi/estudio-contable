@@ -121,7 +121,7 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
           </div>
           <p className="text-gray-600 mt-2">Detalle de movimientos que conforman el total del dashboard.</p>
         </div>
-        <div className="text-right">
+        <div className="text-right tabular-nums">
           <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Total {filterLabel !== 'ALL' ? 'Filtrado' : 'Acumulado'}</p>
           <p className={`text-4xl font-black ${isFacturado ? 'text-indigo-700' : 'text-green-700'}`}>
             ${currentTotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
@@ -152,9 +152,9 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
                 </th>
                 {!isFacturado && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('caja')}>Caja {renderSortIcon('caja')}</th>}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('description')}>Detalle {renderSortIcon('description')}</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('netAmount')}>Neto {renderSortIcon('netAmount')}</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('ivaAmount')}>IVA {renderSortIcon('ivaAmount')}</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('amount')}>Total {renderSortIcon('amount')}</th>
+                <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('netAmount')}>Neto {renderSortIcon('netAmount')}</th>
+                <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('ivaAmount')}>IVA {renderSortIcon('ivaAmount')}</th>
+                <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('amount')}>Total {renderSortIcon('amount')}</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -188,14 +188,14 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {t.description}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                      ${(t.netAmount || t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right tabular-nums">
+                      ${(t.netAmount || t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
-                      ${(t.ivaAmount || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right tabular-nums">
+                      ${(t.ivaAmount || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
-                      ${t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 text-right tabular-nums">
+                      ${t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                   </tr>
                 ))
@@ -204,76 +204,76 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
             {processedData.length > 0 && (
               <tfoot className="bg-gray-50 font-bold border-t-2 border-gray-300">
                 <tr>
-                  <td colSpan={2} className="px-6 py-4 text-right text-sm text-gray-900 uppercase">Totales ({breakdown.total.count} Mov.)</td>
+                  <td colSpan={2} className="px-6 py-4 text-right tabular-nums text-sm text-gray-900 uppercase">Totales ({breakdown.total.count} Mov.)</td>
                   <td className="px-6 py-4 text-center text-sm text-gray-700">100%</td>
                   <td colSpan={isFacturado ? 1 : 2}></td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                    ${currentTotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right tabular-nums">
+                    ${currentTotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                    ${currentTotalIva.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right tabular-nums">
+                    ${currentTotalIva.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right ${isFacturado ? 'text-indigo-700' : 'text-green-700'}`}>
-                    ${currentTotalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right tabular-nums ${isFacturado ? 'text-indigo-700' : 'text-green-700'}`}>
+                    ${currentTotalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
                 </tr>
                 {breakdown.f.count > 0 && (
                   <tr>
-                    <td colSpan={2} className="px-6 py-2 text-right text-sm text-green-800">
+                    <td colSpan={2} className="px-6 py-2 text-right tabular-nums text-sm text-green-800">
                       Total F ({breakdown.f.count} | {breakdown.f.pctCount.toFixed(1)}%)
                     </td>
                     <td className="px-6 py-2 text-center">
                       <span className="text-green-900 px-1 rounded text-xs">{breakdown.f.pctAmt.toFixed(1)}%</span>
                     </td>
                     <td colSpan={isFacturado ? 1 : 2}></td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-green-900">
-                      ${breakdown.f.net.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-green-900">
+                      ${breakdown.f.net.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-green-900">
-                      ${breakdown.f.iva.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-green-900">
+                      ${breakdown.f.iva.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-green-900">
-                      ${breakdown.f.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-green-900">
+                      ${breakdown.f.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                   </tr>
                 )}
                 {breakdown.fj.count > 0 && (
                   <tr>
-                    <td colSpan={2} className="px-6 py-2 text-right text-sm text-orange-800">
+                    <td colSpan={2} className="px-6 py-2 text-right tabular-nums text-sm text-orange-800">
                       Total FJ ({breakdown.fj.count} | {breakdown.fj.pctCount.toFixed(1)}%)
                     </td>
                     <td className="px-6 py-2 text-center">
                       <span className="text-orange-900 px-1 rounded text-xs">{breakdown.fj.pctAmt.toFixed(1)}%</span>
                     </td>
                     <td colSpan={isFacturado ? 1 : 2}></td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-orange-900">
-                      ${breakdown.fj.net.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-orange-900">
+                      ${breakdown.fj.net.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-orange-900">
-                      ${breakdown.fj.iva.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-orange-900">
+                      ${breakdown.fj.iva.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-orange-900">
-                      ${breakdown.fj.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-orange-900">
+                      ${breakdown.fj.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                   </tr>
                 )}
                 {breakdown.jf.count > 0 && (
                   <tr>
-                    <td colSpan={2} className="px-6 py-2 text-right text-sm text-blue-800">
+                    <td colSpan={2} className="px-6 py-2 text-right tabular-nums text-sm text-blue-800">
                       Total JF ({breakdown.jf.count} | {breakdown.jf.pctCount.toFixed(1)}%)
                     </td>
                     <td className="px-6 py-2 text-center">
                       <span className="text-blue-900 px-1 rounded text-xs">{breakdown.jf.pctAmt.toFixed(1)}%</span>
                     </td>
                     <td colSpan={isFacturado ? 1 : 2}></td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-blue-900">
-                      ${breakdown.jf.net.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-blue-900">
+                      ${breakdown.jf.net.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-blue-900">
-                      ${breakdown.jf.iva.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-blue-900">
+                      ${breakdown.jf.iva.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-blue-900">
-                      ${breakdown.jf.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right tabular-nums text-blue-900">
+                      ${breakdown.jf.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                   </tr>
                 )}

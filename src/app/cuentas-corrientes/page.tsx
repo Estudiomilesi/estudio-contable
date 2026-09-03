@@ -284,16 +284,16 @@ export default function CuentasCorrientesPage() {
     doc.setFontSize(16);
     doc.text(`Cuenta Corriente: ${selectedClient.name}`, 14, 20);
     doc.setFontSize(11);
-    doc.text(`Saldo Total: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 28);
+    doc.text(`Saldo Total: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 14, 28);
     
     const tableColumn = ["Fecha", "Vto.", "Concepto", "Debe", "Haber", "Saldo"];
     const tableRows = selectedClient.transactions.map(tx => [
       new Date(tx.date).toLocaleDateString('es-AR'),
       tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
       tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago'),
-      tx.type === 'CHARGE' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-',
-      tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-',
-      `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`
+      tx.type === 'CHARGE' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-',
+      tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-',
+      `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
     ]);
     
     autoTable(doc, {
@@ -324,16 +324,16 @@ export default function CuentasCorrientesPage() {
     doc.setFontSize(16);
     doc.text(`Saldos de Cuentas Corrientes`, 14, 20);
     doc.setFontSize(11);
-    doc.text(`Total A Cobrar: $${listTotals.debt.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 28);
-    doc.text(`Total A Favor: $${listTotals.credit.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 34);
+    doc.text(`Total A Cobrar: $${listTotals.debt.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 14, 28);
+    doc.text(`Total A Favor: $${listTotals.credit.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 14, 34);
     
     const tableColumn = ["Cód", "Cliente", "Etiqueta", "Saldo a Favor", "Saldo Deudor"];
     const tableRows = filteredAndSortedClientes.map(c => [
       c.code,
       c.name,
       c.professionalLabel,
-      c.balance < 0 ? `$${Math.abs(c.balance).toLocaleString('es-AR')}` : '-',
-      c.balance > 0 ? `$${c.balance.toLocaleString('es-AR')}` : '-'
+      c.balance < 0 ? `$${Math.abs(c.balance).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-',
+      c.balance > 0 ? `$${c.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'
     ]);
     autoTable(doc, {
       head: [tableColumn],
@@ -395,7 +395,7 @@ export default function CuentasCorrientesPage() {
                     </select>
                   </div>
                 </th>
-                <th className="px-3 py-2 text-right text-xs font-bold text-gray-700 uppercase cursor-pointer hover:bg-gray-200" onClick={() => requestSort('balance')}>
+                <th className="px-3 py-2 text-right tabular-nums text-xs font-bold text-gray-700 uppercase cursor-pointer hover:bg-gray-200" onClick={() => requestSort('balance')}>
                   Saldo
                 </th>
               </tr>
@@ -427,9 +427,9 @@ export default function CuentasCorrientesPage() {
                         {c.professionalLabel}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right tabular-nums">
                       <div className={`text-sm font-bold ${c.balance > 0 ? 'text-red-700' : c.balance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
-                        ${Math.abs(c.balance).toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                        ${Math.abs(c.balance).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </div>
                     </td>
                   </tr>
@@ -438,17 +438,17 @@ export default function CuentasCorrientesPage() {
             </tbody>
             <tfoot className="bg-gray-100 font-bold sticky bottom-0 z-10 border-t-2 border-gray-300 text-xs">
               <tr>
-                <td colSpan={3} className="px-3 py-1 text-right text-red-800">A Cobrar</td>
-                <td className="px-3 py-1 text-right text-red-900">${listTotals.debt.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+                <td colSpan={3} className="px-3 py-1 text-right tabular-nums text-red-800">A Cobrar</td>
+                <td className="px-3 py-1 text-right tabular-nums text-red-900">${listTotals.debt.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-3 py-1 text-right text-green-800">Saldos a Favor</td>
-                <td className="px-3 py-1 text-right text-green-900">${listTotals.credit.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+                <td colSpan={3} className="px-3 py-1 text-right tabular-nums text-green-800">Saldos a Favor</td>
+                <td className="px-3 py-1 text-right tabular-nums text-green-900">${listTotals.credit.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-3 py-1.5 text-right text-gray-800 border-t border-gray-300">Total Neto</td>
-                <td className={`px-3 py-1.5 text-right border-t border-gray-300 ${listTotals.total > 0 ? 'text-red-900' : listTotals.total < 0 ? 'text-green-900' : 'text-gray-900'}`}>
-                  ${Math.abs(listTotals.total).toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                <td colSpan={3} className="px-3 py-1.5 text-right tabular-nums text-gray-800 border-t border-gray-300">Total Neto</td>
+                <td className={`px-3 py-1.5 text-right tabular-nums border-t border-gray-300 ${listTotals.total > 0 ? 'text-red-900' : listTotals.total < 0 ? 'text-green-900' : 'text-gray-900'}`}>
+                  ${Math.abs(listTotals.total).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </td>
               </tr>
             </tfoot>
@@ -464,13 +464,13 @@ export default function CuentasCorrientesPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900">{selectedClient.name}</h2>
                 <p className="text-sm text-gray-700 mt-1">
-                  Pagos sin aplicar: <span className="font-semibold text-green-700">${selectedClient.unappliedPayments.toLocaleString('es-AR')}</span> | 
-                  Cargos impagos: <span className="font-semibold text-red-700">${selectedClient.unpaidCharges.toLocaleString('es-AR')}</span>
+                  Pagos sin aplicar: <span className="font-semibold text-green-700">${selectedClient.unappliedPayments.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> | 
+                  Cargos impagos: <span className="font-semibold text-red-700">${selectedClient.unpaidCharges.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-right tabular-nums">
                 <div className={`text-3xl font-black mb-2 ${selectedClient.balance > 0 ? 'text-red-700' : selectedClient.balance < 0 ? 'text-green-700' : 'text-gray-900'}`}>
-                  Saldo: ${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                  Saldo: ${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
                 <div className="flex justify-end gap-3 mb-3 text-gray-500">
                   <button onClick={exportClientExcel} title="Descargar en Excel" className="hover:text-green-600 transition-colors"><FileSpreadsheet size={20} /></button>
@@ -502,9 +502,9 @@ export default function CuentasCorrientesPage() {
                     <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase">Fecha</th>
                     <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase">Vto.</th>
                     <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase">Detalle</th>
-                    <th className="px-3 py-3 text-right text-xs font-bold text-gray-700 uppercase">Debe</th>
-                    <th className="px-3 py-3 text-right text-xs font-bold text-gray-700 uppercase">Haber</th>
-                    <th className="px-3 py-3 text-right text-xs font-bold text-gray-700 uppercase">Saldo</th>
+                    <th className="px-3 py-3 text-right tabular-nums text-xs font-bold text-gray-700 uppercase">Debe</th>
+                    <th className="px-3 py-3 text-right tabular-nums text-xs font-bold text-gray-700 uppercase">Haber</th>
+                    <th className="px-3 py-3 text-right tabular-nums text-xs font-bold text-gray-700 uppercase">Saldo</th>
                     <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase">Estado</th>
                   </tr>
                 </thead>
@@ -550,14 +550,14 @@ export default function CuentasCorrientesPage() {
                           <td className="px-3 py-3 text-sm text-gray-900">
                             {tx.description}
                           </td>
-                          <td className="px-3 py-3 text-right text-sm font-semibold text-red-700 whitespace-nowrap">
-                            {isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : ''}
+                          <td className="px-3 py-3 text-right tabular-nums text-sm font-semibold text-red-700 whitespace-nowrap">
+                            {isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : ''}
                           </td>
-                          <td className="px-3 py-3 text-right text-sm font-semibold text-green-700 whitespace-nowrap">
-                            {tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : ''}
+                          <td className="px-3 py-3 text-right tabular-nums text-sm font-semibold text-green-700 whitespace-nowrap">
+                            {tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : ''}
                           </td>
-                          <td className={`px-3 py-3 text-right text-sm font-bold whitespace-nowrap ${tx.runningBalance > 0 ? 'text-red-700' : tx.runningBalance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
-                            ${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                          <td className={`px-3 py-3 text-right tabular-nums text-sm font-bold whitespace-nowrap ${tx.runningBalance > 0 ? 'text-red-700' : tx.runningBalance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
+                            ${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                           <td className="px-3 py-3 text-center text-sm whitespace-nowrap space-y-1">
                             {isCharge ? (
@@ -566,7 +566,7 @@ export default function CuentasCorrientesPage() {
                               ) : (
                                 <div className="flex flex-col items-center gap-1">
                                   <span className="inline-flex rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold text-red-800">
-                                    Debe ${ (tx.amount - applied).toLocaleString('es-AR') }
+                                    Debe ${ (tx.amount - applied).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }
                                   </span>
                                   <button 
                                     onClick={() => handleOpenQuickCollect(tx.id)}
@@ -613,7 +613,7 @@ export default function CuentasCorrientesPage() {
             <div className="bg-white rounded-xl shadow-lg p-6 w-[450px]">
               <h3 className="text-xl font-bold mb-4 text-gray-900">Aplicar Pago a Comprobante</h3>
               <p className="text-sm text-gray-700 mb-4">
-                Estás por aplicar un pago (Disponible: <strong>${(applyingPayment.amount - getAppliedAmount(applyingPayment)).toLocaleString('es-AR')}</strong>) a un cargo pendiente.
+                Estás por aplicar un pago (Disponible: <strong>${(applyingPayment.amount - getAppliedAmount(applyingPayment)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>) a un cargo pendiente.
               </p>
               <form onSubmit={handleApplySubmit} className="space-y-4">
                 <div>
@@ -629,7 +629,7 @@ export default function CuentasCorrientesPage() {
                       .filter(t => t.type === 'CHARGE' && getAppliedAmount(t) < t.amount)
                       .map(t => (
                         <option key={t.id} value={t.id}>
-                          {new Date(t.date).toLocaleDateString('es-AR')} - {t.description} (Debe: ${(t.amount - getAppliedAmount(t)).toLocaleString('es-AR')})
+                          {new Date(t.date).toLocaleDateString('es-AR')} - {t.description} (Debe: ${(t.amount - getAppliedAmount(t)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
                         </option>
                       ))
                     }

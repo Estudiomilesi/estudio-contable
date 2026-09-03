@@ -70,7 +70,7 @@ export default function RankingClient({ data, months, isFacturado }: { data: Row
           </div>
           <p className="text-gray-600 mt-2">Valores netos filtrados por cliente.</p>
         </div>
-        <div className="text-right">
+        <div className="text-right tabular-nums">
           <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Total {filterLabel !== 'ALL' ? 'Filtrado' : 'General'}</p>
           <p className={`text-4xl font-black ${isFacturado ? 'text-indigo-700' : 'text-green-700'}`}>
             ${currentTotalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
@@ -101,14 +101,14 @@ export default function RankingClient({ data, months, isFacturado }: { data: Row
                   </div>
                 </th>
                 {months.map(m => (
-                  <th key={m.key} className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort(m.key)}>
+                  <th key={m.key} className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort(m.key)}>
                     {m.label} {renderSortIcon(m.key)}
                   </th>
                 ))}
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-800 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('total')}>
+                <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-800 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('total')}>
                   Total {renderSortIcon('total')}
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none">
+                <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none">
                   %
                 </th>
               </tr>
@@ -128,14 +128,14 @@ export default function RankingClient({ data, months, isFacturado }: { data: Row
                     ) : '-'}
                   </td>
                   {months.map(m => (
-                    <td key={m.key} className="px-6 py-2 whitespace-nowrap text-sm text-gray-600 text-right">
-                      {r[m.key] > 0 ? `$${r[m.key].toLocaleString('es-AR', {minimumFractionDigits: 0})}` : '-'}
+                    <td key={m.key} className="px-6 py-2 whitespace-nowrap text-sm text-gray-600 text-right tabular-nums">
+                      {r[m.key] > 0 ? `$${r[m.key].toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}
                     </td>
                   ))}
-                  <td className="px-6 py-2 whitespace-nowrap text-sm font-bold text-gray-900 text-right">
-                    ${r.total.toLocaleString('es-AR', {minimumFractionDigits: 0})}
+                  <td className="px-6 py-2 whitespace-nowrap text-sm font-bold text-gray-900 text-right tabular-nums">
+                    ${r.total.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
-                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500 text-right font-medium">
+                  <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-500 text-right tabular-nums font-medium">
                     {currentTotalAmount > 0 ? ((r.total / currentTotalAmount) * 100).toFixed(1) : 0}%
                   </td>
                 </tr>
@@ -151,16 +151,16 @@ export default function RankingClient({ data, months, isFacturado }: { data: Row
             {processedData.length > 0 && (
               <tfoot className="bg-gray-50 font-bold border-t-2 border-gray-300">
                 <tr>
-                  <td colSpan={2} className="px-6 py-4 text-right text-sm text-gray-900 uppercase">Totales</td>
+                  <td colSpan={2} className="px-6 py-4 text-right tabular-nums text-sm text-gray-900 uppercase">Totales</td>
                   {months.map(m => (
-                    <td key={m.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                      ${processedData.reduce((s, r) => s + r[m.key], 0).toLocaleString('es-AR', {minimumFractionDigits: 0})}
+                    <td key={m.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right tabular-nums">
+                      ${processedData.reduce((s, r) => s + r[m.key], 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                   ))}
-                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right ${isFacturado ? 'text-indigo-700' : 'text-green-700'}`}>
-                    ${currentTotalAmount.toLocaleString('es-AR', {minimumFractionDigits: 0})}
+                  <td className={`px-6 py-4 whitespace-nowrap text-sm text-right tabular-nums ${isFacturado ? 'text-indigo-700' : 'text-green-700'}`}>
+                    ${currentTotalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">100%</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right tabular-nums">100%</td>
                 </tr>
               </tfoot>
             )}

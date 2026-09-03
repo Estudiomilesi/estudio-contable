@@ -335,7 +335,7 @@ export default function ClientesPage() {
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('isActive')}>Estado</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
+                  <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -361,7 +361,7 @@ export default function ClientesPage() {
                         {c.defaultBillingProfile === 'FEDE_RI' ? 'Fede RI' : c.defaultBillingProfile === 'JUANMA_MONO' ? 'JuanMa Mono' : 'No Fiscal'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
-                        ${c.currentFee.toLocaleString('es-AR')}
+                        ${c.currentFee.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                         {c.isActive ? (
@@ -370,7 +370,7 @@ export default function ClientesPage() {
                           <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500"></span> Inactivo</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2">
+                      <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums text-sm font-medium flex justify-end gap-2">
                         <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 p-1"><Pencil size={18} /></button>
                         <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 p-1"><Trash2 size={18} /></button>
                       </td>

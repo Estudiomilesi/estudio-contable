@@ -138,7 +138,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Abonos Estimado</h3>
             <p className="mt-4 text-4xl font-black text-gray-900">
-              ${facturacionEstimada.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+              ${facturacionEstimada.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
           </Link>
 
@@ -146,7 +146,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           <Link href="/cuentas-corrientes" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-red-400 transition-all cursor-pointer group">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">Deuda a Cobrar (Cta. Cte.)</h3>
             <p className="mt-4 text-4xl font-black text-red-600">
-              ${deudaPendienteTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+              ${deudaPendienteTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
           </Link>
 
@@ -154,7 +154,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           <Link href="/tesoreria" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-green-600 transition-colors">Total Tesorería (Disp.)</h3>
             <p className="mt-4 text-4xl font-black text-green-600">
-              ${tesoreriaTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+              ${tesoreriaTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
           </Link>
         </div>
@@ -167,7 +167,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           <Link href={`/reportes/mes?tipo=facturado&label=${currentLabel}`} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Facturado este mes</h3>
             <p className="mt-4 text-4xl font-black text-indigo-700">
-              ${facturacionMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+              ${facturacionMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
           </Link>
 
@@ -175,7 +175,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           <Link href={`/reportes/mes?tipo=cobrado&label=${currentLabel}`} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-green-600 transition-colors">Cobrado este mes</h3>
             <p className="mt-4 text-4xl font-black text-green-700">
-              ${cobradoMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+              ${cobradoMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
           </Link>
         </div>

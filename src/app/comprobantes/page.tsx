@@ -171,7 +171,7 @@ export default function ComprobantesPage() {
       doc.text(`Fecha: ${new Date(c.date).toLocaleDateString('es-AR')}`, 20, 60);
       doc.text(`Cliente: ${c.client.name}`, 20, 70);
       doc.text(`Concepto: ${c.description}`, 20, 80);
-      doc.text(`Importe Total: $${c.amount.toLocaleString('es-AR')}`, 20, 90);
+      doc.text(`Importe Total: $${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 20, 90);
       
       if (c.type === 'PAYMENT') {
         doc.text("NOTA DE CRÉDITO", 105, 120, { align: 'center' });
@@ -365,17 +365,17 @@ export default function ComprobantesPage() {
             <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
               <div className="flex justify-between text-xs mb-1 text-gray-600">
                 <span>Neto:</span>
-                <span>${netAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+                <span>${netAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
               {form.billingProfile === 'FEDE_RI' && (
                 <div className="flex justify-between text-xs mb-1 text-gray-600">
                   <span>IVA (21%):</span>
-                  <span>${ivaAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+                  <span>${ivaAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-sm text-indigo-900 mt-2 pt-2 border-t border-gray-200">
                 <span>Total:</span>
-                <span>${totalAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+                <span>${totalAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             </div>
 
@@ -406,7 +406,7 @@ export default function ComprobantesPage() {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Número</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Cliente</th>
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Perfil</th>
-                  <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Total</th>
+                  <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-500">Total</th>
                   <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Acciones</th>
                 </tr>
               </thead>
@@ -430,8 +430,8 @@ export default function ComprobantesPage() {
                           {c.billingProfile === 'NO_FISCAL' ? 'No Fis.' : c.billingProfile === 'FEDE_RI' ? 'RI' : 'Mono'}
                         </span>
                       </td>
-                      <td className={`px-4 py-2 text-right font-bold text-sm whitespace-nowrap ${c.type === 'PAYMENT' ? 'text-green-600' : 'text-gray-900'}`}>
-                        ${c.amount.toLocaleString('es-AR')}
+                      <td className={`px-4 py-2 text-right tabular-nums font-bold text-sm whitespace-nowrap ${c.type === 'PAYMENT' ? 'text-green-600' : 'text-gray-900'}`}>
+                        ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>
                       <td className="px-4 py-2 text-center space-x-2 whitespace-nowrap">
                         <button 

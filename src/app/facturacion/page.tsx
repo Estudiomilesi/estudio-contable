@@ -338,10 +338,10 @@ export default function FacturacionPage() {
                     </select>
                   </div>
                 </th>
-                <th className="px-2 py-2 text-right font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Neto</th>
+                <th className="px-2 py-2 text-right tabular-nums font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Neto</th>
                 <th className="px-2 py-2 text-center font-medium text-gray-800">Quitar</th>
                 {historyDates.map(date => (
-                  <th key={date} className="px-2 py-2 text-right font-medium text-gray-700 whitespace-nowrap">{date}</th>
+                  <th key={date} className="px-2 py-2 text-right tabular-nums font-medium text-gray-700 whitespace-nowrap">{date}</th>
                 ))}
               </tr>
             </thead>
@@ -391,14 +391,14 @@ export default function FacturacionPage() {
                           <option value="JUANMA_MONO">JuanMa Mono</option>
                         </select>
                       </td>
-                      <td className="px-2 py-1 whitespace-nowrap text-right">
+                      <td className="px-2 py-1 whitespace-nowrap text-right tabular-nums">
                         <input 
                           type="number"
                           min="0"
                           step="1"
                           value={currentValue}
                           onChange={(e) => handleFeeChange(c.id, e.target.value)}
-                          className="w-24 text-right rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm p-1 border font-bold text-gray-900 bg-transparent"
+                          className="w-24 text-right tabular-nums rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm p-1 border font-bold text-gray-900 bg-transparent"
                         />
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-center">
@@ -414,8 +414,8 @@ export default function FacturacionPage() {
                         // Buscar si el cliente tiene un cargo de Abono Mensual en este mes
                         const tx = c.accountTransactions?.find(t => t.description === 'Abono Mensual' && t.date.startsWith(month));
                         return (
-                          <td key={month} className="px-2 py-1 whitespace-nowrap text-right text-gray-800 font-semibold">
-                            {tx ? tx.amount.toLocaleString('es-AR') : '-'}
+                          <td key={month} className="px-2 py-1 whitespace-nowrap text-right tabular-nums text-gray-800 font-semibold">
+                            {tx ? tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}
                           </td>
                         );
                       })}
@@ -427,45 +427,45 @@ export default function FacturacionPage() {
             {/* Totales */}
             <tfoot className="bg-gray-100 font-bold sticky bottom-0 z-10 border-t-2 border-gray-300">
               <tr>
-                <td colSpan={3} className="px-2 py-2 text-right">
+                <td colSpan={3} className="px-2 py-2 text-right tabular-nums">
                   Totales ({totales.countGeneral} Abonos)
                 </td>
                 <td className="px-2 py-2 text-center text-gray-700">100%</td>
                 <td className="px-2 py-2"></td>
-                <td className="px-2 py-2 text-right text-indigo-900">{totales.General.toLocaleString('es-AR')}</td>
+                <td className="px-2 py-2 text-right tabular-nums text-indigo-900">{totales.General.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td colSpan={historyDates.length + 1}></td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-2 py-1 text-right text-green-800">
+                <td colSpan={3} className="px-2 py-1 text-right tabular-nums text-green-800">
                   Total F ({totales.countF} | {totales.countGeneral ? ((totales.countF / totales.countGeneral) * 100).toFixed(1) : 0}%)
                 </td>
                 <td className="px-2 py-1 text-center">
                   <span className="text-green-900 px-1 rounded text-xs">{totales.General ? ((totales.F / totales.General) * 100).toFixed(1) : 0}%</span>
                 </td>
                 <td className="px-2 py-1"></td>
-                <td className="px-2 py-1 text-right text-green-900">{totales.F.toLocaleString('es-AR')}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-green-900">{totales.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td colSpan={historyDates.length + 1}></td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-2 py-1 text-right text-orange-800">
+                <td colSpan={3} className="px-2 py-1 text-right tabular-nums text-orange-800">
                   Total FJ ({totales.countFJ} | {totales.countGeneral ? ((totales.countFJ / totales.countGeneral) * 100).toFixed(1) : 0}%)
                 </td>
                 <td className="px-2 py-1 text-center">
                   <span className="text-orange-900 px-1 rounded text-xs">{totales.General ? ((totales.FJ / totales.General) * 100).toFixed(1) : 0}%</span>
                 </td>
                 <td className="px-2 py-1"></td>
-                <td className="px-2 py-1 text-right text-orange-900">{totales.FJ.toLocaleString('es-AR')}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-orange-900">{totales.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td colSpan={historyDates.length + 1}></td>
               </tr>
               <tr>
-                <td colSpan={3} className="px-2 py-1 text-right text-blue-800">
+                <td colSpan={3} className="px-2 py-1 text-right tabular-nums text-blue-800">
                   Total JF ({totales.countJF} | {totales.countGeneral ? ((totales.countJF / totales.countGeneral) * 100).toFixed(1) : 0}%)
                 </td>
                 <td className="px-2 py-1 text-center">
                   <span className="text-blue-900 px-1 rounded text-xs">{totales.General ? ((totales.JF / totales.General) * 100).toFixed(1) : 0}%</span>
                 </td>
                 <td className="px-2 py-1"></td>
-                <td className="px-2 py-1 text-right text-blue-900">{totales.JF.toLocaleString('es-AR')}</td>
+                <td className="px-2 py-1 text-right tabular-nums text-blue-900">{totales.JF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td colSpan={historyDates.length + 1}></td>
               </tr>
             </tfoot>

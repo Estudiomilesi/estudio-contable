@@ -198,7 +198,7 @@ export default function TesoreriaPage() {
                 <ul className="list-disc pl-5 space-y-1">
                   {expiringChecks.map(c => (
                     <li key={c.id}>
-                      {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR')} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
+                      {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
                     </li>
                   ))}
                 </ul>
@@ -228,7 +228,7 @@ export default function TesoreriaPage() {
               className={`rounded-xl border p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${colors.bg} ${isSelected ? `${colors.border} border-2 ring-1 ring-inset ${colors.ring}` : 'border-transparent opacity-80 hover:opacity-100'}`}
             >
               <h3 className={`text-sm font-medium ${colors.text}`}>{acc === 'CAJA IVA' ? 'Caja IVA' : acc === 'BANCOS FEDE' ? 'Bcos Fede' : acc === 'BANCOS JUANMA' ? 'Bcos Juanma' : acc === 'CHEQUES' ? 'Cheques' : 'Caja'}</h3>
-              <p className={`mt-2 text-xl font-semibold ${colors.text}`}>${(saldos[acc] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+              <p className={`mt-2 text-xl font-semibold ${colors.text}`}>${(saldos[acc] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             </div>
           );
         })}
@@ -331,7 +331,7 @@ export default function TesoreriaPage() {
                             <div className="font-bold">{c.bank} N° {c.number}</div>
                             <div className="text-gray-600">Vence: {new Date(c.dueDate).toLocaleDateString('es-AR')}</div>
                           </div>
-                          <div className="text-sm font-bold text-gray-900">${c.amount.toLocaleString('es-AR')}</div>
+                          <div className="text-sm font-bold text-gray-900">${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                         </label>
                       )
                     })}
@@ -340,7 +340,7 @@ export default function TesoreriaPage() {
                 <div className="pt-2 border-t border-blue-200 flex justify-between items-center">
                   <span className="text-sm font-medium">Total Seleccionado:</span>
                   <span className="text-lg font-bold text-blue-900">
-                    ${cartera.filter(c => selectedCheckIds.includes(c.id)).reduce((acc, c) => acc + c.amount, 0).toLocaleString('es-AR')}
+                    ${cartera.filter(c => selectedCheckIds.includes(c.id)).reduce((acc, c) => acc + c.amount, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </span>
                 </div>
               </div>
@@ -406,7 +406,7 @@ export default function TesoreriaPage() {
                                   <div className="flex-1 text-xs">
                                     <div className="font-bold text-gray-900">{new Date(c.date).toLocaleDateString('es-AR')} - {c.description}</div>
                                   </div>
-                                  <div className="text-sm font-bold text-red-700">Debe ${c.debt.toLocaleString('es-AR')}</div>
+                                  <div className="text-sm font-bold text-red-700">Debe ${c.debt.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                                 </div>
                               </label>
                             )
@@ -418,7 +418,7 @@ export default function TesoreriaPage() {
                             ${Array.from(selectedChargeIds).reduce((acc, id) => {
                               const ch = pendingCharges.find(p => p.id === id);
                               return acc + (ch ? ch.debt : 0);
-                            }, 0).toLocaleString('es-AR')}
+                            }, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </span>
                         </div>
                       </>
@@ -453,12 +453,12 @@ export default function TesoreriaPage() {
                   <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Categoría / Detalle</th>
                   {selectedFilterAccount ? (
                     <>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Debe</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Haber</th>
-                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Saldo</th>
+                      <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase">Debe</th>
+                      <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase">Haber</th>
+                      <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase">Saldo</th>
                     </>
                   ) : (
-                    <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Importe</th>
+                    <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase">Importe</th>
                   )}
                 </tr>
               </thead>
@@ -494,18 +494,18 @@ export default function TesoreriaPage() {
                       </td>
                       {selectedFilterAccount ? (
                         <>
-                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-green-600">
+                          <td className="px-4 py-2 whitespace-nowrap text-right tabular-nums text-sm text-green-600">
                             {t.amount >= 0 ? t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ''}
                           </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-red-600">
+                          <td className="px-4 py-2 whitespace-nowrap text-right tabular-nums text-sm text-red-600">
                             {t.amount < 0 ? Math.abs(t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : ''}
                           </td>
-                          <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                          <td className="px-4 py-2 whitespace-nowrap text-right tabular-nums text-sm font-bold text-gray-900">
                             ${(t.runningBalance || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                           </td>
                         </>
                       ) : (
-                        <td className={`px-4 py-2 whitespace-nowrap text-right text-sm font-bold ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <td className={`px-4 py-2 whitespace-nowrap text-right tabular-nums text-sm font-bold ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {t.amount >= 0 ? '+' : ''}{t.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </td>
                       )}
@@ -532,7 +532,7 @@ export default function TesoreriaPage() {
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">F. Cobro</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Cliente</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Banco y N°</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-700 uppercase">Importe</th>
+                <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase">Importe</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
@@ -563,7 +563,7 @@ export default function TesoreriaPage() {
                       <td className="px-4 py-2 text-sm text-gray-900 font-medium">
                         {c.bank} - N° {c.number}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-right text-sm font-bold text-gray-900">
+                      <td className="px-4 py-2 whitespace-nowrap text-right tabular-nums text-sm font-bold text-gray-900">
                         ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>
                     </tr>
