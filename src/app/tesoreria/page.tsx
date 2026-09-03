@@ -25,6 +25,15 @@ type Check = {
   client?: { name: string };
 };
 
+const ACCOUNT_COLORS: Record<string, { bg: string, text: string, border: string, badgeBg: string }> = {
+  'BANCOS FEDE': { bg: 'bg-green-50', text: 'text-green-900', border: 'border-green-500', badgeBg: 'bg-green-100 text-green-800' },
+  'BANCOS JUANMA': { bg: 'bg-blue-50', text: 'text-blue-900', border: 'border-blue-500', badgeBg: 'bg-blue-100 text-blue-800' },
+  'CAJA': { bg: 'bg-teal-50', text: 'text-teal-900', border: 'border-teal-500', badgeBg: 'bg-teal-100 text-teal-800' },
+  'CAJA IVA': { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-500', badgeBg: 'bg-orange-100 text-orange-800' },
+  'CHEQUES': { bg: 'bg-purple-50', text: 'text-purple-900', border: 'border-purple-500', badgeBg: 'bg-purple-100 text-purple-800' },
+  'DEFAULT': { bg: 'bg-gray-50', text: 'text-gray-900', border: 'border-gray-500', badgeBg: 'bg-gray-100 text-gray-800' }
+};
+
 export default function TesoreriaPage() {
   const [transacciones, setTransacciones] = useState<TreasuryTransaction[]>([]);
   const [saldos, setSaldos] = useState<Record<string, number>>({ 
@@ -202,46 +211,26 @@ export default function TesoreriaPage() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-6">
         <div 
           onClick={() => setSelectedFilterAccount(null)}
-          className={`rounded-xl border bg-white p-6 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === null ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
+          className={`rounded-xl border bg-white p-6 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === null ? 'border-gray-800 border-2 bg-gray-50' : 'border-gray-200'}`}
         >
           <h3 className="text-sm font-medium text-gray-700">Total Disponible</h3>
           <p className="mt-2 text-2xl font-bold text-gray-900">${saldoTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
         </div>
-        <div 
-          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CAJA' ? null : 'CAJA')}
-          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'CAJA' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
-        >
-          <h3 className="text-sm font-medium text-gray-700">Caja</h3>
-          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CAJA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
-        </div>
-        <div 
-          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CAJA IVA' ? null : 'CAJA IVA')}
-          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'CAJA IVA' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
-        >
-          <h3 className="text-sm font-medium text-gray-700">Caja IVA</h3>
-          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CAJA IVA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
-        </div>
-        <div 
-          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'BANCOS FEDE' ? null : 'BANCOS FEDE')}
-          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'BANCOS FEDE' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
-        >
-          <h3 className="text-sm font-medium text-gray-700">Bcos Fede</h3>
-          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['BANCOS FEDE'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
-        </div>
-        <div 
-          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'BANCOS JUANMA' ? null : 'BANCOS JUANMA')}
-          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'BANCOS JUANMA' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
-        >
-          <h3 className="text-sm font-medium text-gray-700">Bcos Juanma</h3>
-          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['BANCOS JUANMA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
-        </div>
-        <div 
-          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CHEQUES' ? null : 'CHEQUES')}
-          className={`rounded-xl border bg-white p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${selectedFilterAccount === 'CHEQUES' ? 'border-indigo-500 border-2 bg-indigo-50' : 'border-gray-200'}`}
-        >
-          <h3 className="text-sm font-medium text-gray-700">Cheques</h3>
-          <p className="mt-2 text-xl font-semibold text-gray-700">${(saldos['CHEQUES'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
-        </div>
+        
+        {['CAJA', 'CAJA IVA', 'BANCOS FEDE', 'BANCOS JUANMA', 'CHEQUES'].map((acc) => {
+          const colors = ACCOUNT_COLORS[acc] || ACCOUNT_COLORS['DEFAULT'];
+          const isSelected = selectedFilterAccount === acc;
+          return (
+            <div 
+              key={acc}
+              onClick={() => setSelectedFilterAccount(isSelected ? null : acc)}
+              className={`rounded-xl border p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${isSelected ? `${colors.border} border-2 ${colors.bg}` : 'border-gray-200 bg-white'}`}
+            >
+              <h3 className={`text-sm font-medium ${isSelected ? colors.text : 'text-gray-700'}`}>{acc === 'CAJA IVA' ? 'Caja IVA' : acc === 'BANCOS FEDE' ? 'Bcos Fede' : acc === 'BANCOS JUANMA' ? 'Bcos Juanma' : acc === 'CHEQUES' ? 'Cheques' : 'Caja'}</h3>
+              <p className={`mt-2 text-xl font-semibold ${isSelected ? colors.text : 'text-gray-700'}`}>${(saldos[acc] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+            </div>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -477,7 +466,7 @@ export default function TesoreriaPage() {
                         {new Date(t.date).toLocaleDateString('es-AR')}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm">
-                        <span className="inline-flex rounded-full bg-gray-100 px-2 text-xs font-semibold text-gray-800">
+                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold ${ACCOUNT_COLORS[t.account]?.badgeBg || ACCOUNT_COLORS['DEFAULT'].badgeBg}`}>
                           {t.account}
                         </span>
                       </td>
