@@ -65,23 +65,37 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
   const breakdown = useMemo(() => {
     let fCount = 0, fjCount = 0, jfCount = 0, otherCount = 0;
     let fTotal = 0, fjTotal = 0, jfTotal = 0, otherTotal = 0;
+    let fNeto = 0, fjNeto = 0, jfNeto = 0, otherNeto = 0;
+    let fIva = 0, fjIva = 0, jfIva = 0, otherIva = 0;
 
     processedData.forEach(t => {
       const amt = t.amount;
-      if (t.client?.professionalLabel === 'F') { fCount++; fTotal += amt; }
-      else if (t.client?.professionalLabel === 'FJ') { fjCount++; fjTotal += amt; }
-      else if (t.client?.professionalLabel === 'JF') { jfCount++; jfTotal += amt; }
-      else { otherCount++; otherTotal += amt; }
+      const net = t.netAmount || t.amount;
+      const iva = t.ivaAmount || 0;
+      
+      if (t.client?.professionalLabel === 'F') { 
+        fCount++; fTotal += amt; fNeto += net; fIva += iva;
+      }
+      else if (t.client?.professionalLabel === 'FJ') { 
+        fjCount++; fjTotal += amt; fjNeto += net; fjIva += iva;
+      }
+      else if (t.client?.professionalLabel === 'JF') { 
+        jfCount++; jfTotal += amt; jfNeto += net; jfIva += iva;
+      }
+      else { 
+        otherCount++; otherTotal += amt; otherNeto += net; otherIva += iva;
+      }
     });
 
     const totalCount = processedData.length;
     const totalAmt = currentTotalAmount;
+    const totalNetoAmt = currentTotalNeto;
 
     return {
-      f: { count: fCount, total: fTotal, pctCount: totalCount ? (fCount/totalCount)*100 : 0, pctAmt: totalAmt ? (fTotal/totalAmt)*100 : 0 },
-      fj: { count: fjCount, total: fjTotal, pctCount: totalCount ? (fjCount/totalCount)*100 : 0, pctAmt: totalAmt ? (fjTotal/totalAmt)*100 : 0 },
-      jf: { count: jfCount, total: jfTotal, pctCount: totalCount ? (jfCount/totalCount)*100 : 0, pctAmt: totalAmt ? (jfTotal/totalAmt)*100 : 0 },
-      other: { count: otherCount, total: otherTotal, pctCount: totalCount ? (otherCount/totalCount)*100 : 0, pctAmt: totalAmt ? (otherTotal/totalAmt)*100 : 0 },
+      f: { count: fCount, total: fTotal, net: fNeto, iva: fIva, pctCount: totalCount ? (fCount/totalCount)*100 : 0, pctAmt: totalNetoAmt ? (fNeto/totalNetoAmt)*100 : 0 },
+      fj: { count: fjCount, total: fjTotal, net: fjNeto, iva: fjIva, pctCount: totalCount ? (fjCount/totalCount)*100 : 0, pctAmt: totalNetoAmt ? (fjNeto/totalNetoAmt)*100 : 0 },
+      jf: { count: jfCount, total: jfTotal, net: jfNeto, iva: jfIva, pctCount: totalCount ? (jfCount/totalCount)*100 : 0, pctAmt: totalNetoAmt ? (jfNeto/totalNetoAmt)*100 : 0 },
+      other: { count: otherCount, total: otherTotal, net: otherNeto, iva: otherIva, pctCount: totalCount ? (otherCount/totalCount)*100 : 0, pctAmt: totalNetoAmt ? (otherNeto/totalNetoAmt)*100 : 0 },
       total: { count: totalCount, total: totalAmt }
     };
   }, [processedData, currentTotalAmount]);
@@ -211,7 +225,13 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
                     <td className="px-6 py-2 text-center">
                       <span className="text-green-900 px-1 rounded text-xs">{breakdown.f.pctAmt.toFixed(1)}%</span>
                     </td>
-                    <td colSpan={isFacturado ? 3 : 4}></td>
+                    <td colSpan={isFacturado ? 1 : 2}></td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-green-900">
+                      ${breakdown.f.net.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-green-900">
+                      ${breakdown.f.iva.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
                     <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-green-900">
                       ${breakdown.f.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
                     </td>
@@ -225,7 +245,13 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
                     <td className="px-6 py-2 text-center">
                       <span className="text-orange-900 px-1 rounded text-xs">{breakdown.fj.pctAmt.toFixed(1)}%</span>
                     </td>
-                    <td colSpan={isFacturado ? 3 : 4}></td>
+                    <td colSpan={isFacturado ? 1 : 2}></td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-orange-900">
+                      ${breakdown.fj.net.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-orange-900">
+                      ${breakdown.fj.iva.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
                     <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-orange-900">
                       ${breakdown.fj.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
                     </td>
@@ -239,7 +265,13 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
                     <td className="px-6 py-2 text-center">
                       <span className="text-blue-900 px-1 rounded text-xs">{breakdown.jf.pctAmt.toFixed(1)}%</span>
                     </td>
-                    <td colSpan={isFacturado ? 3 : 4}></td>
+                    <td colSpan={isFacturado ? 1 : 2}></td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-blue-900">
+                      ${breakdown.jf.net.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-blue-900">
+                      ${breakdown.jf.iva.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
                     <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-blue-900">
                       ${breakdown.jf.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
                     </td>

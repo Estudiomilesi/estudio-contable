@@ -54,18 +54,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   };
 
   // 3. Facturación Mes en Curso (Cargos del mes)
-  const facturacionMes = await prisma.accountTransaction.aggregate({
+  const facturacionMes = await prisma.accountTransaction.findMany({
     where: {
       type: 'CHARGE',
       date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
       ...txWhere
-    },
-    _sum: { amount: true }
+    }
   });
-  const facturacionMesTotal = facturacionMes._sum.amount || 0;
+  const facturacionMesTotal = facturacionMes.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
 
   // 4. Cobrado Mes en Curso (Pagos del mes, excluyendo Notas de Crédito)
-  const cobradoMes = await prisma.accountTransaction.aggregate({
+  const cobradoMes = await prisma.accountTransaction.findMany({
     where: {
       type: 'PAYMENT',
       date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
@@ -74,10 +73,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
         { description: { contains: 'aldo a favor' } }
       ],
       ...txWhere
-    },
-    _sum: { amount: true }
+    }
   });
-  const cobradoMesTotal = cobradoMes._sum.amount || 0;
+  const cobradoMesTotal = cobradoMes.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
 
   // 5. Deuda Total Pendiente (Saldo de Cuentas Corrientes a cobrar)
   const txsCtaCte = await prisma.accountTransaction.findMany({
