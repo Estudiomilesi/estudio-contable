@@ -10,6 +10,7 @@ type TreasuryTransaction = {
   account: string;
   category: string;
   description: string | null;
+  client?: { name: string };
 };
 
 type Check = {
@@ -481,7 +482,9 @@ export default function TesoreriaPage() {
                         </span>
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-900">
-                        <div className="font-medium">{t.category}</div>
+                        <div className="font-medium">
+                          {t.category} {t.client ? `- ${t.client.name}` : ''}
+                        </div>
                         <div className="text-gray-700 text-xs truncate max-w-xs" title={t.description || ''}>{t.description}</div>
                       </td>
                       <td className={`px-4 py-2 whitespace-nowrap text-right text-sm font-bold ${t.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
