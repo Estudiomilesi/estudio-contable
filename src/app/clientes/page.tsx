@@ -286,7 +286,11 @@ export default function ClientesPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.code}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{c.name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${c.professionalLabel === 'F' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
+                        <span className={`inline-flex rounded-full px-2 text-xs font-bold leading-5 ${
+                          c.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
+                          c.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
+                          'bg-blue-200 text-blue-900'
+                        }`}>
                           {c.professionalLabel}
                         </span>
                       </td>
