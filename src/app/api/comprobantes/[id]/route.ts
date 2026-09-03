@@ -19,6 +19,12 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return NextResponse.json({ error: 'No se puede eliminar un comprobante que ya fue enviado por email.' }, { status: 400 });
     }
 
+    // Proteger los saldos iniciales (todo lo importado antes del 3 de Septiembre)
+    const isHistorical = tx.createdAt < new Date('2026-09-03T00:00:00Z');
+    if (isHistorical) {
+      return NextResponse.json({ error: 'No se pueden eliminar los comprobantes cargados como saldos iniciales.' }, { status: 400 });
+    }
+
     await prisma.accountTransaction.delete({
       where: { id }
     });

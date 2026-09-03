@@ -23,6 +23,7 @@ type Comprobante = {
   receiptFileBase64: string | null;
   billingProfile: string;
   isEmailed: boolean;
+  createdAt: string;
   client: { name: string };
 };
 
@@ -391,14 +392,24 @@ export default function ComprobantesPage() {
                         >
                           <Download size={18} />
                         </button>
-                        <button 
-                          onClick={() => handleDelete(c.id, c.isEmailed)}
-                          disabled={c.isEmailed}
-                          title={c.isEmailed ? 'No se puede eliminar (Ya enviado)' : 'Eliminar Comprobante'}
-                          className={c.isEmailed ? 'text-gray-300' : 'text-red-600 hover:text-red-900'}
-                        >
-                          <Trash2 size={18} />
-                        </button>
+                        {(() => {
+                          const isHistorical = new Date(c.createdAt) < new Date('2026-09-03T00:00:00Z');
+                          const isDisabled = c.isEmailed || isHistorical;
+                          const title = isHistorical 
+                            ? 'No se puede eliminar un saldo inicial' 
+                            : (c.isEmailed ? 'No se puede eliminar (Ya enviado)' : 'Eliminar Comprobante');
+                          
+                          return (
+                            <button 
+                              onClick={() => handleDelete(c.id, c.isEmailed)}
+                              disabled={isDisabled}
+                              title={title}
+                              className={isDisabled ? 'text-gray-300' : 'text-red-600 hover:text-red-900'}
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))
