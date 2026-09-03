@@ -63,6 +63,9 @@ model AccountTransaction {
   amount      Float
   description String?
   dueDate     DateTime?
+  receiptNumber     String?
+  receiptFileBase64 String?
+  isEmailed         Boolean         @default(false)
   createdAt   DateTime        @default(now())
 
   // Relaciones para composición de saldos
