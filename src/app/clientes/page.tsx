@@ -196,8 +196,16 @@ export default function ClientesPage() {
               <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Email *</label>
-              <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+              <label className="block text-sm font-medium text-gray-700">Email(s) * <span className="text-xs text-gray-400 font-normal">(separa varios con coma)</span></label>
+              <input 
+                type="email" 
+                multiple 
+                required 
+                placeholder="ejemplo@correo.com, otro@correo.com"
+                value={formData.email} 
+                onChange={e => setFormData({...formData, email: e.target.value})} 
+                className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" 
+              />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
