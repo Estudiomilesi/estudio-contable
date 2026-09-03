@@ -1,18 +1,42 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
 
+import DashboardFilter from '@/components/DashboardFilter';
+
 // Revalidar cada 10 segundos o forzar dinamismo
 export const dynamic = 'force-dynamic';
 
-export default async function Home() {
-  // 1. Abonos Activos (clientes con hasAbono = true)
+export default async function Home({ searchParams }: { searchParams: Promise<{ label?: string }> }) {
+  const { label } = await searchParams;
+  const currentLabel = label || 'ALL';
+
+  // Build the label filter object for Prisma Client queries
+  let clientLabelFilter: any = undefined;
+  if (currentLabel === 'F') {
+    clientLabelFilter = 'F';
+  } else if (currentLabel === 'FJ') {
+    clientLabelFilter = 'FJ';
+  } else if (currentLabel === 'JF') {
+    clientLabelFilter = 'JF';
+  } else if (currentLabel === 'FJ_JF') {
+    clientLabelFilter = { in: ['FJ', 'JF'] };
+  }
+
+  // Define where clause for Client queries
+  const clientWhere = {
+    isActive: true,
+    hasAbono: true,
+    ...(clientLabelFilter && { professionalLabel: clientLabelFilter })
+  };
+
+  // 1. Abonos Activos (clientes con hasAbono = true y filtrado por etiqueta)
   const totalAbonosActivos = await prisma.client.count({
-    where: { isActive: true, hasAbono: true }
+    where: clientWhere
   });
 
   // 2. Facturación Estimada (Suma de abonos de esos clientes)
   const clientesData = await prisma.client.findMany({
-    where: { isActive: true, hasAbono: true },
+    where: clientWhere,
     select: { currentFee: true }
   });
   const facturacionEstimada = clientesData.reduce((acc, c) => acc + c.currentFee, 0);
@@ -22,11 +46,19 @@ export default async function Home() {
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
+  // Define where clause for AccountTransaction queries (needs Client relation to filter)
+  const txWhere = {
+    ...(clientLabelFilter && {
+      client: { professionalLabel: clientLabelFilter }
+    })
+  };
+
   // 3. Facturación Mes en Curso (Cargos del mes)
   const facturacionMes = await prisma.accountTransaction.aggregate({
     where: {
       type: 'CHARGE',
-      date: { gte: firstDayOfMonth, lte: lastDayOfMonth }
+      date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+      ...txWhere
     },
     _sum: { amount: true }
   });
@@ -37,7 +69,8 @@ export default async function Home() {
     where: {
       type: 'PAYMENT',
       date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
-      NOT: { description: { startsWith: 'NC:' } }
+      NOT: { description: { startsWith: 'NC:' } },
+      ...txWhere
     },
     _sum: { amount: true }
   });
@@ -45,6 +78,7 @@ export default async function Home() {
 
   // 5. Deuda Total Pendiente (Saldo de Cuentas Corrientes a cobrar)
   const txsCtaCte = await prisma.accountTransaction.findMany({
+    where: txWhere,
     include: {
       paymentsApplied: true,
       chargesCovered: true
@@ -68,7 +102,13 @@ export default async function Home() {
   });
 
   // 6. Tesorería General (Suma de cajas y bancos)
+  // Nota: Si se filtra por etiqueta, las transacciones sin cliente (gastos generales) se ignorarán.
   const tesoreriaTxs = await prisma.treasuryTransaction.aggregate({
+    where: {
+      ...(clientLabelFilter && {
+        client: { professionalLabel: clientLabelFilter }
+      })
+    },
     _sum: { amount: true }
   });
   const tesoreriaTotal = tesoreriaTxs._sum.amount || 0;
@@ -76,9 +116,12 @@ export default async function Home() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard General</h1>
-        <p className="text-gray-600 mt-2">Bienvenido al sistema de gestión del Estudio Contable.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard General</h1>
+          <p className="text-gray-600 mt-2">Bienvenido al sistema de gestión del Estudio Contable.</p>
+        </div>
+        <DashboardFilter currentLabel={currentLabel} />
       </div>
       
       <div className="space-y-4">
