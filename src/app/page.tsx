@@ -81,52 +81,60 @@ export default async function Home() {
         <p className="text-gray-600 mt-2">Bienvenido al sistema de gestión del Estudio Contable.</p>
       </div>
       
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Card 1 */}
-        <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Abonos Activos</h3>
-          <p className="mt-4 text-4xl font-black text-gray-900">{totalAbonosActivos}</p>
-        </Link>
-        
-        {/* Card 2 */}
-        <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Abonos Estimado</h3>
-          <p className="mt-4 text-4xl font-black text-gray-900">
-            ${facturacionEstimada.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-          </p>
-        </Link>
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Resumen General</h2>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {/* Card 1 */}
+          <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Abonos Activos</h3>
+            <p className="mt-4 text-4xl font-black text-gray-900">{totalAbonosActivos}</p>
+          </Link>
+          
+          {/* Card 2 */}
+          <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Abonos Estimado</h3>
+            <p className="mt-4 text-4xl font-black text-gray-900">
+              ${facturacionEstimada.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+            </p>
+          </Link>
 
-        {/* Card 3 */}
-        <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Facturado este mes</h3>
-          <p className="mt-4 text-4xl font-black text-indigo-700">
-            ${facturacionMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-          </p>
-        </Link>
+          {/* Card 3 */}
+          <Link href="/cuentas-corrientes" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-red-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">Deuda a Cobrar (Cta. Cte.)</h3>
+            <p className="mt-4 text-4xl font-black text-red-600">
+              ${deudaPendienteTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+            </p>
+          </Link>
 
-        {/* Card 4 */}
-        <Link href="/cuentas-corrientes" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-green-600 transition-colors">Cobrado este mes</h3>
-          <p className="mt-4 text-4xl font-black text-green-700">
-            ${cobradoMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-          </p>
-        </Link>
+          {/* Card 4 */}
+          <Link href="/tesoreria" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-green-600 transition-colors">Total Tesorería (Disp.)</h3>
+            <p className="mt-4 text-4xl font-black text-green-600">
+              ${tesoreriaTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+            </p>
+          </Link>
+        </div>
+      </div>
 
-        {/* Card 5 */}
-        <Link href="/cuentas-corrientes" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-red-400 transition-all cursor-pointer group">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">Deuda a Cobrar (Cta. Cte.)</h3>
-          <p className="mt-4 text-4xl font-black text-red-600">
-            ${deudaPendienteTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-          </p>
-        </Link>
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Avance del Mes en Curso</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Card 5 */}
+          <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Facturado este mes</h3>
+            <p className="mt-4 text-4xl font-black text-indigo-700">
+              ${facturacionMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+            </p>
+          </Link>
 
-        {/* Card 6 */}
-        <Link href="/tesoreria" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
-          <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-green-600 transition-colors">Total Tesorería (Disp.)</h3>
-          <p className="mt-4 text-4xl font-black text-green-600">
-            ${tesoreriaTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
-          </p>
-        </Link>
+          {/* Card 6 */}
+          <Link href="/cuentas-corrientes" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-green-600 transition-colors">Cobrado este mes</h3>
+            <p className="mt-4 text-4xl font-black text-green-700">
+              ${cobradoMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
+            </p>
+          </Link>
+        </div>
       </div>
     </div>
   );
