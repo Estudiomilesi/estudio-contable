@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { recalculatePaymentIva } from '@/lib/iva';
 
 export async function POST(request: Request) {
   try {
@@ -105,6 +106,8 @@ export async function POST(request: Request) {
         remainingPayment -= amountToApply;
       }
     }
+
+    await recalculatePaymentIva(accountTx.id);
 
     return NextResponse.json({ success: true, treasuryTxId: treasuryTx.id, accountTxId: accountTx.id }, { status: 201 });
   } catch (error) {

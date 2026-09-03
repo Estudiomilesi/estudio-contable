@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { recalculatePaymentIva } from '@/lib/iva';
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +17,8 @@ export async function POST(request: Request) {
         amount: parseFloat(amount)
       }
     });
+
+    await recalculatePaymentIva(paymentId);
 
     return NextResponse.json(application, { status: 201 });
   } catch (error) {
