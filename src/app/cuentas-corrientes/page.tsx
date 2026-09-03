@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { FileSpreadsheet, FileText, Send } from 'lucide-react';
 type PaymentApplication = {
   id: string;
@@ -166,19 +166,16 @@ export default function CuentasCorrientesPage() {
 
   const exportClientExcel = () => {
     if (!selectedClient) return;
-    let txsToExport = selectedClient.transactions;
-    if (viewMode === 'PENDING') {
-      txsToExport = selectedClient.transactions.filter(t => t.type === 'PAYMENT' ? getAppliedAmount(t) < t.amount : !t.isFullyApplied);
-    }
-    const data = txsToExport.map(tx => ({
+    
+    const data = selectedClient.transactions.map(tx => ({
       Fecha: new Date(tx.date).toLocaleDateString('es-AR'),
       Vencimiento: tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
-      Tipo: tx.type === 'CHARGE' ? 'Cargo' : 'Pago',
-      Concepto: tx.description || '',
-      Importe: tx.amount,
-      Aplicado: tx.type === 'PAYMENT' ? getAppliedAmount(tx) : '',
-      Estado: tx.type === 'CHARGE' ? (tx.isFullyApplied ? 'Pagado' : 'Impago') : (getAppliedAmount(tx) >= tx.amount ? 'Aplicado' : 'A Favor')
+      Concepto: tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago'),
+      Debe: tx.type === 'CHARGE' ? tx.amount : 0,
+      Haber: tx.type === 'PAYMENT' ? tx.amount : 0,
+      Saldo: tx.runningBalance
     }));
+
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Cuenta Corriente");
@@ -189,24 +186,21 @@ export default function CuentasCorrientesPage() {
     if (!selectedClient) return;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text(`Estado de Cuenta: ${selectedClient.name}`, 14, 20);
+    doc.text(`Cuenta Corriente: ${selectedClient.name}`, 14, 20);
     doc.setFontSize(11);
     doc.text(`Saldo Total: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 28);
     
-    let txsToExport = selectedClient.transactions;
-    if (viewMode === 'PENDING') {
-      txsToExport = selectedClient.transactions.filter(t => t.type === 'PAYMENT' ? getAppliedAmount(t) < t.amount : !t.isFullyApplied);
-    }
-    const tableColumn = ["Fecha", "Vto.", "Tipo", "Concepto", "Importe", "Estado"];
-    const tableRows = txsToExport.map(tx => [
+    const tableColumn = ["Fecha", "Vto.", "Concepto", "Debe", "Haber", "Saldo"];
+    const tableRows = selectedClient.transactions.map(tx => [
       new Date(tx.date).toLocaleDateString('es-AR'),
       tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
-      tx.type === 'CHARGE' ? 'Cargo' : 'Pago',
-      tx.description || '',
-      `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}`,
-      tx.type === 'CHARGE' ? (tx.isFullyApplied ? 'Pagado' : 'Impago') : (getAppliedAmount(tx) >= tx.amount ? 'Aplicado' : 'A Favor')
+      tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago'),
+      tx.type === 'CHARGE' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-',
+      tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-',
+      `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`
     ]);
-    (doc as any).autoTable({
+    
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 35,
@@ -245,7 +239,7 @@ export default function CuentasCorrientesPage() {
       c.balance < 0 ? `$${Math.abs(c.balance).toLocaleString('es-AR')}` : '-',
       c.balance > 0 ? `$${c.balance.toLocaleString('es-AR')}` : '-'
     ]);
-    (doc as any).autoTable({
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 40,
