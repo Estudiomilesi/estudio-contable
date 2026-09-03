@@ -114,6 +114,114 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   });
   const tesoreriaTotal = tesoreriaTxs._sum.amount || 0;
 
+  // Fechas del mes anterior para proporciones
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const firstDayPrev = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 1);
+  const lastDayPrev = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0, 23, 59, 59);
+
+  // Calcular proporción de abonos para prorrateo de gastos
+  let abonosPeriod = await prisma.accountTransaction.findMany({
+    where: {
+      type: 'CHARGE',
+      date: { gte: firstDayPrev, lte: lastDayPrev },
+      description: { contains: 'Abono Mensual' }
+    },
+    include: { client: { select: { professionalLabel: true } } }
+  });
+
+  if (abonosPeriod.length === 0) {
+    const lastAbono = await prisma.accountTransaction.findFirst({
+      where: {
+        type: 'CHARGE',
+        date: { lt: firstDayPrev },
+        description: { contains: 'Abono Mensual' }
+      },
+      orderBy: { date: 'desc' }
+    });
+
+    if (lastAbono) {
+      const knownFirstDay = new Date(lastAbono.date.getFullYear(), lastAbono.date.getMonth(), 1);
+      const knownLastDay = new Date(lastAbono.date.getFullYear(), lastAbono.date.getMonth() + 1, 0, 23, 59, 59);
+      abonosPeriod = await prisma.accountTransaction.findMany({
+        where: {
+          type: 'CHARGE',
+          date: { gte: knownFirstDay, lte: knownLastDay },
+          description: { contains: 'Abono Mensual' }
+        },
+        include: { client: { select: { professionalLabel: true } } }
+      });
+    }
+  }
+
+  let totalAbonosF = 0;
+  let totalAbonosFJ = 0;
+  let totalAbonos = 0;
+
+  abonosPeriod.forEach(a => {
+    const amt = a.netAmount || a.amount;
+    totalAbonos += amt;
+    if (a.client?.professionalLabel === 'F') totalAbonosF += amt;
+    else if (a.client?.professionalLabel === 'FJ' || a.client?.professionalLabel === 'JF') totalAbonosFJ += amt;
+  });
+
+  let propF = totalAbonos > 0 ? totalAbonosF / totalAbonos : 0;
+  let propFJ = totalAbonos > 0 ? totalAbonosFJ / totalAbonos : 0;
+
+  if (totalAbonos === 0) {
+    propF = 0.365;
+    propFJ = 0.312 + 0.323; // 63.5%
+  }
+
+  // Fetch gastos de tesorería del mes actual
+  const egresos = await prisma.treasuryTransaction.findMany({
+    where: {
+      date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+      OR: [
+        { type: 'EXPENSE' },
+        { category: 'Retiro Fede' },
+        { category: 'Retiro Juanma' }
+      ]
+    },
+    include: { client: { select: { professionalLabel: true } } }
+  });
+
+  let gastosPagados = 0;
+
+  egresos.forEach(e => {
+    const amt = Math.abs(e.amount);
+    // Ignore direct withdrawals for provisional result (they are profit distributions, not expenses)
+    if (e.category === 'Retiro Fede' || e.category === 'Retiro Juanma') return;
+    
+    if (e.category === 'Participacion') {
+      const isExpense = e.type === 'EXPENSE';
+      const expenseAmt = isExpense ? amt : -amt;
+      
+      if (currentLabel === 'ALL') {
+        gastosPagados += expenseAmt;
+      } else if (currentLabel === 'F' && e.client?.professionalLabel === 'F') {
+        gastosPagados += expenseAmt;
+      } else if ((currentLabel === 'FJ' || currentLabel === 'JF' || currentLabel === 'FJ_JF') && (e.client?.professionalLabel === 'FJ' || e.client?.professionalLabel === 'JF')) {
+        // If the dashboard is filtering by FJ or JF, we show the participation expenses that belong to FJ/JF
+        gastosPagados += expenseAmt;
+      }
+    } else {
+      // Gastos comunes prorrateables
+      const isExpense = e.type === 'EXPENSE';
+      const expenseAmt = isExpense ? amt : -amt;
+      
+      if (currentLabel === 'ALL') {
+        gastosPagados += expenseAmt;
+      } else if (currentLabel === 'F') {
+        gastosPagados += expenseAmt * propF;
+      } else if (currentLabel === 'FJ' || currentLabel === 'JF' || currentLabel === 'FJ_JF') {
+        // If the dashboard is filtering by FJ or JF, we show the prorated portion for FJ
+        // Note: For 'JF', we show the whole 'propFJ' block because they share expenses.
+        gastosPagados += expenseAmt * propFJ;
+      }
+    }
+  });
+
+  const resultadoProvisorio = cobradoMesTotal - gastosPagados;
 
   return (
     <div className="space-y-8">
@@ -178,6 +286,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
               ${cobradoMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
           </Link>
+
+          {/* Card 7 */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Gastos pagados este mes</h3>
+            <p className="mt-4 text-4xl font-black text-red-600">
+              -${gastosPagados.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+            </p>
+          </div>
+
+          {/* Card 8 */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Resultado Provisorio</h3>
+            <p className={`mt-4 text-4xl font-black ${resultadoProvisorio >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              ${resultadoProvisorio.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+            </p>
+          </div>
         </div>
       </div>
     </div>
