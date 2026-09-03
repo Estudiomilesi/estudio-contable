@@ -40,7 +40,10 @@ export default function ComprobantesPage() {
     concept: '',
     billingProfile: 'NO_FISCAL',
     amount: '',
-    manualReceiptNumber: ''
+    manualReceiptNumber: '',
+    hasCollaborator: false,
+    collaboratorName: '',
+    collaboratorAmount: ''
   });
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,7 +112,10 @@ export default function ComprobantesPage() {
           ...form,
           concept: '',
           amount: '',
-          manualReceiptNumber: ''
+          manualReceiptNumber: '',
+          hasCollaborator: false,
+          collaboratorName: '',
+          collaboratorAmount: ''
         });
         setPdfFile(null);
         fetchData(); // Recargar listado
@@ -312,6 +318,49 @@ export default function ComprobantesPage() {
                 className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               />
             </div>
+
+            {form.comprobanteType === 'FACTURA' && (
+              <div className="p-3 bg-purple-50 rounded-md border border-purple-200 space-y-3">
+                <label className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.hasCollaborator}
+                    onChange={(e) => setForm({ ...form, hasCollaborator: e.target.checked })}
+                    className="rounded text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-bold text-purple-900">¿Pagar Participación a Colaborador?</span>
+                </label>
+                
+                {form.hasCollaborator && (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+                      <input 
+                        type="text" 
+                        required={form.hasCollaborator}
+                        placeholder="Ej: Marcos"
+                        value={form.collaboratorName}
+                        onChange={e => setForm({...form, collaboratorName: e.target.value})}
+                        className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Importe ($)</label>
+                      <input 
+                        type="number" 
+                        required={form.hasCollaborator}
+                        min="0.01"
+                        step="0.01"
+                        placeholder="Monto a pagar..."
+                        value={form.collaboratorAmount}
+                        onChange={e => setForm({...form, collaboratorAmount: e.target.value})}
+                        className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
               <div className="flex justify-between text-xs mb-1 text-gray-600">

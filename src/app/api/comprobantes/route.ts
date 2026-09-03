@@ -40,7 +40,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { clientId, date, dueDate, concept, amount, comprobanteType, billingProfile, fileBase64, manualReceiptNumber } = body;
+    const { clientId, date, dueDate, concept, amount, comprobanteType, billingProfile, fileBase64, manualReceiptNumber, collaboratorName, collaboratorAmount } = body;
 
     if (!clientId || !date || !concept || !amount || !comprobanteType) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
@@ -106,6 +106,8 @@ export async function POST(request: Request) {
         description: comprobanteType === 'NOTA_CREDITO' ? `NC: ${concept}` : concept,
         receiptNumber: finalReceiptNumber,
         receiptFileBase64: fileBase64 || null,
+        collaboratorName: collaboratorName || null,
+        collaboratorAmount: collaboratorAmount ? parseFloat(collaboratorAmount) : null,
         isEmailed: false
       },
       include: { client: { select: { name: true } } }

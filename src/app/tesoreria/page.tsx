@@ -356,7 +356,12 @@ export default function TesoreriaPage() {
                   </>
                 ) : (
                   <>
-                    <option value="Gastos">Gastos Generales</option>
+                    <option value="Gastos Generales">Gastos Generales</option>
+                    <option value="Sueldos">Sueldos</option>
+                    <option value="Alquiler">Alquiler</option>
+                    <option value="Sistemas">Sistemas</option>
+                    <option value="Almacen">Almacén</option>
+                    <option value="Participacion">Participación a Colaborador</option>
                     <option value="Retiro Fede">Retiros Fede</option>
                     <option value="Retiro Juanma">Retiros Juanma</option>
                     <option value="Otros Egresos">Otros Egresos</option>
@@ -365,10 +370,10 @@ export default function TesoreriaPage() {
               </select>
             </div>
 
-            {formData.category === 'Honorarios' && (
+            {(formData.category === 'Honorarios' || formData.category === 'Participacion') && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Cliente (Para Cta. Corriente y Origen del Cheque)</label>
+                  <label className="block text-sm font-medium text-gray-700">Cliente (Para Cta. Corriente / Etiqueta P&L)</label>
                   <select value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">-- Seleccionar Cliente --</option>
                     {clientes.map(c => (

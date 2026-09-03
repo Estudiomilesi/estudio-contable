@@ -65,8 +65,14 @@ model AccountTransaction {
   dueDate     DateTime?
   receiptNumber     String?
   receiptFileBase64 String?
+
+  // Participación de Colaboradores (solo para CHARGE manuales)
+  collaboratorName String?
+  collaboratorAmount Float?
+
+  // Banderas y timestamps
   isEmailed         Boolean         @default(false)
-  createdAt   DateTime        @default(now())
+  createdAt         DateTime        @default(now())
 
   // Relaciones para composición de saldos
   paymentsApplied PaymentApplication[] @relation("ChargeApplications")
