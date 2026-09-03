@@ -91,17 +91,6 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
         </div>
       </div>
 
-      <div className="flex gap-4 items-center">
-        <label className="text-sm font-medium text-gray-700">Filtrar Etiqueta:</label>
-        <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm">
-          <option value="ALL">Todas</option>
-          <option value="F">F (Verde)</option>
-          <option value="FJ">FJ (Naranja)</option>
-          <option value="JF">JF (Azul)</option>
-          <option value="FJ_JF">FJ + JF</option>
-        </select>
-      </div>
-
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -109,7 +98,20 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('date')}>Fecha {renderSortIcon('date')}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('client')}>Cliente {renderSortIcon('client')}</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('label')}>Etiqueta {renderSortIcon('label')}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider select-none">
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer group flex items-center" onClick={() => requestSort('label')}>
+                      Etiqueta {renderSortIcon('label')}
+                    </span>
+                    <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-xs border-gray-300 rounded focus:ring-indigo-500 font-normal py-0 pl-2 pr-6 h-6">
+                      <option value="ALL">Todas</option>
+                      <option value="F">F</option>
+                      <option value="FJ">FJ</option>
+                      <option value="JF">JF</option>
+                      <option value="FJ_JF">FJ+JF</option>
+                    </select>
+                  </div>
+                </th>
                 {!isFacturado && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('caja')}>Caja {renderSortIcon('caja')}</th>}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('description')}>Detalle {renderSortIcon('description')}</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('netAmount')}>Neto {renderSortIcon('netAmount')}</th>
