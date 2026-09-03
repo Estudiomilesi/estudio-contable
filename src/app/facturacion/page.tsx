@@ -433,7 +433,7 @@ export default function FacturacionPage() {
                 <td className="px-2 py-2 text-center text-gray-700">100%</td>
                 <td className="px-2 py-2"></td>
                 <td className="px-2 py-2 text-right text-indigo-900">{totales.General.toLocaleString('es-AR')}</td>
-                <td colSpan={historyDates.length}></td>
+                <td colSpan={historyDates.length + 1}></td>
               </tr>
               <tr>
                 <td colSpan={3} className="px-2 py-1 text-right text-green-800">
@@ -442,8 +442,9 @@ export default function FacturacionPage() {
                 <td className="px-2 py-1 text-center">
                   <span className="text-green-900 px-1 rounded text-xs">{totales.General ? ((totales.F / totales.General) * 100).toFixed(1) : 0}%</span>
                 </td>
+                <td className="px-2 py-1"></td>
                 <td className="px-2 py-1 text-right text-green-900">{totales.F.toLocaleString('es-AR')}</td>
-                <td colSpan={historyDates.length}></td>
+                <td colSpan={historyDates.length + 1}></td>
               </tr>
               <tr>
                 <td colSpan={3} className="px-2 py-1 text-right text-orange-800">
@@ -452,8 +453,9 @@ export default function FacturacionPage() {
                 <td className="px-2 py-1 text-center">
                   <span className="text-orange-900 px-1 rounded text-xs">{totales.General ? ((totales.FJ / totales.General) * 100).toFixed(1) : 0}%</span>
                 </td>
+                <td className="px-2 py-1"></td>
                 <td className="px-2 py-1 text-right text-orange-900">{totales.FJ.toLocaleString('es-AR')}</td>
-                <td colSpan={historyDates.length}></td>
+                <td colSpan={historyDates.length + 1}></td>
               </tr>
               <tr>
                 <td colSpan={3} className="px-2 py-1 text-right text-blue-800">
@@ -462,8 +464,9 @@ export default function FacturacionPage() {
                 <td className="px-2 py-1 text-center">
                   <span className="text-blue-900 px-1 rounded text-xs">{totales.General ? ((totales.JF / totales.General) * 100).toFixed(1) : 0}%</span>
                 </td>
+                <td className="px-2 py-1"></td>
                 <td className="px-2 py-1 text-right text-blue-900">{totales.JF.toLocaleString('es-AR')}</td>
-                <td colSpan={historyDates.length}></td>
+                <td colSpan={historyDates.length + 1}></td>
               </tr>
             </tfoot>
           </table>

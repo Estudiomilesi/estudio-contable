@@ -62,6 +62,30 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
   const currentTotalNeto = processedData.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
   const currentTotalIva = processedData.reduce((sum, t) => sum + (t.ivaAmount || 0), 0);
 
+  const breakdown = useMemo(() => {
+    let fCount = 0, fjCount = 0, jfCount = 0, otherCount = 0;
+    let fTotal = 0, fjTotal = 0, jfTotal = 0, otherTotal = 0;
+
+    processedData.forEach(t => {
+      const amt = t.amount;
+      if (t.client?.professionalLabel === 'F') { fCount++; fTotal += amt; }
+      else if (t.client?.professionalLabel === 'FJ') { fjCount++; fjTotal += amt; }
+      else if (t.client?.professionalLabel === 'JF') { jfCount++; jfTotal += amt; }
+      else { otherCount++; otherTotal += amt; }
+    });
+
+    const totalCount = processedData.length;
+    const totalAmt = currentTotalAmount;
+
+    return {
+      f: { count: fCount, total: fTotal, pctCount: totalCount ? (fCount/totalCount)*100 : 0, pctAmt: totalAmt ? (fTotal/totalAmt)*100 : 0 },
+      fj: { count: fjCount, total: fjTotal, pctCount: totalCount ? (fjCount/totalCount)*100 : 0, pctAmt: totalAmt ? (fjTotal/totalAmt)*100 : 0 },
+      jf: { count: jfCount, total: jfTotal, pctCount: totalCount ? (jfCount/totalCount)*100 : 0, pctAmt: totalAmt ? (jfTotal/totalAmt)*100 : 0 },
+      other: { count: otherCount, total: otherTotal, pctCount: totalCount ? (otherCount/totalCount)*100 : 0, pctAmt: totalAmt ? (otherTotal/totalAmt)*100 : 0 },
+      total: { count: totalCount, total: totalAmt }
+    };
+  }, [processedData, currentTotalAmount]);
+
   const renderSortIcon = (key: string) => {
     if (!sortConfig || sortConfig.key !== key) return <span className="ml-1 text-gray-300 opacity-0 group-hover:opacity-100">↕</span>;
     return <span className="ml-1 text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
@@ -166,7 +190,9 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
             {processedData.length > 0 && (
               <tfoot className="bg-gray-50 font-bold border-t-2 border-gray-300">
                 <tr>
-                  <td colSpan={isFacturado ? 4 : 5} className="px-6 py-4 text-right text-sm text-gray-900 uppercase">Totales</td>
+                  <td colSpan={2} className="px-6 py-4 text-right text-sm text-gray-900 uppercase">Totales ({breakdown.total.count} Mov.)</td>
+                  <td className="px-6 py-4 text-center text-sm text-gray-700">100%</td>
+                  <td colSpan={isFacturado ? 1 : 2}></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                     ${currentTotalNeto.toLocaleString('es-AR', {minimumFractionDigits: 2})}
                   </td>
@@ -177,6 +203,48 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
                     ${currentTotalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}
                   </td>
                 </tr>
+                {breakdown.f.count > 0 && (
+                  <tr>
+                    <td colSpan={2} className="px-6 py-2 text-right text-sm text-green-800">
+                      Total F ({breakdown.f.count} | {breakdown.f.pctCount.toFixed(1)}%)
+                    </td>
+                    <td className="px-6 py-2 text-center">
+                      <span className="text-green-900 px-1 rounded text-xs">{breakdown.f.pctAmt.toFixed(1)}%</span>
+                    </td>
+                    <td colSpan={isFacturado ? 3 : 4}></td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-green-900">
+                      ${breakdown.f.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
+                  </tr>
+                )}
+                {breakdown.fj.count > 0 && (
+                  <tr>
+                    <td colSpan={2} className="px-6 py-2 text-right text-sm text-orange-800">
+                      Total FJ ({breakdown.fj.count} | {breakdown.fj.pctCount.toFixed(1)}%)
+                    </td>
+                    <td className="px-6 py-2 text-center">
+                      <span className="text-orange-900 px-1 rounded text-xs">{breakdown.fj.pctAmt.toFixed(1)}%</span>
+                    </td>
+                    <td colSpan={isFacturado ? 3 : 4}></td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-orange-900">
+                      ${breakdown.fj.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
+                  </tr>
+                )}
+                {breakdown.jf.count > 0 && (
+                  <tr>
+                    <td colSpan={2} className="px-6 py-2 text-right text-sm text-blue-800">
+                      Total JF ({breakdown.jf.count} | {breakdown.jf.pctCount.toFixed(1)}%)
+                    </td>
+                    <td className="px-6 py-2 text-center">
+                      <span className="text-blue-900 px-1 rounded text-xs">{breakdown.jf.pctAmt.toFixed(1)}%</span>
+                    </td>
+                    <td colSpan={isFacturado ? 3 : 4}></td>
+                    <td className="px-6 py-2 whitespace-nowrap text-sm text-right text-blue-900">
+                      ${breakdown.jf.total.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                    </td>
+                  </tr>
+                )}
               </tfoot>
             )}
           </table>
