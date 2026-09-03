@@ -42,8 +42,14 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
     else if (a.client?.professionalLabel === 'FJ' || a.client?.professionalLabel === 'JF') totalAbonosFJ += amt;
   });
 
-  const propF = totalAbonos > 0 ? totalAbonosF / totalAbonos : 0;
-  const propFJ = totalAbonos > 0 ? totalAbonosFJ / totalAbonos : 0;
+  let propF = totalAbonos > 0 ? totalAbonosF / totalAbonos : 0;
+  let propFJ = totalAbonos > 0 ? totalAbonosFJ / totalAbonos : 0;
+
+  // Fallback a los porcentajes indicados si no hay abonos el mes anterior
+  if (totalAbonos === 0) {
+    propF = 0.365; // F 36.5%
+    propFJ = 0.312 + 0.323; // FJ 31.2% + JF 32.3% = 63.5%
+  }
 
   // 2. Cobranzas del mes actual (Ingresos Netos)
   const cobranzas = await prisma.accountTransaction.findMany({
