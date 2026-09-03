@@ -164,9 +164,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
 
       <div className="space-y-4">
         <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Avance del Mes en Curso</h2>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {/* Card 5 */}
-          <Link href="/facturacion" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
+          <Link href={`/reportes/mes?tipo=facturado&label=${currentLabel}`} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Facturado este mes</h3>
             <p className="mt-4 text-4xl font-black text-indigo-700">
               ${facturacionMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
@@ -174,7 +174,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           </Link>
 
           {/* Card 6 */}
-          <Link href="/cuentas-corrientes" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
+          <Link href={`/reportes/mes?tipo=cobrado&label=${currentLabel}`} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-green-400 transition-all cursor-pointer group">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-green-600 transition-colors">Cobrado este mes</h3>
             <p className="mt-4 text-4xl font-black text-green-700">
               ${cobradoMesTotal.toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}
