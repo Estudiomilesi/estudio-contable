@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     const clientes = await prisma.client.findMany({
-      where: { isActive: true },
+      where: { isActive: true, hasAbono: true },
       include: {
         accountTransactions: {
           where: { type: 'CHARGE' },

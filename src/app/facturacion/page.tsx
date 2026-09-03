@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
+import { Trash2 } from 'lucide-react';
 
 type AccountTransaction = {
   id: string;
@@ -166,6 +167,28 @@ export default function FacturacionPage() {
     }
   };
 
+  const removeClientFromAbono = async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro de querer quitar a ${name} de los abonos mensuales? (Seguirá activo como cliente)`)) {
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/clientes/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hasAbono: false })
+      });
+      if (res.ok) {
+        fetchClientes();
+      } else {
+        alert('Error al quitar al cliente.');
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error de red.');
+    }
+  };
+
   // Extraer los últimos 12 meses (agrupados por fecha de transacción para los headers de la tabla)
   const historyDates = useMemo(() => {
     const dates = new Set<string>();
@@ -256,6 +279,7 @@ export default function FacturacionPage() {
                   </div>
                 </th>
                 <th className="px-2 py-2 text-right font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Actual</th>
+                <th className="px-2 py-2 text-center font-medium text-gray-800">Quitar</th>
                 {historyDates.map(date => (
                   <th key={date} className="px-2 py-2 text-right font-medium text-gray-700 whitespace-nowrap">{date}</th>
                 ))}
@@ -263,7 +287,7 @@ export default function FacturacionPage() {
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={5 + historyDates.length} className="px-2 py-8 text-center text-gray-700">Cargando...</td></tr>
+                <tr><td colSpan={6 + historyDates.length} className="px-2 py-8 text-center text-gray-700">Cargando...</td></tr>
               ) : (
                 filteredAndSortedClientes.map((c) => {
                   const currentValue = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
@@ -299,6 +323,15 @@ export default function FacturacionPage() {
                           onChange={(e) => handleFeeChange(c.id, e.target.value)}
                           className="w-24 text-right rounded border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 text-sm p-1 border font-bold text-gray-900 bg-transparent"
                         />
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap text-center">
+                        <button 
+                          onClick={() => removeClientFromAbono(c.id, c.name)}
+                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          title="Quitar de abonos"
+                        >
+                          <Trash2 className="h-4 w-4 mx-auto" />
+                        </button>
                       </td>
                       {historyDates.map(month => {
                         // Buscar si el cliente tiene un cargo de Abono Mensual en este mes

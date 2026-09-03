@@ -16,6 +16,7 @@ type Client = {
   address: string | null;
   contact: string | null;
   isActive: boolean;
+  hasAbono: boolean;
 };
 
 const initialForm = {
@@ -31,6 +32,7 @@ const initialForm = {
   professionalLabel: 'F',
   currentFee: 0,
   isActive: true,
+  hasAbono: true,
 };
 
 export default function ClientesPage() {
@@ -131,6 +133,7 @@ export default function ClientesPage() {
       professionalLabel: c.professionalLabel,
       currentFee: c.currentFee,
       isActive: c.isActive,
+      hasAbono: c.hasAbono,
     });
     setIsEditing(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -170,9 +173,15 @@ export default function ClientesPage() {
             )}
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex items-center gap-2 mb-2">
-              <input type="checkbox" id="isActive" checked={formData.isActive} onChange={e => setFormData({...formData, isActive: e.target.checked})} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-              <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Cliente Activo</label>
+            <div className="flex items-center gap-6 mb-2">
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="isActive" checked={formData.isActive} onChange={e => setFormData({...formData, isActive: e.target.checked})} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Cliente Activo</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="hasAbono" checked={formData.hasAbono} onChange={e => setFormData({...formData, hasAbono: e.target.checked})} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <label htmlFor="hasAbono" className="text-sm font-medium text-gray-700">Incluir en Abono Mensual</label>
+              </div>
             </div>
             
             <div>

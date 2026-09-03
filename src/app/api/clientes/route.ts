@@ -33,6 +33,7 @@ export async function POST(request: Request) {
         fiscalCondition: data.fiscalCondition || null,
         professionalLabel: data.professionalLabel,
         currentFee: parseFloat(data.currentFee || 0),
+        hasAbono: data.hasAbono ?? true,
       },
     });
 
