@@ -44,6 +44,9 @@ export default function ClientesPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
 
+  const [filterLabel, setFilterLabel] = useState('ALL');
+  const [filterBillingProfile, setFilterBillingProfile] = useState('ALL');
+
   const fetchClientes = async () => {
     setIsLoading(true);
     try {
@@ -63,6 +66,15 @@ export default function ClientesPage() {
 
   const sortedClientes = useMemo(() => {
     let sortableItems = [...clientes];
+
+    if (filterLabel !== 'ALL') {
+      sortableItems = sortableItems.filter(c => c.professionalLabel === filterLabel);
+    }
+    
+    if (filterBillingProfile !== 'ALL') {
+      sortableItems = sortableItems.filter(c => c.defaultBillingProfile === filterBillingProfile);
+    }
+
     if (sortConfig !== null) {
       sortableItems.sort((a, b) => {
         let aValue: any = a[sortConfig.key];
@@ -269,7 +281,28 @@ export default function ClientesPage() {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Nombre</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('professionalLabel')}>Etiqueta</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center gap-1">
+                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
+                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5">
+                        <option value="ALL">Todas</option>
+                        <option value="F">F</option>
+                        <option value="FJ">FJ</option>
+                        <option value="JF">JF</option>
+                      </select>
+                    </div>
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center gap-1">
+                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('defaultBillingProfile')}>Perfil Fac.</span>
+                      <select value={filterBillingProfile} onChange={e => setFilterBillingProfile(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 w-20">
+                        <option value="ALL">Todos</option>
+                        <option value="FEDE_RI">RI</option>
+                        <option value="JUANMA_MONO">Mono</option>
+                        <option value="NO_FISCAL">No F.</option>
+                      </select>
+                    </div>
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('isActive')}>Estado</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
@@ -277,9 +310,9 @@ export default function ClientesPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {isLoading ? (
-                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-700">Cargando...</td></tr>
+                  <tr><td colSpan={8} className="px-6 py-4 text-center text-gray-700">Cargando...</td></tr>
                 ) : sortedClientes.length === 0 ? (
-                  <tr><td colSpan={6} className="px-6 py-4 text-center text-gray-700">No hay clientes registrados.</td></tr>
+                  <tr><td colSpan={8} className="px-6 py-4 text-center text-gray-700">No hay clientes registrados.</td></tr>
                 ) : (
                   sortedClientes.map((c) => (
                     <tr key={c.id} className={!c.isActive ? 'opacity-50 bg-gray-50' : ''}>
@@ -293,6 +326,9 @@ export default function ClientesPage() {
                         }`}>
                           {c.professionalLabel}
                         </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                        {c.defaultBillingProfile === 'FEDE_RI' ? 'Fede RI' : c.defaultBillingProfile === 'JUANMA_MONO' ? 'JuanMa Mono' : 'No Fiscal'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
                         ${c.currentFee.toLocaleString('es-AR')}

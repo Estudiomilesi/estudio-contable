@@ -34,6 +34,8 @@ export default function FacturacionPage() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
 
+  const [filterBillingProfile, setFilterBillingProfile] = useState<string>('ALL');
+
   const fetchClientes = async () => {
     setIsLoading(true);
     try {
@@ -58,6 +60,10 @@ export default function FacturacionPage() {
       result = result.filter(c => c.professionalLabel === filterLabel);
     }
 
+    if (filterBillingProfile !== 'ALL') {
+      result = result.filter(c => c.defaultBillingProfile === filterBillingProfile);
+    }
+
     if (sortConfig !== null) {
       result.sort((a, b) => {
         let aValue: any = a[sortConfig.key];
@@ -78,7 +84,7 @@ export default function FacturacionPage() {
       });
     }
     return result;
-  }, [clientes, sortConfig, filterLabel]);
+  }, [clientes, sortConfig, filterLabel, filterBillingProfile]);
 
   const requestSort = (key: keyof Client) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -291,7 +297,21 @@ export default function FacturacionPage() {
                     </select>
                   </div>
                 </th>
-                <th className="px-2 py-2 text-center font-medium text-gray-800">Perfil Facturación</th>
+                <th className="px-2 py-2 text-center font-medium text-gray-800">
+                  <div className="flex items-center justify-center gap-1">
+                    <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('defaultBillingProfile')}>Perfil Fac.</span>
+                    <select 
+                      value={filterBillingProfile} 
+                      onChange={e => setFilterBillingProfile(e.target.value)}
+                      className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-5 w-20"
+                    >
+                      <option value="ALL">Todos</option>
+                      <option value="FEDE_RI">RI</option>
+                      <option value="JUANMA_MONO">Mono</option>
+                      <option value="NO_FISCAL">No F.</option>
+                    </select>
+                  </div>
+                </th>
                 <th className="px-2 py-2 text-right font-medium text-gray-800 cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono Neto</th>
                 <th className="px-2 py-2 text-center font-medium text-gray-800">Quitar</th>
                 {historyDates.map(date => (
