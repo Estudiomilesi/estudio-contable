@@ -196,7 +196,7 @@ export default function FinDeMesClient({
         </table>
       </div>
 
-      <div className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
+      <div id="gastos" className="mt-8 rounded-xl border bg-white p-6 shadow-sm">
         <h3 className="text-lg font-bold mb-4">Detalle de Egresos Operativos</h3>
         {gastosDetalle.length === 0 ? (
           <p className="text-gray-500 text-sm">No hay egresos registrados este mes.</p>

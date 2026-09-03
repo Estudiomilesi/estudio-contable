@@ -288,20 +288,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           </Link>
 
           {/* Card 7 */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Gastos pagados este mes</h3>
+          <Link href="/reportes/fin-de-mes#gastos" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-red-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-red-600 transition-colors">Gastos pagados este mes</h3>
             <p className="mt-4 text-4xl font-black text-red-600">
               -${gastosPagados.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
-          </div>
+          </Link>
 
           {/* Card 8 */}
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Resultado Provisorio</h3>
+          <Link href="/reportes/fin-de-mes" className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm flex flex-col justify-between hover:shadow-md hover:border-indigo-400 transition-all cursor-pointer group">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Resultado Provisorio</h3>
             <p className={`mt-4 text-4xl font-black ${resultadoProvisorio >= 0 ? 'text-green-700' : 'text-red-700'}`}>
               ${resultadoProvisorio.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
             </p>
-          </div>
+          </Link>
         </div>
       </div>
     </div>
