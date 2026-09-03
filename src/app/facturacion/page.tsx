@@ -92,7 +92,7 @@ export default function FacturacionPage() {
       });
     }
     return result;
-  }, [clientes, sortConfig, filterLabel, filterBillingProfile]);
+  }, [clientes, sortConfig, filterLabel, filterBillingProfile, searchTerm]);
 
   const requestSort = (key: keyof Client) => {
     let direction: 'asc' | 'desc' = 'asc';

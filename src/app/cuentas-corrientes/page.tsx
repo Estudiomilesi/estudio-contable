@@ -113,7 +113,7 @@ export default function CuentasCorrientesPage() {
       });
     }
     return result;
-  }, [clientes, sortConfig, filterLabel]);
+  }, [clientes, sortConfig, filterLabel, searchTerm]);
 
   const requestSort = (key: keyof ClientWithBalance) => {
     let direction: 'asc' | 'desc' = 'asc';
