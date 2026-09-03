@@ -45,6 +45,15 @@ export default function CuentasCorrientesPage() {
   const [targetChargeId, setTargetChargeId] = useState<string>('');
   const [applyAmount, setApplyAmount] = useState<string>('');
 
+  // Quick Collect state
+  const [selectedChargeIds, setSelectedChargeIds] = useState<Set<string>>(new Set());
+  const [isQuickCollectOpen, setIsQuickCollectOpen] = useState(false);
+  const [qcAccount, setQcAccount] = useState('CAJA');
+  const [qcAmount, setQcAmount] = useState('');
+  const [qcDescription, setQcDescription] = useState('');
+  const [qcCheckDetails, setQcCheckDetails] = useState({ bank: '', number: '', issueDate: '', dueDate: '' });
+  const [isSubmittingQC, setIsSubmittingQC] = useState(false);
+
   const [sortConfig, setSortConfig] = useState<{ key: keyof ClientWithBalance, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
 
@@ -119,6 +128,10 @@ export default function CuentasCorrientesPage() {
     return clientes.find(c => c.id === selectedClientId) || null;
   }, [clientes, selectedClientId]);
 
+  useEffect(() => {
+    setSelectedChargeIds(new Set());
+  }, [selectedClientId]);
+
   // Helpers to calculate applied amounts on the fly
   const getAppliedAmount = (tx: Transaction) => {
     if (tx.type === 'CHARGE' && tx.paymentsApplied) {
@@ -162,6 +175,80 @@ export default function CuentasCorrientesPage() {
     setApplyingPayment(payment);
     const unapplied = payment.amount - getAppliedAmount(payment);
     setApplyAmount(unapplied.toString());
+  };
+
+  const toggleChargeSelection = (chargeId: string) => {
+    const newSet = new Set(selectedChargeIds);
+    if (newSet.has(chargeId)) {
+      newSet.delete(chargeId);
+    } else {
+      newSet.add(chargeId);
+    }
+    setSelectedChargeIds(newSet);
+  };
+
+  const handleOpenQuickCollect = (preselectId?: string) => {
+    if (!selectedClient) return;
+
+    let targetIds = new Set(selectedChargeIds);
+    if (preselectId) {
+      targetIds = new Set([preselectId]);
+      setSelectedChargeIds(targetIds);
+    }
+
+    if (targetIds.size === 0) {
+      alert("Seleccioná al menos un comprobante para cobrar.");
+      return;
+    }
+
+    // Calcular el monto sugerido
+    let totalToCollect = 0;
+    targetIds.forEach(id => {
+      const charge = selectedClient.transactions.find(tx => tx.id === id);
+      if (charge) {
+        totalToCollect += (charge.amount - getAppliedAmount(charge));
+      }
+    });
+
+    setQcAmount(totalToCollect.toString());
+    setQcAccount('CAJA');
+    setQcDescription('');
+    setQcCheckDetails({ bank: '', number: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] });
+    setIsQuickCollectOpen(true);
+  };
+
+  const handleQuickCollectSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedChargeIds.size === 0 || !selectedClientId) return;
+
+    setIsSubmittingQC(true);
+    try {
+      const res = await fetch('/api/cuentas-corrientes/cobro-rapido', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: selectedClientId,
+          amount: parseFloat(qcAmount),
+          account: qcAccount,
+          description: qcDescription,
+          checkDetails: qcAccount === 'CHEQUES' ? qcCheckDetails : undefined,
+          selectedChargeIds: Array.from(selectedChargeIds)
+        })
+      });
+
+      if (res.ok) {
+        setIsQuickCollectOpen(false);
+        setSelectedChargeIds(new Set());
+        fetchClientes();
+      } else {
+        const err = await res.json();
+        alert('Error: ' + (err.error || 'No se pudo cobrar'));
+      }
+    } catch (error) {
+      alert('Error de red');
+    } finally {
+      setIsSubmittingQC(false);
+    }
   };
 
   const exportClientExcel = () => {
@@ -388,15 +475,16 @@ export default function CuentasCorrientesPage() {
 
             <div className="overflow-y-auto flex-1 p-0">
               <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-100 sticky top-0">
+                <thead className="bg-gray-100 sticky top-0 z-10">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Fecha</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Vto.</th>
-                    <th className="px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase">Detalle</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Debe (Cargo)</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Haber (Pago)</th>
-                    <th className="px-4 py-3 text-right text-xs font-bold text-gray-700 uppercase">Saldo</th>
-                    <th className="px-4 py-3 text-center text-xs font-bold text-gray-700 uppercase">Estado</th>
+                    <th className="px-3 py-3 w-8"></th>
+                    <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase">Fecha</th>
+                    <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase">Vto.</th>
+                    <th className="px-3 py-3 text-left text-xs font-bold text-gray-700 uppercase">Detalle</th>
+                    <th className="px-3 py-3 text-right text-xs font-bold text-gray-700 uppercase">Debe</th>
+                    <th className="px-3 py-3 text-right text-xs font-bold text-gray-700 uppercase">Haber</th>
+                    <th className="px-3 py-3 text-right text-xs font-bold text-gray-700 uppercase">Saldo</th>
+                    <th className="px-3 py-3 text-center text-xs font-bold text-gray-700 uppercase">Estado</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-100">
@@ -408,45 +496,65 @@ export default function CuentasCorrientesPage() {
                     });
 
                     if (displayedTransactions.length === 0) {
-                      return <tr><td colSpan={7} className="p-8 text-center text-gray-500">No hay movimientos pendientes.</td></tr>;
+                      return <tr><td colSpan={8} className="p-8 text-center text-gray-500">No hay movimientos pendientes.</td></tr>;
                     }
 
                     return displayedTransactions.map(tx => {
                       const applied = getAppliedAmount(tx);
                       const isFullyApplied = applied >= tx.amount;
+                      const isCharge = tx.type === 'CHARGE';
                       
                       return (
-                        <tr key={tx.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                        <tr key={tx.id} className={`hover:bg-gray-50 ${selectedChargeIds.has(tx.id) ? 'bg-indigo-50' : ''}`}>
+                          <td className="px-3 py-3 whitespace-nowrap text-center">
+                            {isCharge && !isFullyApplied && (
+                              <input 
+                                type="checkbox"
+                                checked={selectedChargeIds.has(tx.id)}
+                                onChange={() => toggleChargeSelection(tx.id)}
+                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 cursor-pointer"
+                              />
+                            )}
+                          </td>
+                          <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-700">
                             {new Date(tx.date).toLocaleDateString('es-AR')}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm font-semibold">
-                            {tx.type === 'CHARGE' ? (
+                          <td className="px-3 py-3 whitespace-nowrap text-sm font-semibold">
+                            {isCharge ? (
                               <span className={((tx.dueDate && new Date(tx.dueDate) < new Date()) || (!tx.dueDate && new Date(tx.date) < new Date())) && !isFullyApplied ? 'text-red-600' : 'text-gray-700'}>
                                 {new Date(tx.dueDate || tx.date).toLocaleDateString('es-AR')}
                               </span>
                             ) : '-'}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-900">
+                          <td className="px-3 py-3 text-sm text-gray-900">
                             {tx.description}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-semibold text-red-700">
-                            {tx.type === 'CHARGE' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : ''}
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-red-700 whitespace-nowrap">
+                            {isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : ''}
                           </td>
-                          <td className="px-4 py-3 text-right text-sm font-semibold text-green-700">
+                          <td className="px-3 py-3 text-right text-sm font-semibold text-green-700 whitespace-nowrap">
                             {tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : ''}
                           </td>
-                          <td className={`px-4 py-3 text-right text-sm font-bold ${tx.runningBalance > 0 ? 'text-red-700' : tx.runningBalance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
+                          <td className={`px-3 py-3 text-right text-sm font-bold whitespace-nowrap ${tx.runningBalance > 0 ? 'text-red-700' : tx.runningBalance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
                             ${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}
                           </td>
-                          <td className="px-4 py-3 text-center text-sm">
-                            {tx.type === 'CHARGE' ? (
+                          <td className="px-3 py-3 text-center text-sm whitespace-nowrap space-y-1">
+                            {isCharge ? (
                               isFullyApplied ? (
                                 <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-800">Pagado</span>
                               ) : (
-                                <span className="inline-flex rounded-full bg-red-100 px-2 py-1 text-xs font-bold text-red-800">
-                                  Debe ${ (tx.amount - applied).toLocaleString('es-AR') }
-                                </span>
+                                <div className="flex flex-col items-center gap-1">
+                                  <span className="inline-flex rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold text-red-800">
+                                    Debe ${ (tx.amount - applied).toLocaleString('es-AR') }
+                                  </span>
+                                  <button 
+                                    onClick={() => handleOpenQuickCollect(tx.id)}
+                                    title="Cobrar Ahora"
+                                    className="inline-flex items-center justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-0.5 text-[10px] font-bold shadow-sm transition-colors"
+                                  >
+                                    $ Cobrar
+                                  </button>
+                                </div>
                               )
                             ) : (
                               isFullyApplied ? (
@@ -454,7 +562,7 @@ export default function CuentasCorrientesPage() {
                               ) : (
                                 <button 
                                   onClick={() => openApplyModal(tx)}
-                                  className="inline-flex rounded bg-indigo-100 hover:bg-indigo-200 px-2 py-1 text-xs font-bold text-indigo-800 transition-colors"
+                                  className="inline-flex rounded bg-indigo-100 hover:bg-indigo-200 px-2 py-1 text-[10px] font-bold text-indigo-800 transition-colors"
                                 >
                                   Aplicar Pago
                                 </button>
@@ -538,6 +646,120 @@ export default function CuentasCorrientesPage() {
             </div>
           </div>
         )}
+        {/* Floating Bulk Collect Button */}
+        {selectedChargeIds.size > 0 && selectedClient && (
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-4 z-20 animate-fade-in-up">
+            <span className="font-bold">
+              {selectedChargeIds.size} seleccionados
+            </span>
+            <button 
+              onClick={() => handleOpenQuickCollect()}
+              className="bg-white text-indigo-700 hover:bg-indigo-50 px-4 py-1.5 rounded-full font-black text-sm transition-colors"
+            >
+              $ Cobrar Seleccionados
+            </button>
+            <button 
+              onClick={() => setSelectedChargeIds(new Set())}
+              className="text-indigo-200 hover:text-white"
+            >
+              x
+            </button>
+          </div>
+        )}
+
+        {/* Modal Quick Collect */}
+        {isQuickCollectOpen && selectedClient && (
+          <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-6 w-[450px]">
+              <h3 className="text-xl font-bold mb-4 text-gray-900">Cobro Rápido</h3>
+              <p className="text-sm text-gray-700 mb-4">
+                Estás por registrar un cobro por <strong>{selectedChargeIds.size} comprobante(s)</strong>.
+              </p>
+              <form onSubmit={handleQuickCollectSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Monto a Cobrar ($)</label>
+                  <input 
+                    type="number"
+                    min="0.01" step="0.01"
+                    required
+                    value={qcAmount}
+                    onChange={e => setQcAmount(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Medio de Pago (Cuenta)</label>
+                  <select 
+                    required 
+                    value={qcAccount}
+                    onChange={e => setQcAccount(e.target.value)}
+                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="CAJA">Caja Efectivo</option>
+                    <option value="CAJA IVA">Caja IVA</option>
+                    <option value="BANCOS FEDE">Banco Fede</option>
+                    <option value="BANCOS JUANMA">Banco JuanMa</option>
+                    <option value="CHEQUES">Cheques de Terceros</option>
+                  </select>
+                </div>
+
+                {qcAccount === 'CHEQUES' && (
+                  <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200 space-y-3">
+                    <h4 className="text-sm font-bold text-yellow-800">Detalles del Cheque</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700">Banco</label>
+                        <input type="text" required value={qcCheckDetails.bank} onChange={e => setQcCheckDetails({...qcCheckDetails, bank: e.target.value})} className="w-full text-sm border rounded p-1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700">Número</label>
+                        <input type="text" required value={qcCheckDetails.number} onChange={e => setQcCheckDetails({...qcCheckDetails, number: e.target.value})} className="w-full text-sm border rounded p-1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700">F. Emisión</label>
+                        <input type="date" required value={qcCheckDetails.issueDate} onChange={e => setQcCheckDetails({...qcCheckDetails, issueDate: e.target.value})} className="w-full text-sm border rounded p-1" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-gray-700">F. Cobro</label>
+                        <input type="date" required value={qcCheckDetails.dueDate} onChange={e => setQcCheckDetails({...qcCheckDetails, dueDate: e.target.value})} className="w-full text-sm border rounded p-1" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Descripción / Detalle (Opcional)</label>
+                  <input 
+                    type="text" 
+                    value={qcDescription}
+                    onChange={e => setQcDescription(e.target.value)}
+                    placeholder="Ej: Transferencia Santander..."
+                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+                  <button 
+                    type="button" 
+                    onClick={() => setIsQuickCollectOpen(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    type="submit" 
+                    disabled={isSubmittingQC}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {isSubmittingQC ? 'Procesando...' : 'Confirmar Cobro y Aplicar'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
