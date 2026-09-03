@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { FileSpreadsheet, FileText, Send } from 'lucide-react';
 type PaymentApplication = {
   id: string;
   amount: number;
@@ -17,6 +20,7 @@ type Transaction = {
   runningBalance: number;
   paymentsApplied?: PaymentApplication[];
   chargesCovered?: PaymentApplication[];
+  isFullyApplied: boolean;
 };
 
 type ClientWithBalance = {
@@ -160,6 +164,95 @@ export default function CuentasCorrientesPage() {
     setApplyAmount(unapplied.toString());
   };
 
+  const exportClientExcel = () => {
+    if (!selectedClient) return;
+    let txsToExport = selectedClient.transactions;
+    if (viewMode === 'PENDING') {
+      txsToExport = selectedClient.transactions.filter(t => t.type === 'PAYMENT' ? getAppliedAmount(t) < t.amount : !t.isFullyApplied);
+    }
+    const data = txsToExport.map(tx => ({
+      Fecha: new Date(tx.date).toLocaleDateString('es-AR'),
+      Vencimiento: tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
+      Tipo: tx.type === 'CHARGE' ? 'Cargo' : 'Pago',
+      Concepto: tx.description || '',
+      Importe: tx.amount,
+      Aplicado: tx.type === 'PAYMENT' ? getAppliedAmount(tx) : '',
+      Estado: tx.type === 'CHARGE' ? (tx.isFullyApplied ? 'Pagado' : 'Impago') : (getAppliedAmount(tx) >= tx.amount ? 'Aplicado' : 'A Favor')
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Cuenta Corriente");
+    XLSX.writeFile(wb, `CtaCte_${selectedClient.name.replace(/\s+/g, '_')}.xlsx`);
+  };
+
+  const exportClientPDF = () => {
+    if (!selectedClient) return;
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`Estado de Cuenta: ${selectedClient.name}`, 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Saldo Total: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 28);
+    
+    let txsToExport = selectedClient.transactions;
+    if (viewMode === 'PENDING') {
+      txsToExport = selectedClient.transactions.filter(t => t.type === 'PAYMENT' ? getAppliedAmount(t) < t.amount : !t.isFullyApplied);
+    }
+    const tableColumn = ["Fecha", "Vto.", "Tipo", "Concepto", "Importe", "Estado"];
+    const tableRows = txsToExport.map(tx => [
+      new Date(tx.date).toLocaleDateString('es-AR'),
+      tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
+      tx.type === 'CHARGE' ? 'Cargo' : 'Pago',
+      tx.description || '',
+      `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}`,
+      tx.type === 'CHARGE' ? (tx.isFullyApplied ? 'Pagado' : 'Impago') : (getAppliedAmount(tx) >= tx.amount ? 'Aplicado' : 'A Favor')
+    ]);
+    (doc as any).autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 35,
+    });
+    doc.save(`CtaCte_${selectedClient.name.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  const exportGlobalExcel = () => {
+    const data = filteredAndSortedClientes.map(c => ({
+      Codigo: c.code,
+      Cliente: c.name,
+      Etiqueta: c.professionalLabel,
+      Saldo_AFavor: c.balance < 0 ? Math.abs(c.balance) : 0,
+      Saldo_Deudor: c.balance > 0 ? c.balance : 0,
+      Saldo_Neto: c.balance
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Saldos");
+    XLSX.writeFile(wb, `Saldos_Clientes.xlsx`);
+  };
+
+  const exportGlobalPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text(`Saldos de Cuentas Corrientes`, 14, 20);
+    doc.setFontSize(11);
+    doc.text(`Total A Cobrar: $${listTotals.debt.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 28);
+    doc.text(`Total A Favor: $${listTotals.credit.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 34);
+    
+    const tableColumn = ["Cód", "Cliente", "Etiqueta", "Saldo a Favor", "Saldo Deudor"];
+    const tableRows = filteredAndSortedClientes.map(c => [
+      c.code,
+      c.name,
+      c.professionalLabel,
+      c.balance < 0 ? `$${Math.abs(c.balance).toLocaleString('es-AR')}` : '-',
+      c.balance > 0 ? `$${c.balance.toLocaleString('es-AR')}` : '-'
+    ]);
+    (doc as any).autoTable({
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+    });
+    doc.save(`Saldos_Clientes.pdf`);
+  };
+
   return (
     <div className="flex h-[calc(100vh-100px)] gap-6">
       {/* Columna Izquierda: Lista de clientes */}
@@ -169,7 +262,13 @@ export default function CuentasCorrientesPage() {
             <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
               <tr>
                 <th colSpan={4} className="px-3 py-3 border-b border-gray-200 bg-gray-50 text-left text-lg font-bold text-gray-800">
-                  Cuentas Corrientes
+                  <div className="flex justify-between items-center">
+                    <span>Cuentas Corrientes</span>
+                    <div className="flex gap-2 text-gray-500">
+                      <button onClick={exportGlobalExcel} title="Exportar a Excel" className="hover:text-green-600 transition-colors"><FileSpreadsheet size={18} /></button>
+                      <button onClick={exportGlobalPDF} title="Exportar a PDF" className="hover:text-red-600 transition-colors"><FileText size={18} /></button>
+                    </div>
+                  </div>
                 </th>
               </tr>
               <tr>
@@ -270,6 +369,11 @@ export default function CuentasCorrientesPage() {
               <div className="text-right">
                 <div className={`text-3xl font-black mb-2 ${selectedClient.balance > 0 ? 'text-red-700' : selectedClient.balance < 0 ? 'text-green-700' : 'text-gray-900'}`}>
                   Saldo: ${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}
+                </div>
+                <div className="flex justify-end gap-3 mb-3 text-gray-500">
+                  <button onClick={exportClientExcel} title="Descargar en Excel" className="hover:text-green-600 transition-colors"><FileSpreadsheet size={20} /></button>
+                  <button onClick={exportClientPDF} title="Descargar en PDF" className="hover:text-red-600 transition-colors"><FileText size={20} /></button>
+                  <button title="Enviar por Email (Próximamente)" className="hover:text-indigo-600 transition-colors opacity-50 cursor-not-allowed"><Send size={20} /></button>
                 </div>
                 <div className="inline-flex bg-gray-200 p-1 rounded-md">
                   <button 
