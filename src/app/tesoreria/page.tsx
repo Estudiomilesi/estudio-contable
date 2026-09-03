@@ -25,13 +25,13 @@ type Check = {
   client?: { name: string };
 };
 
-const ACCOUNT_COLORS: Record<string, { bg: string, text: string, border: string, badgeBg: string }> = {
-  'BANCOS FEDE': { bg: 'bg-green-50', text: 'text-green-900', border: 'border-green-500', badgeBg: 'bg-green-100 text-green-800' },
-  'BANCOS JUANMA': { bg: 'bg-blue-50', text: 'text-blue-900', border: 'border-blue-500', badgeBg: 'bg-blue-100 text-blue-800' },
-  'CAJA': { bg: 'bg-teal-50', text: 'text-teal-900', border: 'border-teal-500', badgeBg: 'bg-teal-100 text-teal-800' },
-  'CAJA IVA': { bg: 'bg-orange-50', text: 'text-orange-900', border: 'border-orange-500', badgeBg: 'bg-orange-100 text-orange-800' },
-  'CHEQUES': { bg: 'bg-purple-50', text: 'text-purple-900', border: 'border-purple-500', badgeBg: 'bg-purple-100 text-purple-800' },
-  'DEFAULT': { bg: 'bg-gray-50', text: 'text-gray-900', border: 'border-gray-500', badgeBg: 'bg-gray-100 text-gray-800' }
+const ACCOUNT_COLORS: Record<string, { bg: string, text: string, border: string, ring: string, badgeBg: string }> = {
+  'BANCOS FEDE': { bg: 'bg-green-100', text: 'text-green-900', border: 'border-green-600', ring: 'ring-green-600', badgeBg: 'bg-green-100 text-green-800' },
+  'BANCOS JUANMA': { bg: 'bg-blue-100', text: 'text-blue-900', border: 'border-blue-600', ring: 'ring-blue-600', badgeBg: 'bg-blue-100 text-blue-800' },
+  'CAJA': { bg: 'bg-stone-100', text: 'text-stone-900', border: 'border-stone-600', ring: 'ring-stone-600', badgeBg: 'bg-stone-100 text-stone-800' },
+  'CAJA IVA': { bg: 'bg-orange-100', text: 'text-orange-900', border: 'border-orange-600', ring: 'ring-orange-600', badgeBg: 'bg-orange-100 text-orange-800' },
+  'CHEQUES': { bg: 'bg-purple-100', text: 'text-purple-900', border: 'border-purple-600', ring: 'ring-purple-600', badgeBg: 'bg-purple-100 text-purple-800' },
+  'DEFAULT': { bg: 'bg-gray-100', text: 'text-gray-900', border: 'border-gray-600', ring: 'ring-gray-600', badgeBg: 'bg-gray-100 text-gray-800' }
 };
 
 export default function TesoreriaPage() {
@@ -224,10 +224,10 @@ export default function TesoreriaPage() {
             <div 
               key={acc}
               onClick={() => setSelectedFilterAccount(isSelected ? null : acc)}
-              className={`rounded-xl border p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${isSelected ? `${colors.border} border-2 ${colors.bg}` : 'border-gray-200 bg-white'}`}
+              className={`rounded-xl border p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${colors.bg} ${isSelected ? `${colors.border} border-2 ring-1 ring-inset ${colors.ring}` : 'border-transparent opacity-80 hover:opacity-100'}`}
             >
-              <h3 className={`text-sm font-medium ${isSelected ? colors.text : 'text-gray-700'}`}>{acc === 'CAJA IVA' ? 'Caja IVA' : acc === 'BANCOS FEDE' ? 'Bcos Fede' : acc === 'BANCOS JUANMA' ? 'Bcos Juanma' : acc === 'CHEQUES' ? 'Cheques' : 'Caja'}</h3>
-              <p className={`mt-2 text-xl font-semibold ${isSelected ? colors.text : 'text-gray-700'}`}>${(saldos[acc] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
+              <h3 className={`text-sm font-medium ${colors.text}`}>{acc === 'CAJA IVA' ? 'Caja IVA' : acc === 'BANCOS FEDE' ? 'Bcos Fede' : acc === 'BANCOS JUANMA' ? 'Bcos Juanma' : acc === 'CHEQUES' ? 'Cheques' : 'Caja'}</h3>
+              <p className={`mt-2 text-xl font-semibold ${colors.text}`}>${(saldos[acc] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
             </div>
           );
         })}
