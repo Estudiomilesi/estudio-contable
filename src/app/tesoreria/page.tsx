@@ -236,7 +236,7 @@ export default function TesoreriaPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Formulario */}
-        <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm h-fit max-h-[800px] overflow-y-auto">
+        <div className={`col-span-1 rounded-xl border p-6 shadow-sm h-fit max-h-[800px] overflow-y-auto transition-colors duration-300 ${formData.type === 'INCOME' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
           <h2 className="mb-4 text-xl font-semibold">Registrar Movimiento</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
