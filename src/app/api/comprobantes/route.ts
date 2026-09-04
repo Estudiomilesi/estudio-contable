@@ -25,7 +25,10 @@ export async function GET() {
   try {
     const comprobantes = await prisma.accountTransaction.findMany({
       where: {
-        type: { in: ['CHARGE', 'PAYMENT'] }
+        OR: [
+          { type: 'CHARGE' },
+          { type: 'PAYMENT', description: { startsWith: 'NC:' } }
+        ]
       },
       include: { client: { select: { name: true, professionalLabel: true } } },
       orderBy: { createdAt: 'desc' },

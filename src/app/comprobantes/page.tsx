@@ -46,6 +46,10 @@ export default function ComprobantesPage() {
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Table state
+  const [filterLabel, setFilterLabel] = useState('ALL');
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
+
   const [form, setForm] = useState({
     comprobanteType: 'FACTURA',
     clientId: '',
@@ -246,6 +250,40 @@ export default function ComprobantesPage() {
     const newItems = [...items];
     newItems[idx][field] = value;
     setItems(newItems);
+  };
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const processedComprobantes = () => {
+    let result = [...comprobantes];
+    if (filterLabel !== 'ALL') {
+      result = result.filter(c => c.client?.professionalLabel === filterLabel);
+    }
+    if (sortConfig) {
+      result.sort((a: any, b: any) => {
+        let valA = a[sortConfig.key];
+        let valB = b[sortConfig.key];
+        
+        if (sortConfig.key === 'clientName') {
+          valA = a.client?.name || '';
+          valB = b.client?.name || '';
+        } else if (sortConfig.key === 'professionalLabel') {
+          valA = a.client?.professionalLabel || '';
+          valB = b.client?.professionalLabel || '';
+        }
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
   };
 
   if (isLoading) {
@@ -506,17 +544,28 @@ export default function ComprobantesPage() {
             <table className="min-w-full divide-y divide-gray-200 relative">
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Fecha</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Perfil</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Etiqueta</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('date')}>Fecha</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('billingProfile')}>Perfil</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    <div className="flex items-center gap-1">
+                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
+                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5">
+                        <option value="ALL">Todas</option>
+                        <option value="F">F</option>
+                        <option value="FJ">FJ</option>
+                        <option value="JF">JF</option>
+                      </select>
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('clientName')}>Cliente</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">N° Cbte</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Concepto</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Importe</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('amount')}>Importe</th>
                   <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
-                {comprobantes.map(c => (
+                {processedComprobantes().map(c => (
                   <tr key={c.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                       {new Date(c.date).toLocaleDateString('es-AR')}
@@ -526,11 +575,22 @@ export default function ComprobantesPage() {
                       {c.billingProfile === 'FEDE_RI' && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Fede RI</span>}
                       {c.billingProfile === 'JUANMA_MONO' && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">Juanma</span>}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-700 text-center">
-                      {c.client?.professionalLabel || '-'}
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                      {c.client?.professionalLabel ? (
+                        <span className={`inline-flex rounded-full px-2 text-xs font-bold leading-5 ${
+                          c.client.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
+                          c.client.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
+                          'bg-blue-200 text-blue-900'
+                        }`}>
+                          {c.client.professionalLabel}
+                        </span>
+                      ) : '-'}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                       {c.client?.name}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-xs font-mono text-gray-500">
+                      {c.receiptNumber || '-'}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={c.description}>
                       {c.description}
@@ -548,9 +608,9 @@ export default function ComprobantesPage() {
                     </td>
                   </tr>
                 ))}
-                {comprobantes.length === 0 && (
+                {processedComprobantes().length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No hay comprobantes registrados</td>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay comprobantes registrados</td>
                   </tr>
                 )}
               </tbody>
