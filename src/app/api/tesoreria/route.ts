@@ -21,11 +21,31 @@ export async function GET() {
       'CHEQUES': 0 
     };
     
+    let userRole = 'COLLABORATOR';
+    const cookieStore = require('next/headers').cookies;
+    const store = await cookieStore();
+    const token = store.get('auth_token')?.value;
+    if (token) {
+      try {
+        const { jwtVerify } = require('jose');
+        const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-key-for-development-only-12345');
+        const { payload } = await jwtVerify(token, JWT_SECRET);
+        if (payload.role) userRole = payload.role as string;
+      } catch(e) {}
+    }
+
     const txsWithBalance = allTxs.map(t => {
       if (saldos[t.account] === undefined) saldos[t.account] = 0;
       saldos[t.account] += t.amount;
+      
+      let description = t.description;
+      if (t.category === 'Sueldos' && userRole !== 'ADMIN') {
+        description = 'Pago de Sueldos Varios';
+      }
+
       return {
         ...t,
+        description,
         runningBalance: saldos[t.account]
       };
     });

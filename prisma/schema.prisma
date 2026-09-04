@@ -154,8 +154,7 @@ model TreasuryTransaction {
   incomingChecks Check[]              @relation("IncomingChecks")
   outgoingChecks Check[]              @relation("OutgoingChecks")
   
-  salaryId       String?
-  salary         Salary?              @relation(fields: [salaryId], references: [id])
+  salaries       Salary[]
   createdAt      DateTime             @default(now())
 }
 

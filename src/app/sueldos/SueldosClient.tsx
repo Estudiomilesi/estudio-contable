@@ -6,17 +6,29 @@ import { Check, Wallet } from 'lucide-react';
 export default function SueldosClient({ initialSalaries, availableChecks }: { initialSalaries: any[], availableChecks: any[] }) {
   const [salaries, setSalaries] = useState(initialSalaries);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSalary, setSelectedSalary] = useState<any>(null);
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [payments, setPayments] = useState<{account: string, amount: string}[]>([
     { account: 'CAJA', amount: '' }
   ]);
   const [selectedCheckIds, setSelectedCheckIds] = useState<string[]>([]);
+  const [selectedSalaries, setSelectedSalaries] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [isLiquidarModalOpen, setIsLiquidarModalOpen] = useState(false);
+  const [liquidarMonth, setLiquidarMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [liquidarAmounts, setLiquidarAmounts] = useState<Record<string, string>>({});
 
   // Group by month
   const PREFERRED_ORDER = ['Luichi', 'Lucho', 'Pauli', 'Juli', 'Noe', 'Alma', 'Belén', 'Melisa', 'Gessi'];
-  const uniqueEmps = Array.from(new Set(salaries.map(s => s.employee.name)));
+  
+  const employeeMap = new Map<string, string>();
+  salaries.forEach(s => {
+    if (!employeeMap.has(s.employee.name)) {
+      employeeMap.set(s.employee.name, s.employee.id);
+    }
+  });
+
+  const uniqueEmps = Array.from(employeeMap.keys());
   const employees = uniqueEmps.sort((a, b) => {
     const ia = PREFERRED_ORDER.indexOf(a);
     const ib = PREFERRED_ORDER.indexOf(b);
@@ -34,14 +46,6 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
 
   const months = Object.keys(grouped).sort().reverse();
 
-  const handleOpenModal = (salary: any) => {
-    setSelectedSalary(salary);
-    setIsModalOpen(true);
-    setPayDate(new Date().toISOString().split('T')[0]);
-    setPayments([{ account: 'CAJA', amount: salary.amount.toString() }]);
-    setSelectedCheckIds([]);
-  };
-
   const handleToggleCheck = (id: string) => {
     if (selectedCheckIds.includes(id)) {
       setSelectedCheckIds(selectedCheckIds.filter(x => x !== id));
@@ -50,11 +54,21 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
     }
   };
 
+  const handleToggleSalary = (salary: any) => {
+    if (selectedSalaries.some(s => s.id === salary.id)) {
+      setSelectedSalaries(selectedSalaries.filter(s => s.id !== salary.id));
+    } else {
+      setSelectedSalaries([...selectedSalaries, salary]);
+    }
+  };
+
   const selectedChecksTotal = availableChecks.filter(c => selectedCheckIds.includes(c.id)).reduce((sum, c) => sum + c.amount, 0);
+
+  const totalToPay = selectedSalaries.reduce((acc, s) => acc + s.amount, 0);
 
   const handlePagar = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSalary) return;
+    if (selectedSalaries.length === 0) return;
 
     // Prepare payload payments
     const payloadPayments = payments.map(p => {
@@ -66,8 +80,8 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
 
     const totalPagado = payloadPayments.reduce((acc, p) => acc + p.amount, 0);
     
-    if (Math.abs(totalPagado - selectedSalary.amount) > 1) {
-      if (!confirm(`El monto total ingresado ($${totalPagado}) no coincide exactamente con el sueldo ($${selectedSalary.amount}). ¿Desea continuar de todos modos?`)) {
+    if (Math.abs(totalPagado - totalToPay) > 1) {
+      if (!confirm(`El monto total ingresado ($${totalPagado}) no coincide exactamente con el sueldo ($${totalToPay}). ¿Desea continuar de todos modos?`)) {
         return;
       }
     }
@@ -78,7 +92,7 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          salaryId: selectedSalary.id,
+          salaryIds: selectedSalaries.map(s => s.id),
           date: payDate,
           payments: payloadPayments
         })
@@ -90,8 +104,43 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
       }
 
       // Update UI
-      setSalaries(salaries.map(s => s.id === selectedSalary.id ? { ...s, isPaid: true, paidAt: new Date(payDate) } : s));
+      const payIds = selectedSalaries.map(s => s.id);
+      setSalaries(salaries.map(s => payIds.includes(s.id) ? { ...s, isPaid: true, paidAt: new Date(payDate) } : s));
       setIsModalOpen(false);
+      setSelectedSalaries([]);
+    } catch (error: any) {
+      alert(error.message || error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLiquidar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    const payloadSalaries = employees.map(emp => ({
+      employeeId: employeeMap.get(emp),
+      amount: parseFloat(liquidarAmounts[emp] || '0')
+    })).filter(s => s.amount > 0);
+
+    try {
+      const res = await fetch('/api/sueldos/liquidar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month: liquidarMonth,
+          salaries: payloadSalaries
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error desconocido');
+      }
+
+      // We need to refresh the page to get the new salaries from the DB
+      window.location.reload();
     } catch (error: any) {
       alert(error.message || error);
     } finally {
@@ -105,6 +154,27 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Liquidación de Sueldos</h1>
           <p className="mt-2 text-gray-600">Historial y pagos de sueldos al equipo.</p>
+        </div>
+        <div className="flex gap-4">
+          {selectedSalaries.length > 0 && (
+            <button
+              onClick={() => {
+                setIsModalOpen(true);
+                setPayDate(new Date().toISOString().split('T')[0]);
+                setPayments([{ account: 'CAJA', amount: totalToPay.toString() }]);
+                setSelectedCheckIds([]);
+              }}
+              className="bg-indigo-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-indigo-700 shadow-sm transition-all"
+            >
+              Pagar Seleccionados ({selectedSalaries.length}) - ${totalToPay.toLocaleString('es-AR')}
+            </button>
+          )}
+          <button 
+            onClick={() => setIsLiquidarModalOpen(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 shadow-sm transition-all flex items-center gap-2"
+          >
+            Liquidar Nuevo Mes
+          </button>
         </div>
       </div>
 
@@ -133,24 +203,27 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                     if (!s) return <td key={emp} className="px-4 py-4 text-right text-gray-300 font-medium">-</td>;
                     
                     rowTotal += s.amount;
+                    const isSelected = selectedSalaries.some(sel => sel.id === s.id);
                     
                     return (
-                      <td key={emp} className="px-4 py-2 whitespace-nowrap text-right tabular-nums">
+                      <td key={emp} className={`px-4 py-2 whitespace-nowrap text-right tabular-nums transition-colors ${isSelected ? 'bg-indigo-50 border-indigo-200 border ring-1 ring-inset ring-indigo-500 rounded' : ''}`}>
                         {s.isPaid ? (
                           <div className="flex flex-col items-end justify-center h-full">
                             <span className="font-medium text-gray-900">${s.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                             {s.paidAt && <span className="text-[10px] text-gray-400 mt-0.5"><Check size={10} className="inline mr-0.5"/>Pagado</span>}
                           </div>
                         ) : (
-                          <button
-                            onClick={() => handleOpenModal(s)}
-                            className="inline-flex flex-col items-end px-2 py-1 rounded bg-yellow-50 border border-yellow-300 hover:bg-yellow-100 hover:border-yellow-400 transition-all cursor-pointer group shadow-sm"
-                          >
-                            <span className="font-bold text-red-600 group-hover:text-red-700">${s.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                            <span className="text-[10px] text-yellow-800 font-bold uppercase tracking-wider mt-0.5 flex items-center gap-1">
-                              <Wallet size={10} /> Pagar
-                            </span>
-                          </button>
+                          <div className="flex flex-col items-end gap-1">
+                            <label className="flex items-center gap-2 cursor-pointer bg-yellow-50 hover:bg-yellow-100 px-2 py-1 rounded border border-yellow-200 shadow-sm w-full justify-end">
+                              <span className="font-bold text-red-600">${s.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                              <input 
+                                type="checkbox" 
+                                checked={isSelected}
+                                onChange={() => handleToggleSalary(s)}
+                                className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                              />
+                            </label>
+                          </div>
                         )}
                       </td>
                     );
@@ -166,18 +239,18 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
       </div>
 
       {/* Modal */}
-      {isModalOpen && selectedSalary && (
+      {isModalOpen && selectedSalaries.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
             <h3 className="mb-4 text-xl font-bold text-gray-900">
-              Pagar Sueldo: {selectedSalary.employee.name}
+              Pagar Sueldos Seleccionados
             </h3>
             <div className="mb-6 rounded-lg bg-gray-50 p-4 border border-gray-200">
-              <p className="text-sm text-gray-500">Período</p>
-              <p className="font-semibold text-gray-900">{selectedSalary.month}</p>
+              <p className="text-sm text-gray-500">Cantidad de Sueldos</p>
+              <p className="font-semibold text-gray-900">{selectedSalaries.length}</p>
               <p className="text-sm text-gray-500 mt-2">Importe a Pagar</p>
               <p className="text-2xl font-black text-red-600">
-                ${selectedSalary.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits:2})}
+                ${totalToPay.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits:2})}
               </p>
             </div>
 
@@ -297,6 +370,67 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                   disabled={isSubmitting || (payments.some(p => p.account === 'CHEQUES') && selectedCheckIds.length === 0)}
                 >
                   {isSubmitting ? 'Registrando...' : 'Registrar Pago'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Liquidar Modal */}
+      {isLiquidarModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+            <h3 className="mb-4 text-xl font-bold text-gray-900">
+              Liquidar Nuevo Mes
+            </h3>
+            
+            <form onSubmit={handleLiquidar} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Mes a Liquidar (YYYY-MM)</label>
+                <input 
+                  type="month" 
+                  required 
+                  value={liquidarMonth}
+                  onChange={e => setLiquidarMonth(e.target.value)}
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="mt-4">
+                <h4 className="text-sm font-semibold mb-2 text-gray-700">Importes de Sueldos</h4>
+                <div className="space-y-3">
+                  {employees.map(emp => (
+                    <div key={emp} className="flex items-center gap-3">
+                      <label className="w-24 text-sm font-medium text-gray-700">{emp}</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        step="0.01"
+                        value={liquidarAmounts[emp] || ''}
+                        onChange={e => setLiquidarAmounts({...liquidarAmounts, [emp]: e.target.value})}
+                        className="flex-1 rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-bold"
+                        placeholder="Importe a cobrar"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsLiquidarModalOpen(false)}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  disabled={isSubmitting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Guardando...' : 'Confirmar Liquidación'}
                 </button>
               </div>
             </form>

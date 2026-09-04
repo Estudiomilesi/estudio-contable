@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { LayoutDashboard, Users, FileText, Wallet, BarChart3, UserCheck, ChevronRight, ChevronLeft } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ userRole }: { userRole?: string }) {
   const pathname = usePathname();
   const [isHovered, setIsHovered] = useState(false);
 
@@ -16,7 +16,7 @@ export default function Sidebar() {
     { name: 'Comprobantes', path: '/comprobantes', icon: FileText },
     { name: 'Cuentas Corrientes', path: '/cuentas-corrientes', icon: UserCheck },
     { name: 'Tesorería', path: '/tesoreria', icon: Wallet },
-    { name: 'Sueldos', path: '/sueldos', icon: Users },
+    ...(userRole === 'ADMIN' ? [{ name: 'Sueldos', path: '/sueldos', icon: Users }] : []),
     { name: 'Reportes', path: '/reportes', icon: BarChart3 },
   ];
 

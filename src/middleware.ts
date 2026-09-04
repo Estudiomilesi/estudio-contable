@@ -24,11 +24,19 @@ export async function middleware(request: NextRequest) {
 
   try {
     // Verify token
-    await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, JWT_SECRET);
     
     // If trying to access login while authenticated, redirect to home
     if (isLoginPage) {
       return NextResponse.redirect(new URL('/', request.url));
+    }
+
+    if (request.nextUrl.pathname.startsWith('/sueldos') && payload.role !== 'ADMIN') {
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+    
+    if (request.nextUrl.pathname.startsWith('/api/sueldos') && payload.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     
     return NextResponse.next();

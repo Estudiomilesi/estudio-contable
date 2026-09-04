@@ -5,35 +5,45 @@ import { parseToUtcNoon } from '@/lib/dateUtils';
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    const { salaryId, date, payments } = data;
+    const { salaryIds, date, payments } = data;
 
-    if (!salaryId || !date || !payments || !Array.isArray(payments) || payments.length === 0) {
+    if (!salaryIds || !Array.isArray(salaryIds) || salaryIds.length === 0 || !date || !payments || !Array.isArray(payments) || payments.length === 0) {
       return NextResponse.json({ error: 'Faltan campos requeridos o pagos inválidos' }, { status: 400 });
     }
 
-    const salary = await prisma.salary.findUnique({
-      where: { id: salaryId },
+    const salariesToPay = await prisma.salary.findMany({
+      where: { id: { in: salaryIds } },
       include: { employee: true }
     });
 
-    if (!salary) {
-      return NextResponse.json({ error: 'Sueldo no encontrado' }, { status: 404 });
+    if (salariesToPay.length !== salaryIds.length) {
+      return NextResponse.json({ error: 'Algunos sueldos no fueron encontrados' }, { status: 404 });
     }
 
-    if (salary.isPaid) {
-      return NextResponse.json({ error: 'Este sueldo ya fue pagado' }, { status: 400 });
+    if (salariesToPay.some(s => s.isPaid)) {
+      return NextResponse.json({ error: 'Uno o más sueldos ya fueron pagados' }, { status: 400 });
     }
 
+    const totalToPay = salariesToPay.reduce((acc, s) => acc + s.amount, 0);
     const totalPagado = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
-    if (Math.abs(totalPagado - salary.amount) > 1) {
+    
+    if (Math.abs(totalPagado - totalToPay) > 1) {
        // Tolerance of $1 for rounding
-       return NextResponse.json({ error: 'El monto total pagado no coincide con el sueldo' }, { status: 400 });
+       return NextResponse.json({ error: 'El monto total pagado no coincide con el total de los sueldos seleccionados' }, { status: 400 });
     }
 
     const txDate = parseToUtcNoon(date);
 
     for (const payment of payments) {
       const txAmount = -Math.abs(payment.amount);
+
+      let desc = 'Pago de Sueldos Varios';
+      if (salariesToPay.length === 1) {
+        desc = `Sueldo ${salariesToPay[0].employee.name} - ${salariesToPay[0].month}`;
+      } else {
+        const names = Array.from(new Set(salariesToPay.map(s => s.employee.name))).join(', ');
+        desc = `Sueldos Varios (${names})`;
+      }
 
       const nuevaTransaccion = await prisma.treasuryTransaction.create({
         data: {
@@ -42,9 +52,11 @@ export async function POST(req: Request) {
           type: 'EXPENSE',
           account: payment.account,
           category: 'Sueldos',
-          description: `Sueldo ${salary.employee.name} - ${salary.month}`,
+          description: desc,
           clientId: null,
-          salaryId: salary.id,
+          salaries: {
+            connect: salariesToPay.map(s => ({ id: s.id }))
+          }
         }
       });
 
@@ -61,9 +73,9 @@ export async function POST(req: Request) {
       }
     }
 
-    // Update Salary
-    await prisma.salary.update({
-      where: { id: salary.id },
+    // Update Salaries
+    await prisma.salary.updateMany({
+      where: { id: { in: salaryIds } },
       data: {
         isPaid: true,
         paidAt: txDate,
