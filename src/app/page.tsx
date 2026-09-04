@@ -106,6 +106,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   // Nota: Si se filtra por etiqueta, las transacciones sin cliente (gastos generales) se ignorarán.
   const tesoreriaTxs = await prisma.treasuryTransaction.aggregate({
     where: {
+      account: { not: 'CAJA IVA' },
       ...(clientLabelFilter && {
         client: { professionalLabel: clientLabelFilter }
       })

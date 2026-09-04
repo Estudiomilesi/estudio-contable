@@ -190,7 +190,9 @@ export default function TesoreriaPage() {
     }
   };
 
-  const saldoTotal = Object.values(saldos).reduce((acc, val) => acc + val, 0);
+  const saldoTotal = Object.entries(saldos)
+    .filter(([acc]) => acc !== 'CAJA IVA')
+    .reduce((acc, [_, val]) => acc + val, 0);
 
   // Calcular alertas de cheques (vencen en <= 15 días)
   const handleSaveEdit = async (e: React.FormEvent) => {
@@ -262,7 +264,7 @@ export default function TesoreriaPage() {
           <p className="mt-2 text-2xl font-bold text-gray-900">${saldoTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
         </div>
         
-        {['CAJA', 'CAJA IVA', 'BANCOS FEDE', 'BANCOS JUANMA', 'CHEQUES'].map((acc) => {
+        {['CAJA', 'BANCOS FEDE', 'BANCOS JUANMA', 'CHEQUES'].map((acc) => {
           const colors = ACCOUNT_COLORS[acc] || ACCOUNT_COLORS['DEFAULT'];
           const isSelected = selectedFilterAccount === acc;
           return (
@@ -271,11 +273,20 @@ export default function TesoreriaPage() {
               onClick={() => setSelectedFilterAccount(isSelected ? null : acc)}
               className={`rounded-xl border p-4 shadow-sm cursor-pointer transition-all hover:shadow-md ${colors.bg} ${isSelected ? `${colors.border} border-2 ring-1 ring-inset ${colors.ring}` : 'border-transparent opacity-80 hover:opacity-100'}`}
             >
-              <h3 className={`text-sm font-medium ${colors.text}`}>{acc === 'CAJA IVA' ? 'Caja IVA' : acc === 'BANCOS FEDE' ? 'Bcos Fede' : acc === 'BANCOS JUANMA' ? 'Bcos Juanma' : acc === 'CHEQUES' ? 'Cheques' : 'Caja'}</h3>
-              <p className={`mt-2 text-xl font-semibold ${colors.text}`}>${(saldos[acc] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+              <h3 className={`text-xs font-semibold uppercase tracking-wider ${colors.text}`}>{acc}</h3>
+              <p className={`mt-1 text-lg font-bold ${colors.text}`}>${(saldos[acc] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
             </div>
           );
         })}
+        
+        {/* Separated CAJA IVA */}
+        <div 
+          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CAJA IVA' ? null : 'CAJA IVA')}
+          className={`rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm cursor-pointer transition-all hover:shadow-md opacity-70 hover:opacity-100 ${selectedFilterAccount === 'CAJA IVA' ? 'border-orange-600 border-2 ring-1 ring-inset ring-orange-600' : ''}`}
+        >
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-orange-900">CAJA IVA (No Disp.)</h3>
+          <p className="mt-1 text-lg font-bold text-orange-900">${(saldos['CAJA IVA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
