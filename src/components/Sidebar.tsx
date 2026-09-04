@@ -16,6 +16,7 @@ export default function Sidebar() {
     { name: 'Comprobantes', path: '/comprobantes', icon: FileText },
     { name: 'Cuentas Corrientes', path: '/cuentas-corrientes', icon: UserCheck },
     { name: 'Tesorería', path: '/tesoreria', icon: Wallet },
+    { name: 'Sueldos', path: '/sueldos', icon: Users },
     { name: 'Reportes', path: '/reportes', icon: BarChart3 },
   ];
 

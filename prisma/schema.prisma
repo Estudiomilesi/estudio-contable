@@ -154,5 +154,34 @@ model TreasuryTransaction {
   incomingChecks Check[]              @relation("IncomingChecks")
   outgoingChecks Check[]              @relation("OutgoingChecks")
   
+  salary         Salary?
   createdAt      DateTime             @default(now())
+}
+
+
+model Employee {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  salaries  Salary[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Salary {
+  id             String    @id @default(cuid())
+  month          String    // Format YYYY-MM
+  amount         Float
+  isPaid         Boolean   @default(false)
+  paidAt         DateTime?
+  
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id])
+  
+  treasuryTxId   String?   @unique
+  treasuryTx     TreasuryTransaction? @relation(fields: [treasuryTxId], references: [id])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([employeeId, month])
 }
