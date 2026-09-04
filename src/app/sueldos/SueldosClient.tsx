@@ -15,11 +15,22 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Group by month
+  const PREFERRED_ORDER = ['Luichi', 'Lucho', 'Pauli', 'Juli', 'Noe', 'Alma', 'Belén', 'Melisa', 'Gessi'];
+  const uniqueEmps = Array.from(new Set(salaries.map(s => s.employee.name)));
+  const employees = uniqueEmps.sort((a, b) => {
+    const ia = PREFERRED_ORDER.indexOf(a);
+    const ib = PREFERRED_ORDER.indexOf(b);
+    if (ia === -1 && ib === -1) return a.localeCompare(b);
+    if (ia === -1) return 1;
+    if (ib === -1) return -1;
+    return ia - ib;
+  });
+
   const grouped = salaries.reduce((acc, s) => {
-    if (!acc[s.month]) acc[s.month] = [];
-    acc[s.month].push(s);
+    if (!acc[s.month]) acc[s.month] = {};
+    acc[s.month][s.employee.name] = s;
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, Record<string, any>>);
 
   const months = Object.keys(grouped).sort().reverse();
 
@@ -83,72 +94,61 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {months.map(month => {
-          const mSalaries = grouped[month];
-          const totalAmount = mSalaries.reduce((sum: number, s: any) => sum + s.amount, 0);
-          const totalPaid = mSalaries.filter((s: any) => s.isPaid).reduce((sum: number, s: any) => sum + s.amount, 0);
-
-          return (
-            <div key={month} className="border-b border-gray-200 last:border-0">
-              <div className="bg-gray-50 px-6 py-4 flex justify-between items-center border-b border-gray-200">
-                <h2 className="text-lg font-bold text-gray-800">{month}</h2>
-                <div className="text-sm text-gray-600 font-medium">
-                  Pagado: <span className="text-green-700">${totalPaid.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}</span> / 
-                  Total: <span className="text-gray-900 ml-1">${totalAmount.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}</span>
-                </div>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-white">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">Colaborador</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Importe</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase">Estado</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">Acción</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {mSalaries.map((s: any) => (
-                      <tr key={s.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-3 whitespace-nowrap font-medium text-gray-900">{s.employee.name}</td>
-                        <td className="px-6 py-3 whitespace-nowrap text-right tabular-nums text-gray-700 font-medium">
-                          ${s.amount.toLocaleString('es-AR', {minimumFractionDigits:2, maximumFractionDigits:2})}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-center">
-                          {s.isPaid ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                              <Check size={14} /> Pagado
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-x-auto max-h-[75vh]">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+            <tr>
+              <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase bg-gray-50">Mes</th>
+              {employees.map(emp => (
+                <th key={emp} className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase bg-gray-50">{emp}</th>
+              ))}
+              <th className="px-4 py-3 text-right text-xs font-black text-gray-800 uppercase bg-gray-100 border-l border-gray-200">Total</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {months.map(month => {
+              const mData = grouped[month];
+              let rowTotal = 0;
+              return (
+                <tr key={month} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-4 whitespace-nowrap font-bold text-gray-900 bg-white sticky left-0 border-r border-gray-100 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                    {month}
+                  </td>
+                  {employees.map(emp => {
+                    const s = mData[emp];
+                    if (!s) return <td key={emp} className="px-4 py-4 text-right text-gray-300 font-medium">-</td>;
+                    
+                    rowTotal += s.amount;
+                    
+                    return (
+                      <td key={emp} className="px-4 py-2 whitespace-nowrap text-right tabular-nums">
+                        {s.isPaid ? (
+                          <div className="flex flex-col items-end justify-center h-full">
+                            <span className="font-medium text-gray-900">${s.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            {s.paidAt && <span className="text-[10px] text-gray-400 mt-0.5"><Check size={10} className="inline mr-0.5"/>Pagado</span>}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => handleOpenModal(s)}
+                            className="inline-flex flex-col items-end px-2 py-1 rounded bg-yellow-50 border border-yellow-300 hover:bg-yellow-100 hover:border-yellow-400 transition-all cursor-pointer group shadow-sm"
+                          >
+                            <span className="font-bold text-red-600 group-hover:text-red-700">${s.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span className="text-[10px] text-yellow-800 font-bold uppercase tracking-wider mt-0.5 flex items-center gap-1">
+                              <Wallet size={10} /> Pagar
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">
-                              Pendiente
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-3 whitespace-nowrap text-right">
-                          {!s.isPaid && (
-                            <button
-                              onClick={() => handleOpenModal(s)}
-                              className="inline-flex items-center gap-1 rounded bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
-                            >
-                              <Wallet size={14} /> Registrar Pago
-                            </button>
-                          )}
-                          {s.isPaid && s.paidAt && (
-                            <span className="text-xs text-gray-400">
-                              {new Date(s.paidAt).toLocaleDateString('es-AR')}
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        })}
+                          </button>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="px-4 py-4 whitespace-nowrap text-right tabular-nums font-black bg-gray-50 text-gray-900 border-l border-gray-200">
+                    ${rowTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       {/* Modal */}

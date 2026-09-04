@@ -76,6 +76,13 @@ async function main() {
       if (!isNaN(parsed)) amount += parsed;
     }
 
+    const extrasRaw = row[4]; // Extras column
+    if (extrasRaw) {
+      const cleanStr = extrasRaw.replace(/\./g, '').replace(',', '.');
+      const parsed = parseFloat(cleanStr);
+      if (!isNaN(parsed)) amount += parsed;
+    }
+
     const aguinaldoRaw = row[8]; // Aguinaldo column
     if (aguinaldoRaw && row[9] && row[9].trim().toLowerCase() === 'aguinaldo') {
       const cleanStr = aguinaldoRaw.replace(/\./g, '').replace(',', '.');
