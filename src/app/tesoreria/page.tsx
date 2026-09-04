@@ -476,6 +476,8 @@ export default function TesoreriaPage() {
                 ) : (
                   <>
                     <option value="Gastos Generales">Gastos Generales (Fijo)</option>
+                    <option value="Retiro Fede">Retiro Fede (Fijo)</option>
+                    <option value="Retiro Juanma">Retiro Juanma (Fijo)</option>
                     {treasuryConcepts.filter(c => c.type === 'TREASURY_EXPENSE').map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
@@ -727,12 +729,14 @@ export default function TesoreriaPage() {
                 >
                   {(() => {
                     const isIncome = editingTx.type === 'INCOME';
-                    const fixedOption = isIncome ? 'Honorarios' : 'Gastos Generales';
+                    const fixedOptions = isIncome 
+                      ? ['Honorarios'] 
+                      : ['Gastos Generales', 'Retiro Fede', 'Retiro Juanma'];
                     const dynamicOptions = treasuryConcepts
                       .filter(c => isIncome ? c.type === 'TREASURY_INCOME' : c.type === 'TREASURY_EXPENSE')
                       .map(c => c.name);
                     
-                    const allOptions = [fixedOption, ...dynamicOptions];
+                    const allOptions = [...fixedOptions, ...dynamicOptions];
                     if (!allOptions.includes(editingTx.category)) {
                       allOptions.unshift(editingTx.category);
                     }
