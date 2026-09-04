@@ -133,6 +133,17 @@ export default function TesoreriaPage() {
     }
   };
 
+  const handleSalidaCheque = (checkId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      type: 'EXPENSE',
+      account: 'CHEQUES',
+      category: 'Otros Egresos' // Default category, user can change it
+    }));
+    setSelectedCheckIds([checkId]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -589,13 +600,14 @@ export default function TesoreriaPage() {
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Cliente</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase">Banco y N°</th>
                 <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase">Importe</th>
+                <th className="px-4 py-2 text-center text-xs font-medium text-gray-700 uppercase">Acción</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {isLoading ? (
-                <tr><td colSpan={5} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>
+                <tr><td colSpan={6} className="px-4 py-4 text-center text-gray-700">Cargando...</td></tr>
               ) : cartera.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-4 text-center text-gray-700">La cartera de cheques está vacía.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-4 text-center text-gray-700">La cartera de cheques está vacía.</td></tr>
               ) : (
                 cartera.map((c) => {
                   const diffTime = new Date(c.dueDate).getTime() - today.getTime();
@@ -621,6 +633,15 @@ export default function TesoreriaPage() {
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-right tabular-nums text-sm font-bold text-gray-900">
                         ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </td>
+                      <td className="px-4 py-2 text-center whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => handleSalidaCheque(c.id)}
+                          className="text-xs bg-indigo-50 text-indigo-700 hover:bg-indigo-100 px-3 py-1.5 rounded font-semibold transition-colors border border-indigo-200"
+                        >
+                          Dar salida
+                        </button>
                       </td>
                     </tr>
                   )
