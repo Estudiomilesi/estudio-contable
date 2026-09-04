@@ -23,12 +23,11 @@ async function extractAfipNumber(pdfBuffer: Buffer): Promise<string | null> {
 
 export async function GET() {
   try {
-    // Traer todos los comprobantes recientes para mostrar en la tabla (ej. últimos 100)
     const comprobantes = await prisma.accountTransaction.findMany({
       where: {
-        type: 'CHARGE'
+        type: { in: ['CHARGE', 'PAYMENT'] }
       },
-      include: { client: { select: { name: true } } },
+      include: { client: { select: { name: true, professionalLabel: true } } },
       orderBy: { createdAt: 'desc' },
       take: 100
     });
@@ -41,35 +40,24 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { clientId, date, dueDate, concept, amount, comprobanteType, billingProfile, fileBase64, manualReceiptNumber, collaboratorName, collaboratorAmount } = body;
+    const { 
+      clientId, date, dueDate, description, amount, netAmount, ivaAmount,
+      comprobanteType, billingProfile, receiptFileBase64, manualReceiptNumber, 
+      collaboratorName, collaboratorAmount, items 
+    } = body;
 
-    if (!clientId || !date || !concept || !amount || !comprobanteType) {
+    if (!clientId || !date || !amount || !comprobanteType || !items || !items.length) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
 
-    const parseDate = (dString: string) => {
-      if (!dString) return new Date();
-      if (dString.includes('T')) return new Date(dString);
-      return new Date(`${dString}T12:00:00`);
-    };
-
     const txDate = parseToUtcNoon(date);
     const txDueDate = dueDate ? parseToUtcNoon(dueDate) : txDate;
-    const netAmount = parseFloat(amount);
-
-    if (isNaN(netAmount) || netAmount <= 0) {
-      return NextResponse.json({ error: 'Importe inválido' }, { status: 400 });
-    }
-
-    const ivaAmount = billingProfile === 'FEDE_RI' ? netAmount * 0.21 : 0;
-    const totalAmount = netAmount + ivaAmount;
-
-    let finalReceiptNumber = manualReceiptNumber || null;
+    
+    let receiptNumber = manualReceiptNumber || null;
+    let fileToSave = receiptFileBase64 || null;
 
     if (billingProfile === 'NO_FISCAL') {
-      // Generar numeración automática interna
       const prefijo = comprobanteType === 'NOTA_CREDITO' ? 'NC' : 'FACT';
-      // Buscar el último comprobante no fiscal emitido
       const lastTx = await prisma.accountTransaction.findFirst({
         where: {
           billingProfile: 'NO_FISCAL',
@@ -77,7 +65,6 @@ export async function POST(request: Request) {
         },
         orderBy: { createdAt: 'desc' }
       });
-      
       let nextNum = 1;
       if (lastTx && lastTx.receiptNumber) {
         const parts = lastTx.receiptNumber.split('-');
@@ -86,16 +73,14 @@ export async function POST(request: Request) {
           if (!isNaN(lastNum)) nextNum = lastNum + 1;
         }
       }
-      finalReceiptNumber = `${prefijo}-${nextNum.toString().padStart(8, '0')}`;
+      receiptNumber = `${prefijo}-${nextNum.toString().padStart(8, '0')}`;
     } else {
-      // Perfil fiscal, intentar extraer el número del PDF si no lo escribieron a mano
-      if (!finalReceiptNumber && fileBase64) {
-        // fileBase64 viene como "data:application/pdf;base64,JVBERi0xLjQK..."
-        const base64Data = fileBase64.split(',')[1] || fileBase64;
-        const pdfBuffer = Buffer.from(base64Data, 'base64');
-        const extractedNum = await extractAfipNumber(pdfBuffer);
-        if (extractedNum) {
-          finalReceiptNumber = extractedNum;
+      if (fileToSave && !receiptNumber) {
+        const base64Data = fileToSave.split(',')[1] || fileToSave;
+        if (base64Data) {
+          const buffer = Buffer.from(base64Data, 'base64');
+          const extracted = await extractAfipNumber(buffer);
+          if (extracted) receiptNumber = extracted;
         }
       }
     }
@@ -103,26 +88,30 @@ export async function POST(request: Request) {
     const transaction = await prisma.accountTransaction.create({
       data: {
         clientId,
-        type: comprobanteType === 'NOTA_CREDITO' ? 'PAYMENT' : 'CHARGE',
-        amount: totalAmount,
+        date: txDate,
+        dueDate: txDueDate,
+        type: comprobanteType === 'FACTURA' ? 'CHARGE' : 'PAYMENT',
+        billingProfile,
+        description,
+        amount,
         netAmount,
         ivaAmount,
-        billingProfile: billingProfile || 'NO_FISCAL',
-        date: txDate,
-        dueDate: comprobanteType === 'NOTA_CREDITO' ? null : txDueDate,
-        description: comprobanteType === 'NOTA_CREDITO' ? `NC: ${concept}` : concept,
-        receiptNumber: finalReceiptNumber,
-        receiptFileBase64: fileBase64 || null,
+        receiptNumber,
+        receiptFileBase64: fileToSave,
         collaboratorName: collaboratorName || null,
         collaboratorAmount: collaboratorAmount ? parseFloat(collaboratorAmount) : null,
-        isEmailed: false
-      },
-      include: { client: { select: { name: true } } }
+        items: {
+          create: items.map((i: any) => ({
+            concept: i.concept,
+            amount: parseFloat(i.amount)
+          }))
+        }
+      }
     });
 
-    return NextResponse.json(transaction, { status: 201 });
-  } catch (error) {
+    return NextResponse.json(transaction);
+  } catch (error: any) {
     console.error(error);
-    return NextResponse.json({ error: 'Error al emitir comprobante' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno: ' + error.message }, { status: 500 });
   }
 }

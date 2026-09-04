@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { Trash2, FileText, Download } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Trash2, FileText, Download, Plus, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 
 type Client = {
   id: string;
   name: string;
   defaultBillingProfile: string;
+  professionalLabel: string;
 };
 
 type Comprobante = {
@@ -24,44 +25,70 @@ type Comprobante = {
   billingProfile: string;
   isEmailed: boolean;
   createdAt: string;
-  client: { name: string };
+  client: { name: string, professionalLabel: string };
+  items: { concept: string, amount: number }[];
+};
+
+type Concept = {
+  id: string;
+  name: string;
+  type: string;
 };
 
 export default function ComprobantesPage() {
   const [clientes, setClientes] = useState<Client[]>([]);
+  const [billingConcepts, setBillingConcepts] = useState<Concept[]>([]);
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Autocomplete state
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({
     comprobanteType: 'FACTURA',
     clientId: '',
     date: new Date().toISOString().split('T')[0],
     dueDate: new Date().toISOString().split('T')[0],
-    concept: '',
     billingProfile: 'NO_FISCAL',
-    amount: '',
     manualReceiptNumber: '',
     hasCollaborator: false,
     collaboratorName: '',
-    collaboratorAmount: ''
+    collabCalcType: 'MONTO' as 'MONTO' | 'PORCENTAJE',
+    collaboratorValue: '' // Can be amount or percentage
   });
+  
+  const [items, setItems] = useState<{concept: string, amount: string}[]>([{ concept: '', amount: '' }]);
+  
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowClientDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const fetchData = async () => {
     try {
-      const [resCli, resComp] = await Promise.all([
+      const [resCli, resComp, resConcepts] = await Promise.all([
         fetch('/api/clientes'),
-        fetch('/api/comprobantes')
+        fetch('/api/comprobantes'),
+        fetch('/api/conceptos')
       ]);
       const dataCli = await resCli.json();
       const dataComp = await resComp.json();
+      const dataConcepts = await resConcepts.json();
       setClientes(dataCli);
       setComprobantes(dataComp);
+      setBillingConcepts(dataConcepts.filter((c: any) => c.type === 'BILLING' && c.isActive));
     } catch (error) {
       console.error(error);
     } finally {
@@ -69,18 +96,31 @@ export default function ComprobantesPage() {
     }
   };
 
-  const handleClientChange = (clientId: string) => {
-    const client = clientes.find(c => c.id === clientId);
+  const handleClientSelect = (c: Client) => {
+    setClientSearch(c.name);
+    setShowClientDropdown(false);
     setForm(prev => ({
       ...prev,
-      clientId,
-      billingProfile: client?.defaultBillingProfile || 'NO_FISCAL'
+      clientId: c.id,
+      billingProfile: c.defaultBillingProfile || 'NO_FISCAL'
     }));
   };
 
-  const netAmountNum = parseFloat(form.amount) || 0;
+  const filteredClientes = clientes.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
+
+  // Math
+  const netAmountNum = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
   const ivaAmountNum = form.billingProfile === 'FEDE_RI' ? netAmountNum * 0.21 : 0;
   const totalAmountNum = netAmountNum + ivaAmountNum;
+  
+  let collaboratorAmount = 0;
+  if (form.hasCollaborator && form.collaboratorValue) {
+    if (form.collabCalcType === 'PORCENTAJE') {
+      collaboratorAmount = totalAmountNum * (parseFloat(form.collaboratorValue) / 100);
+    } else {
+      collaboratorAmount = parseFloat(form.collaboratorValue);
+    }
+  }
 
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -93,6 +133,9 @@ export default function ComprobantesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.clientId) return alert("Seleccione un cliente");
+    if (items.some(i => !i.concept || !i.amount)) return alert("Complete todos los ítems");
+
     setIsSubmitting(true);
     try {
       let fileBase64 = null;
@@ -100,66 +143,76 @@ export default function ComprobantesPage() {
         fileBase64 = await fileToBase64(pdfFile);
       }
 
+      const description = items.map(i => i.concept).join(' + ');
+
+      const payload = {
+        ...form,
+        amount: totalAmountNum,
+        netAmount: netAmountNum,
+        ivaAmount: ivaAmountNum,
+        description,
+        items,
+        collaboratorAmount,
+        receiptFileBase64: fileBase64
+      };
+
       const res = await fetch('/api/comprobantes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, fileBase64 })
+        body: JSON.stringify(payload),
       });
-      
+
       if (res.ok) {
-        alert('Comprobante emitido exitosamente');
         setForm({
-          ...form,
-          concept: '',
-          amount: '',
+          comprobanteType: 'FACTURA',
+          clientId: '',
+          date: new Date().toISOString().split('T')[0],
+          dueDate: new Date().toISOString().split('T')[0],
+          billingProfile: 'NO_FISCAL',
           manualReceiptNumber: '',
           hasCollaborator: false,
           collaboratorName: '',
-          collaboratorAmount: ''
+          collabCalcType: 'MONTO',
+          collaboratorValue: ''
         });
+        setClientSearch('');
+        setItems([{ concept: '', amount: '' }]);
         setPdfFile(null);
-        fetchData(); // Recargar listado
+        fetchData();
+        alert('Comprobante generado con éxito.');
       } else {
         const err = await res.json();
-        alert('Error: ' + (err.error || 'Error al emitir'));
+        alert('Error: ' + err.error);
       }
     } catch (error) {
-      console.error(error);
-      alert('Error de red');
+      alert('Error de conexión');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDelete = async (id: string, isEmailed: boolean) => {
-    if (isEmailed) {
-      alert("No se puede eliminar un comprobante que ya fue enviado. Debes hacer una Nota de Crédito.");
-      return;
-    }
-    if (confirm("¿Estás seguro de eliminar este comprobante? Se restará de la deuda del cliente.")) {
-      try {
-        const res = await fetch(`/api/comprobantes/${id}`, { method: 'DELETE' });
-        if (res.ok) {
-          fetchData();
-        } else {
-          const err = await res.json();
-          alert("Error: " + err.error);
-        }
-      } catch (error) {
-        alert("Error de red");
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de que deseas eliminar este comprobante? Se revertirán los saldos de cuenta corriente si aplica.')) return;
+    try {
+      const res = await fetch(`/api/comprobantes/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchData();
+      } else {
+        const err = await res.json();
+        alert('Error: ' + err.error);
       }
+    } catch (error) {
+      alert('Error de conexión');
     }
   };
 
   const handleDownload = (c: Comprobante) => {
     if (c.billingProfile !== 'NO_FISCAL' && c.receiptFileBase64) {
-      // Descargar PDF adjunto
       const a = document.createElement("a");
       a.href = c.receiptFileBase64;
       a.download = `Comprobante_${c.receiptNumber || 'AFIP'}.pdf`;
       a.click();
     } else {
-      // Generar nuestro propio PDF
       const doc = new jsPDF();
       doc.setFontSize(22);
       doc.text("Estudio Milesi", 105, 20, { align: 'center' });
@@ -179,6 +232,20 @@ export default function ComprobantesPage() {
 
       doc.save(`Comprobante_${c.receiptNumber || 'Interno'}.pdf`);
     }
+  };
+
+  const handleAddItem = () => setItems([...items, { concept: '', amount: '' }]);
+  const handleRemoveItem = (idx: number) => {
+    if (items.length > 1) {
+      const newItems = [...items];
+      newItems.splice(idx, 1);
+      setItems(newItems);
+    }
+  };
+  const handleItemChange = (idx: number, field: 'concept'|'amount', value: string) => {
+    const newItems = [...items];
+    newItems[idx][field] = value;
+    setItems(newItems);
   };
 
   if (isLoading) {
@@ -201,6 +268,19 @@ export default function ComprobantesPage() {
           <h2 className="text-lg font-bold mb-4 text-gray-800">Nuevo Comprobante</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             
+            <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
+              <label className="block text-sm font-semibold text-blue-900 mb-1">Perfil de Facturación</label>
+              <select 
+                value={form.billingProfile}
+                onChange={e => setForm({...form, billingProfile: e.target.value})}
+                className="w-full rounded-md border border-blue-200 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
+              >
+                <option value="NO_FISCAL">No Fiscal (Gestión Interna)</option>
+                <option value="FEDE_RI">Federico - Responsable Inscripto</option>
+                <option value="JUANMA_MONO">Juan Manuel - Monotributo</option>
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
               <select 
@@ -214,19 +294,32 @@ export default function ComprobantesPage() {
               </select>
             </div>
             
-            <div>
+            <div className="relative" ref={dropdownRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
-              <select 
-                required
-                value={form.clientId}
-                onChange={e => handleClientChange(e.target.value)}
+              <input 
+                type="text"
+                placeholder="Buscar cliente..."
+                value={clientSearch}
+                onChange={e => {
+                  setClientSearch(e.target.value);
+                  setShowClientDropdown(true);
+                }}
+                onFocus={() => setShowClientDropdown(true)}
                 className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="">-- Seleccionar Cliente --</option>
-                {clientes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              />
+              {showClientDropdown && filteredClientes.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                  {filteredClientes.map(c => (
+                    <div 
+                      key={c.id} 
+                      className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-sm"
+                      onClick={() => handleClientSelect(c)}
+                    >
+                      {c.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -254,214 +347,211 @@ export default function ComprobantesPage() {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Perfil de Facturación</label>
-              <select 
-                required
-                value={form.billingProfile}
-                onChange={e => setForm({...form, billingProfile: e.target.value})}
-                className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-semibold text-indigo-900"
-              >
-                <option value="NO_FISCAL">No Fiscal (Auto Num.)</option>
-                <option value="FEDE_RI">Fede RI (+21% IVA)</option>
-                <option value="JUANMA_MONO">JuanMa Mono</option>
-              </select>
-            </div>
-
-            {isFiscal && (
-              <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200 space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Subir PDF de AFIP</label>
-                  <input 
-                    type="file" 
-                    accept="application/pdf"
-                    onChange={e => setPdfFile(e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                  />
-                  <p className="text-[10px] text-gray-500 mt-1">El sistema intentará leer el N° automáticamente.</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Número de AFIP (Opcional si sube PDF)</label>
-                  <input 
-                    type="text" 
-                    placeholder="000X-0000XXXX"
-                    value={form.manualReceiptNumber}
-                    onChange={e => setForm({...form, manualReceiptNumber: e.target.value})}
-                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  />
-                </div>
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-medium text-gray-700">Conceptos a Facturar</label>
+                <button type="button" onClick={handleAddItem} className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1 font-medium">
+                  <Plus size={14} /> Agregar
+                </button>
               </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Concepto</label>
-              <input 
-                type="text" 
-                required
-                placeholder="Ej: Certificación..."
-                value={form.concept}
-                onChange={e => setForm({...form, concept: e.target.value})}
-                className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Monto Neto ($)</label>
-              <input 
-                type="number" 
-                required
-                min="0.01"
-                step="0.01"
-                placeholder="Importe sin IVA..."
-                value={form.amount}
-                onChange={e => setForm({...form, amount: e.target.value})}
-                className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              />
-            </div>
-
-            {form.comprobanteType === 'FACTURA' && (
-              <div className="p-3 bg-purple-50 rounded-md border border-purple-200 space-y-3">
-                <label className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={form.hasCollaborator}
-                    onChange={(e) => setForm({ ...form, hasCollaborator: e.target.checked })}
-                    className="rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-sm font-bold text-purple-900">¿Pagar Participación a Colaborador?</span>
-                </label>
-                
-                {form.hasCollaborator && (
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Nombre</label>
+              
+              <div className="space-y-3">
+                {items.map((item, idx) => (
+                  <div key={idx} className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <select 
+                        required
+                        value={item.concept}
+                        onChange={e => handleItemChange(idx, 'concept', e.target.value)}
+                        className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      >
+                        <option value="">-- Concepto --</option>
+                        {billingConcepts.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="w-1/3">
                       <input 
-                        type="text" 
-                        required={form.hasCollaborator}
-                        placeholder="Ej: Marcos"
-                        value={form.collaboratorName}
-                        onChange={e => setForm({...form, collaboratorName: e.target.value})}
-                        className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        placeholder="Monto"
+                        value={item.amount}
+                        onChange={e => handleItemChange(idx, 'amount', e.target.value)}
+                        className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                       />
                     </div>
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Importe ($)</label>
+                    {items.length > 1 && (
+                      <button type="button" onClick={() => handleRemoveItem(idx)} className="mt-2 text-red-500 hover:text-red-700">
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 p-3 rounded-md">
+              <div className="flex justify-between text-sm text-gray-600 mb-1">
+                <span>Subtotal (Neto):</span>
+                <span>${netAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              </div>
+              {form.billingProfile === 'FEDE_RI' && (
+                <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <span>IVA (21%):</span>
+                  <span>${ivaAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-base font-bold text-gray-900 border-t pt-1 mt-1">
+                <span>Total a cobrar:</span>
+                <span>${totalAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+              </div>
+            </div>
+
+            {/* Participación Colaborador */}
+            {form.comprobanteType === 'FACTURA' && (
+              <div className="border border-gray-200 p-4 rounded-md space-y-3 bg-gray-50">
+                <label className="flex items-center">
+                  <input 
+                    type="checkbox" 
+                    checked={form.hasCollaborator}
+                    onChange={e => setForm({...form, hasCollaborator: e.target.checked})}
+                    className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 font-medium">Asignar participación a Colaborador</span>
+                </label>
+
+                {form.hasCollaborator && (
+                  <div className="pl-6 space-y-3">
+                    <input 
+                      type="text" 
+                      placeholder="Nombre del colaborador" 
+                      required
+                      value={form.collaboratorName}
+                      onChange={e => setForm({...form, collaboratorName: e.target.value})}
+                      className="block w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+                    />
+                    
+                    <div className="flex gap-2">
+                      <select 
+                        value={form.collabCalcType}
+                        onChange={e => setForm({...form, collabCalcType: e.target.value as any})}
+                        className="w-1/3 rounded-md border border-gray-300 p-2 text-sm shadow-sm"
+                      >
+                        <option value="MONTO">Monto ($)</option>
+                        <option value="PORCENTAJE">Porcentaje (%)</option>
+                      </select>
                       <input 
                         type="number" 
-                        required={form.hasCollaborator}
-                        min="0.01"
-                        step="0.01"
-                        placeholder="Monto a pagar..."
-                        value={form.collaboratorAmount}
-                        onChange={e => setForm({...form, collaboratorAmount: e.target.value})}
-                        className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm"
+                        placeholder={form.collabCalcType === 'MONTO' ? "Ej: 15000" : "Ej: 20"} 
+                        required
+                        min="0"
+                        step={form.collabCalcType === 'PORCENTAJE' ? "1" : "0.01"}
+                        value={form.collaboratorValue}
+                        onChange={e => setForm({...form, collaboratorValue: e.target.value})}
+                        className="flex-1 rounded-md border border-gray-300 p-2 text-sm shadow-sm"
                       />
                     </div>
+                    {form.collaboratorValue && (
+                      <p className="text-xs font-semibold text-indigo-600">
+                        Se asignarán ${collaboratorAmount.toLocaleString('es-AR', {minimumFractionDigits:2})} al colaborador.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
             )}
 
-            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-              <div className="flex justify-between text-xs mb-1 text-gray-600">
-                <span>Neto:</span>
-                <span>${netAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-              </div>
-              {form.billingProfile === 'FEDE_RI' && (
-                <div className="flex justify-between text-xs mb-1 text-gray-600">
-                  <span>IVA (21%):</span>
-                  <span>${ivaAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+            {isFiscal && (
+              <div className="border border-indigo-100 p-4 rounded-md space-y-3 bg-indigo-50">
+                <div>
+                  <label className="block text-sm font-medium text-indigo-900 mb-1">N° Comprobante AFIP (Opcional)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Ej: 00004-00000123"
+                    value={form.manualReceiptNumber}
+                    onChange={e => setForm({...form, manualReceiptNumber: e.target.value})}
+                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                  />
                 </div>
-              )}
-              <div className="flex justify-between font-bold text-sm text-indigo-900 mt-2 pt-2 border-t border-gray-200">
-                <span>Total:</span>
-                <span>${totalAmountNum.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <div>
+                  <label className="block text-sm font-medium text-indigo-900 mb-1">Adjuntar PDF de AFIP</label>
+                  <input 
+                    type="file" 
+                    accept="application/pdf"
+                    onChange={e => setPdfFile(e.target.files ? e.target.files[0] : null)}
+                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-100 file:text-indigo-700 hover:file:bg-indigo-200"
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
-            <button 
+            <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full rounded-lg py-3 px-4 text-white font-bold text-sm focus:ring-2 focus:ring-offset-2 disabled:opacity-50 transition-colors ${
-                form.comprobanteType === 'FACTURA'
-                ? 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
-                : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
-              }`}
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
-              {isSubmitting ? 'Procesando...' : `Emitir ${form.comprobanteType === 'FACTURA' ? 'Cargo' : 'NC'}`}
+              {isSubmitting ? 'Guardando...' : `Registrar ${form.comprobanteType === 'FACTURA' ? 'Factura' : 'Nota de Crédito'}`}
             </button>
           </form>
         </div>
 
-        {/* TABLA HISTÓRICA */}
-        <div className="lg:col-span-2 rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col h-[calc(100vh-120px)]">
+        {/* LISTADO LATERAL (TABLA) */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col max-h-[800px]">
           <div className="p-4 border-b bg-gray-50">
-            <h2 className="font-bold text-gray-800">Últimos Comprobantes</h2>
+            <h2 className="font-semibold text-gray-800">Últimos Comprobantes</h2>
           </div>
-          <div className="overflow-x-auto flex-1">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100 sticky top-0">
+          
+          <div className="overflow-auto flex-1 p-0">
+            <table className="min-w-full divide-y divide-gray-200 relative">
+              <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Fecha</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Número</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Cliente</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Perfil</th>
-                  <th className="px-4 py-2 text-right tabular-nums text-xs font-medium text-gray-500">Total</th>
-                  <th className="px-4 py-2 text-center text-xs font-medium text-gray-500">Acciones</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Fecha</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Perfil</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Etiqueta</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Concepto</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Importe</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
-                {comprobantes.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-4 text-gray-500">No hay comprobantes emitidos.</td></tr>
-                ) : (
-                  comprobantes.map(c => (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 text-sm text-gray-600 whitespace-nowrap">
-                        {new Date(c.date).toLocaleDateString('es-AR')}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-900 font-medium whitespace-nowrap">
-                        {c.type === 'PAYMENT' ? 'NC ' : ''}{c.receiptNumber || 'S/N'}
-                      </td>
-                      <td className="px-4 py-2 text-sm text-gray-800 truncate max-w-[150px]" title={c.client.name}>
-                        {c.client.name}
-                      </td>
-                      <td className="px-4 py-2 text-xs">
-                        <span className={`px-1.5 py-0.5 rounded ${c.billingProfile === 'NO_FISCAL' ? 'bg-gray-200 text-gray-700' : c.billingProfile === 'FEDE_RI' ? 'bg-blue-100 text-blue-800' : 'bg-orange-100 text-orange-800'}`}>
-                          {c.billingProfile === 'NO_FISCAL' ? 'No Fis.' : c.billingProfile === 'FEDE_RI' ? 'RI' : 'Mono'}
-                        </span>
-                      </td>
-                      <td className={`px-4 py-2 text-right tabular-nums font-bold text-sm whitespace-nowrap ${c.type === 'PAYMENT' ? 'text-green-600' : 'text-gray-900'}`}>
-                        ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                      </td>
-                      <td className="px-4 py-2 text-center space-x-2 whitespace-nowrap">
-                        <button 
-                          onClick={() => handleDownload(c)} 
-                          title={c.receiptFileBase64 ? 'Descargar PDF AFIP' : 'Descargar Comprobante Interno'}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          <Download size={18} />
-                        </button>
-                        {(() => {
-                          const isHistorical = new Date(c.createdAt) < new Date('2026-09-03T00:00:00Z');
-                          const isDisabled = c.isEmailed || isHistorical;
-                          const title = isHistorical 
-                            ? 'No se puede eliminar un saldo inicial' 
-                            : (c.isEmailed ? 'No se puede eliminar (Ya enviado)' : 'Eliminar Comprobante');
-                          
-                          return (
-                            <button 
-                              onClick={() => handleDelete(c.id, c.isEmailed)}
-                              disabled={isDisabled}
-                              title={title}
-                              className={isDisabled ? 'text-gray-300' : 'text-red-600 hover:text-red-900'}
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {comprobantes.map(c => (
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(c.date).toLocaleDateString('es-AR')}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-xs font-medium">
+                      {c.billingProfile === 'NO_FISCAL' && <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">No Fiscal</span>}
+                      {c.billingProfile === 'FEDE_RI' && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Fede RI</span>}
+                      {c.billingProfile === 'JUANMA_MONO' && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">Juanma</span>}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-gray-700 text-center">
+                      {c.client?.professionalLabel || '-'}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {c.client?.name}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={c.description}>
+                      {c.description}
+                    </td>
+                    <td className={`px-4 py-3 whitespace-nowrap text-right text-sm font-bold ${c.type === 'CHARGE' ? 'text-gray-900' : 'text-green-600'}`}>
+                      {c.type === 'PAYMENT' ? '-' : ''}${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                      <button onClick={() => handleDownload(c)} className="text-gray-400 hover:text-indigo-600 mr-3" title="Descargar PDF">
+                        <Download size={16} />
+                      </button>
+                      <button onClick={() => handleDelete(c.id)} className="text-gray-400 hover:text-red-600" title="Eliminar comprobante">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {comprobantes.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No hay comprobantes registrados</td>
+                  </tr>
                 )}
               </tbody>
             </table>

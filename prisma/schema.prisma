@@ -88,9 +88,36 @@ model AccountTransaction {
   isEmailed         Boolean         @default(false)
   createdAt         DateTime        @default(now())
 
+  // Conceptos (items)
+  items             AccountTransactionItem[]
+
   // Relaciones para composición de saldos
   paymentsApplied PaymentApplication[] @relation("ChargeApplications")
   chargesCovered  PaymentApplication[] @relation("PaymentApplications")
+}
+
+model AccountTransactionItem {
+  id            String             @id @default(cuid())
+  transactionId String
+  transaction   AccountTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  concept       String
+  amount        Float
+}
+
+enum ConceptType {
+  BILLING
+  TREASURY_INCOME
+  TREASURY_EXPENSE
+}
+
+model Concept {
+  id        String      @id @default(cuid())
+  name      String      
+  type      ConceptType
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+
+  @@unique([name, type])
 }
 
 model PaymentApplication {

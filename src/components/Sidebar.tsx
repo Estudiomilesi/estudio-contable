@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { LayoutDashboard, Users, FileText, Wallet, BarChart3, UserCheck, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Wallet, BarChart3, UserCheck, ChevronRight, ChevronLeft, Settings } from 'lucide-react';
 
 export default function Sidebar({ userRole }: { userRole?: string }) {
   const pathname = usePathname();
@@ -16,7 +16,10 @@ export default function Sidebar({ userRole }: { userRole?: string }) {
     { name: 'Comprobantes', path: '/comprobantes', icon: FileText },
     { name: 'Cuentas Corrientes', path: '/cuentas-corrientes', icon: UserCheck },
     { name: 'Tesorería', path: '/tesoreria', icon: Wallet },
-    ...(userRole === 'ADMIN' ? [{ name: 'Sueldos', path: '/sueldos', icon: Users }] : []),
+    ...(userRole === 'ADMIN' ? [
+      { name: 'Sueldos', path: '/sueldos', icon: Users },
+      { name: 'Configuración', path: '/configuracion', icon: Settings }
+    ] : []),
     { name: 'Reportes', path: '/reportes', icon: BarChart3 },
   ];
 

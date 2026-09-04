@@ -76,6 +76,8 @@ export default function TesoreriaPage() {
     clientId: ''
   });
 
+  const [treasuryConcepts, setTreasuryConcepts] = useState<{id: string, name: string, type: string}[]>([]);
+
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -88,6 +90,10 @@ export default function TesoreriaPage() {
       const resC = await fetch('/api/clientes');
       const dataC = await resC.json();
       setClientes(dataC);
+
+      const resConcepts = await fetch('/api/conceptos');
+      const dataConcepts = await resConcepts.json();
+      setTreasuryConcepts(dataConcepts.filter((c: any) => (c.type === 'TREASURY_INCOME' || c.type === 'TREASURY_EXPENSE') && c.isActive));
     } catch (error) {
       console.error(error);
     } finally {
@@ -451,20 +457,17 @@ export default function TesoreriaPage() {
               <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                 {formData.type === 'INCOME' ? (
                   <>
-                    <option value="Honorarios">Cobro Honorarios</option>
-                    <option value="Otros Ingresos">Otros Ingresos</option>
+                    <option value="Honorarios">Honorarios (Fijo)</option>
+                    {treasuryConcepts.filter(c => c.type === 'TREASURY_INCOME').map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
                   </>
                 ) : (
                   <>
-                    <option value="Gastos Generales">Gastos Generales</option>
-                    <option value="Sueldos">Sueldos</option>
-                    <option value="Alquiler">Alquiler</option>
-                    <option value="Sistemas">Sistemas</option>
-                    <option value="Almacen">Almacén</option>
-                    <option value="Participacion">Participación a Colaborador</option>
-                    <option value="Retiro Fede">Retiros Fede</option>
-                    <option value="Retiro Juanma">Retiros Juanma</option>
-                    <option value="Otros Egresos">Otros Egresos</option>
+                    <option value="Gastos Generales">Gastos Generales (Fijo)</option>
+                    {treasuryConcepts.filter(c => c.type === 'TREASURY_EXPENSE').map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
+                    ))}
                   </>
                 )}
               </select>
@@ -713,21 +716,17 @@ export default function TesoreriaPage() {
                 >
                   {editingTx.type === 'INCOME' ? (
                     <>
-                      <option value="Honorarios">Cobro Honorarios</option>
-                      <option value="Otros Ingresos">Otros Ingresos</option>
+                      <option value="Honorarios">Honorarios (Fijo)</option>
+                      {treasuryConcepts.filter(c => c.type === 'TREASURY_INCOME').map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
                     </>
                   ) : (
                     <>
-                      <option value="Gastos Generales">Gastos Generales</option>
-                      <option value="Sueldos">Sueldos</option>
-                      <option value="Alquiler">Alquiler</option>
-                      <option value="Servicios">Servicios</option>
-                      <option value="Impuestos">Impuestos</option>
-                      <option value="Honorarios Profesionales">Honorarios Profesionales</option>
-                      <option value="Seguros">Seguros</option>
-                      <option value="Mantenimiento">Mantenimiento</option>
-                      <option value="Retiro de Socio">Retiro de Socio</option>
-                      <option value="Otros Egresos">Otros Egresos</option>
+                      <option value="Gastos Generales">Gastos Generales (Fijo)</option>
+                      {treasuryConcepts.filter(c => c.type === 'TREASURY_EXPENSE').map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
                     </>
                   )}
                 </select>
