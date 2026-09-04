@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ArrowDown, ArrowUp, Search, Calendar, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowDown, ArrowUp, Search, Calendar, FileText, CheckCircle2, AlertCircle, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 
 type TreasuryTransaction = {
@@ -14,6 +14,7 @@ type TreasuryTransaction = {
   description: string | null;
   client?: { name: string };
   runningBalance?: number;
+  createdAt: string;
 };
 
 type Check = {
@@ -61,6 +62,9 @@ export default function TesoreriaPage() {
   const [isFetchingCharges, setIsFetchingCharges] = useState(false);
 
   const [selectedFilterAccount, setSelectedFilterAccount] = useState<string | null>(null);
+
+  const [alertDays, setAlertDays] = useState(15);
+  const [editingTx, setEditingTx] = useState<TreasuryTransaction | null>(null);
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -183,8 +187,27 @@ export default function TesoreriaPage() {
   const saldoTotal = Object.values(saldos).reduce((acc, val) => acc + val, 0);
 
   // Calcular alertas de cheques (vencen en <= 15 días)
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTx) return;
+    try {
+      const res = await fetch(`/api/tesoreria/${editingTx.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: editingTx.category, description: editingTx.description })
+      });
+      if (res.ok) {
+        setEditingTx(null);
+        fetchData();
+      } else {
+        alert('Error al actualizar el movimiento');
+      }
+    } catch(err) {
+      alert('Error de conexión');
+    }
+  };
+
   const today = new Date();
-  const alertDays = 15;
   const expiringChecks = cartera.filter(c => {
     const diffTime = new Date(c.dueDate).getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -257,10 +280,18 @@ export default function TesoreriaPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Tipo</label>
-                <select value={formData.type} onChange={e => {
-                  setFormData({...formData, type: e.target.value});
+                <select 
+                value={formData.type} 
+                onChange={e => {
+                  setFormData({
+                    ...formData, 
+                    type: e.target.value,
+                    category: e.target.value === 'INCOME' ? 'Honorarios' : 'Gastos Generales'
+                  });
                   setSelectedCheckIds([]);
-                }} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-medium">
+                }} 
+                className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-medium"
+              >
                   <option value="INCOME">Ingreso</option>
                   <option value="EXPENSE">Egreso</option>
                 </select>
@@ -556,8 +587,17 @@ export default function TesoreriaPage() {
                         </td>
                       )}
                       <td className="px-4 py-2 text-sm text-gray-900">
-                        <div className="font-medium">
-                          {t.category} {t.client ? `- ${t.client.name}` : ''}
+                        <div className="font-medium flex items-center justify-between group">
+                          <div>{t.category} {t.client ? `- ${t.client.name}` : ''}</div>
+                          {t.createdAt && (new Date().getTime() - new Date(t.createdAt).getTime()) / (1000 * 3600 * 24) <= 3 && (
+                            <button 
+                              onClick={() => setEditingTx(t)}
+                              className="text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                              title="Editar (permitido por 3 días)"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                          )}
                         </div>
                         <div className="text-gray-700 text-xs truncate max-w-xs" title={t.description || ''}>{t.description}</div>
                       </td>
@@ -658,6 +698,71 @@ export default function TesoreriaPage() {
           </table>
         </div>
       </div>
+      {/* Modal de Edición */}
+      {editingTx && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-xl font-bold text-gray-900">Editar Movimiento</h3>
+            <form onSubmit={handleSaveEdit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Categoría</label>
+                <select 
+                  value={editingTx.category} 
+                  onChange={e => setEditingTx({...editingTx, category: e.target.value})}
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  {editingTx.type === 'INCOME' ? (
+                    <>
+                      <option value="Honorarios">Cobro Honorarios</option>
+                      <option value="Otros Ingresos">Otros Ingresos</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Gastos Generales">Gastos Generales</option>
+                      <option value="Sueldos">Sueldos</option>
+                      <option value="Alquiler">Alquiler</option>
+                      <option value="Servicios">Servicios</option>
+                      <option value="Impuestos">Impuestos</option>
+                      <option value="Honorarios Profesionales">Honorarios Profesionales</option>
+                      <option value="Seguros">Seguros</option>
+                      <option value="Mantenimiento">Mantenimiento</option>
+                      <option value="Retiro de Socio">Retiro de Socio</option>
+                      <option value="Otros Egresos">Otros Egresos</option>
+                    </>
+                  )}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Descripción / Concepto</label>
+                <input 
+                  type="text" 
+                  value={editingTx.description || ''} 
+                  onChange={e => setEditingTx({...editingTx, description: e.target.value})}
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditingTx(null)}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
