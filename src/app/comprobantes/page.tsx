@@ -544,12 +544,12 @@ export default function ComprobantesPage() {
             <table className="min-w-full divide-y divide-gray-200 relative">
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('date')}>Fecha</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('billingProfile')}>Perfil</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
+                  <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('date')}>Fecha</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('billingProfile')}>Perfil</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
-                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
-                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5">
+                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiq.</span>
+                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[9px] border-gray-300 rounded p-0 h-4">
                         <option value="ALL">Todas</option>
                         <option value="F">F</option>
                         <option value="FJ">FJ</option>
@@ -557,27 +557,27 @@ export default function ComprobantesPage() {
                       </select>
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('clientName')}>Cliente</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">N° Cbte</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Concepto</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('amount')}>Importe</th>
-                  <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Acciones</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('clientName')}>Cliente</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider">Cbte</th>
+                  <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider">Concepto</th>
+                  <th className="px-2 py-2 text-right text-[10px] font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('amount')}>Importe</th>
+                  <th className="px-2 py-2 text-right text-[10px] font-bold text-gray-600 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {processedComprobantes().map(c => (
                   <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(c.date).toLocaleDateString('es-AR')}
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-gray-500">
+                      {new Date(c.date).toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: '2-digit'})}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-xs font-medium">
-                      {c.billingProfile === 'NO_FISCAL' && <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">No Fiscal</span>}
-                      {c.billingProfile === 'FEDE_RI' && <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">Fede RI</span>}
-                      {c.billingProfile === 'JUANMA_MONO' && <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">Juanma</span>}
+                    <td className="px-2 py-2 whitespace-nowrap text-[10px] font-medium">
+                      {c.billingProfile === 'NO_FISCAL' && <span className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded">No F.</span>}
+                      {c.billingProfile === 'FEDE_RI' && <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">F RI</span>}
+                      {c.billingProfile === 'JUANMA_MONO' && <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">J Mono</span>}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm text-center">
+                    <td className="px-2 py-2 whitespace-nowrap text-xs text-center">
                       {c.client?.professionalLabel ? (
-                        <span className={`inline-flex rounded-full px-2 text-xs font-bold leading-5 ${
+                        <span className={`inline-flex rounded-full px-1.5 text-[10px] font-bold leading-4 ${
                           c.client.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
                           c.client.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
                           'bg-blue-200 text-blue-900'
@@ -586,31 +586,31 @@ export default function ComprobantesPage() {
                         </span>
                       ) : '-'}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                    <td className="px-2 py-2 text-xs font-medium text-gray-900 truncate max-w-[100px]" title={c.client?.name}>
                       {c.client?.name}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-xs font-mono text-gray-500">
+                    <td className="px-2 py-2 whitespace-nowrap text-[10px] font-mono text-gray-500">
                       {c.receiptNumber || '-'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={c.description}>
+                    <td className="px-2 py-2 text-xs text-gray-600 truncate max-w-[120px]" title={c.description}>
                       {c.description}
                     </td>
-                    <td className={`px-4 py-3 whitespace-nowrap text-right text-sm font-bold ${c.type === 'CHARGE' ? 'text-gray-900' : 'text-green-600'}`}>
+                    <td className={`px-2 py-2 whitespace-nowrap text-right text-xs font-bold ${c.type === 'CHARGE' ? 'text-gray-900' : 'text-green-600'}`}>
                       {c.type === 'PAYMENT' ? '-' : ''}${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
-                      <button onClick={() => handleDownload(c)} className="text-gray-400 hover:text-indigo-600 mr-3" title="Descargar PDF">
-                        <Download size={16} />
+                    <td className="px-2 py-2 whitespace-nowrap text-right text-xs font-medium">
+                      <button onClick={() => handleDownload(c)} className="text-gray-400 hover:text-indigo-600 mr-2" title="Descargar PDF">
+                        <Download size={14} />
                       </button>
                       <button onClick={() => handleDelete(c.id)} className="text-gray-400 hover:text-red-600" title="Eliminar comprobante">
-                        <Trash2 size={16} />
+                        <Trash2 size={14} />
                       </button>
                     </td>
                   </tr>
                 ))}
                 {processedComprobantes().length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">No hay comprobantes registrados</td>
+                    <td colSpan={8} className="px-2 py-8 text-center text-gray-500 text-sm">No hay comprobantes registrados</td>
                   </tr>
                 )}
               </tbody>
