@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { ArrowDown, ArrowUp, Search, Calendar, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
 type TreasuryTransaction = {
   id: string;
@@ -588,8 +590,13 @@ export default function TesoreriaPage() {
       {/* Cartera de Cheques Completa */}
       <div className="rounded-xl border bg-white shadow-sm overflow-hidden flex flex-col h-[500px]">
         <div className="p-4 border-b bg-gray-50 flex justify-between items-center">
-          <h2 className="font-semibold text-gray-700">Cartera de Cheques</h2>
-          <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{cartera.length} en cartera</span>
+          <div className="flex items-center gap-3">
+            <h2 className="font-semibold text-gray-700">Cartera de Cheques</h2>
+            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{cartera.length} en cartera</span>
+          </div>
+          <Link href="/tesoreria/cheques" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium hover:underline flex items-center gap-1">
+            Ver Historial
+          </Link>
         </div>
         <div className="overflow-y-auto flex-1 p-0">
           <table className="min-w-full divide-y divide-gray-200">
