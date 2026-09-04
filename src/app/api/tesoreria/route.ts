@@ -73,6 +73,19 @@ export async function POST(request: Request) {
       txAmount = -totalChecks; // Egresos son negativos en nuestra lógica de TreasuryTransaction
     }
 
+    // Si es un ingreso de cheques, sumamos los cheques entrantes
+    if (data.account === 'CHEQUES' && data.type === 'INCOME') {
+      if (!data.incomingChecks || !Array.isArray(data.incomingChecks) || data.incomingChecks.length === 0) {
+        return NextResponse.json({ error: 'Debe ingresar al menos un cheque' }, { status: 400 });
+      }
+      
+      const totalChecks = data.incomingChecks.reduce((sum: number, c: any) => sum + (parseFloat(c.amount) || 0), 0);
+      if (totalChecks <= 0) {
+        return NextResponse.json({ error: 'El monto de los cheques debe ser mayor a 0' }, { status: 400 });
+      }
+      txAmount = Math.abs(totalChecks);
+    }
+
     // Evitar desfase de zona horaria usando T12:00:00
     const parseDate = (dString: string) => {
       if (!dString) return new Date();
@@ -94,21 +107,21 @@ export async function POST(request: Request) {
 
     // Handle INCOMING Checks
     if (data.account === 'CHEQUES' && data.type === 'INCOME') {
-      if (!data.checkDetails || !data.checkDetails.number) {
-        return NextResponse.json({ error: 'Debe proveer detalles del cheque' }, { status: 400 });
+      for (const checkData of data.incomingChecks) {
+        if (!checkData.number || !checkData.bank || !checkData.amount) continue;
+        
+        await prisma.check.create({
+          data: {
+            number: checkData.number,
+            bank: checkData.bank,
+            issueDate: parseToUtcNoon(checkData.issueDate || data.date),
+            dueDate: parseToUtcNoon(checkData.dueDate),
+            amount: Math.abs(parseFloat(checkData.amount)),
+            clientId: data.clientId || null,
+            incomingTxId: nuevaTransaccion.id
+          }
+        });
       }
-      
-      await prisma.check.create({
-        data: {
-          number: data.checkDetails.number,
-          bank: data.checkDetails.bank,
-          issueDate: parseToUtcNoon(data.checkDetails.issueDate || data.date),
-          dueDate: parseToUtcNoon(data.checkDetails.dueDate),
-          amount: Math.abs(txAmount),
-          clientId: data.clientId || null,
-          incomingTxId: nuevaTransaccion.id
-        }
-      });
     }
 
     // Handle OUTGOING Checks

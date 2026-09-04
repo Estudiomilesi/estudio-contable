@@ -44,12 +44,13 @@ export default function TesoreriaPage() {
   const [cartera, setCartera] = useState<Check[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [checkDetails, setCheckDetails] = useState({
-    number: '',
+  const [incomingChecks, setIncomingChecks] = useState([{
     bank: '',
+    number: '',
+    amount: '',
     issueDate: new Date().toISOString().split('T')[0],
     dueDate: new Date().toISOString().split('T')[0]
-  });
+  }]);
   const [selectedCheckIds, setSelectedCheckIds] = useState<string[]>([]);
 
   // Estados para Cuentas Corrientes (Aplicar pagos)
@@ -135,12 +136,13 @@ export default function TesoreriaPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const amount = formData.type === 'EXPENSE' ? -Math.abs(parseFloat(formData.amount)) : Math.abs(parseFloat(formData.amount));
+      const parsedAmount = parseFloat(formData.amount || '0');
+      const amount = formData.type === 'EXPENSE' ? -Math.abs(parsedAmount) : Math.abs(parsedAmount);
       
       const payload = { 
         ...formData, 
         amount,
-        checkDetails: formData.account === 'CHEQUES' && formData.type === 'INCOME' ? checkDetails : undefined,
+        incomingChecks: formData.account === 'CHEQUES' && formData.type === 'INCOME' ? incomingChecks : undefined,
         selectedCheckIds: formData.account === 'CHEQUES' && formData.type !== 'INCOME' ? selectedCheckIds : undefined,
         selectedChargeIds: Array.from(selectedChargeIds)
       };
@@ -153,7 +155,7 @@ export default function TesoreriaPage() {
 
       if (res.ok) {
         setFormData({ ...formData, amount: '', description: '', clientId: '' });
-        setCheckDetails({ number: '', bank: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] });
+        setIncomingChecks([{ number: '', bank: '', amount: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] }]);
         setSelectedCheckIds([]);
         fetchData();
       } else {
@@ -271,7 +273,7 @@ export default function TesoreriaPage() {
                 </select>
               </div>
               
-              {!(formData.account === 'CHEQUES' && formData.type === 'EXPENSE') && (
+              {formData.account !== 'CHEQUES' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Importe ($)</label>
                   <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold" />
@@ -281,27 +283,81 @@ export default function TesoreriaPage() {
 
             {/* CHECK INCOME FIELDS */}
             {formData.account === 'CHEQUES' && formData.type === 'INCOME' && (
-              <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 space-y-3">
-                <h4 className="text-sm font-bold text-yellow-800">Detalles del Cheque</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Banco</label>
-                    <input type="text" required value={checkDetails.bank} onChange={e => setCheckDetails({...checkDetails, bank: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" placeholder="Ej: Galicia" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Número</label>
-                    <input type="text" required value={checkDetails.number} onChange={e => setCheckDetails({...checkDetails, number: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" placeholder="Ej: 12345678" />
-                  </div>
+              <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 space-y-4">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-sm font-bold text-yellow-800">Detalles de Cheques Recibidos</h4>
+                  <button 
+                    type="button" 
+                    onClick={() => setIncomingChecks([...incomingChecks, { bank: '', number: '', amount: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] }])}
+                    className="text-xs bg-yellow-200 text-yellow-900 px-2 py-1 rounded font-semibold hover:bg-yellow-300"
+                  >
+                    + Agregar otro cheque
+                  </button>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Fecha Emisión</label>
-                    <input type="date" required value={checkDetails.issueDate} onChange={e => setCheckDetails({...checkDetails, issueDate: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" />
+                
+                {incomingChecks.map((check, index) => (
+                  <div key={index} className="space-y-3 p-3 bg-white rounded border border-yellow-300 relative">
+                    {incomingChecks.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setIncomingChecks(incomingChecks.filter((_, i) => i !== index))}
+                        className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs font-bold"
+                      >
+                        X Eliminar
+                      </button>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">Banco</label>
+                        <input type="text" required value={check.bank} onChange={e => {
+                          const newChecks = [...incomingChecks];
+                          newChecks[index].bank = e.target.value;
+                          setIncomingChecks(newChecks);
+                        }} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" placeholder="Ej: Galicia" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">Número</label>
+                        <input type="text" required value={check.number} onChange={e => {
+                          const newChecks = [...incomingChecks];
+                          newChecks[index].number = e.target.value;
+                          setIncomingChecks(newChecks);
+                        }} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" placeholder="Ej: 12345678" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">Importe ($)</label>
+                        <input type="number" required min="0.01" step="0.01" value={check.amount} onChange={e => {
+                          const newChecks = [...incomingChecks];
+                          newChecks[index].amount = e.target.value;
+                          setIncomingChecks(newChecks);
+                        }} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm font-bold text-green-700" placeholder="0.00" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">Emisión</label>
+                        <input type="date" required value={check.issueDate} onChange={e => {
+                          const newChecks = [...incomingChecks];
+                          newChecks[index].issueDate = e.target.value;
+                          setIncomingChecks(newChecks);
+                        }} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700">Vencimiento</label>
+                        <input type="date" required value={check.dueDate} onChange={e => {
+                          const newChecks = [...incomingChecks];
+                          newChecks[index].dueDate = e.target.value;
+                          setIncomingChecks(newChecks);
+                        }} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700">Vencimiento</label>
-                    <input type="date" required value={checkDetails.dueDate} onChange={e => setCheckDetails({...checkDetails, dueDate: e.target.value})} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" />
-                  </div>
+                ))}
+                
+                <div className="pt-2 border-t border-yellow-300 flex justify-between items-center">
+                  <span className="text-sm font-medium">Total Cobrado:</span>
+                  <span className="text-lg font-bold text-green-700">
+                    ${incomingChecks.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </span>
                 </div>
               </div>
             )}
