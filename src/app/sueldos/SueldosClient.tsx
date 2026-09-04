@@ -7,10 +7,10 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
   const [salaries, setSalaries] = useState(initialSalaries);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSalary, setSelectedSalary] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    account: 'CAJA',
-    date: new Date().toISOString().split('T')[0],
-  });
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payments, setPayments] = useState<{account: string, amount: string}[]>([
+    { account: 'CAJA', amount: '' }
+  ]);
   const [selectedCheckIds, setSelectedCheckIds] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -37,7 +37,8 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
   const handleOpenModal = (salary: any) => {
     setSelectedSalary(salary);
     setIsModalOpen(true);
-    setFormData({ account: 'CAJA', date: new Date().toISOString().split('T')[0] });
+    setPayDate(new Date().toISOString().split('T')[0]);
+    setPayments([{ account: 'CAJA', amount: salary.amount.toString() }]);
     setSelectedCheckIds([]);
   };
 
@@ -54,8 +55,19 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
   const handlePagar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSalary) return;
-    if (formData.account === 'CHEQUES' && selectedChecksTotal !== selectedSalary.amount) {
-      if (!confirm(`El monto de los cheques (${selectedChecksTotal}) no coincide exactamente con el sueldo (${selectedSalary.amount}). ¿Desea continuar igual?`)) {
+
+    // Prepare payload payments
+    const payloadPayments = payments.map(p => {
+      if (p.account === 'CHEQUES') {
+        return { account: 'CHEQUES', amount: selectedChecksTotal, checkIds: selectedCheckIds };
+      }
+      return { account: p.account, amount: parseFloat(p.amount) || 0 };
+    }).filter(p => p.amount > 0);
+
+    const totalPagado = payloadPayments.reduce((acc, p) => acc + p.amount, 0);
+    
+    if (Math.abs(totalPagado - selectedSalary.amount) > 1) {
+      if (!confirm(`El monto total ingresado ($${totalPagado}) no coincide exactamente con el sueldo ($${selectedSalary.amount}). ¿Desea continuar de todos modos?`)) {
         return;
       }
     }
@@ -67,19 +79,21 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           salaryId: selectedSalary.id,
-          account: formData.account,
-          date: formData.date,
-          checkDetails: formData.account === 'CHEQUES' ? selectedCheckIds : []
+          date: payDate,
+          payments: payloadPayments
         })
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error desconocido');
+      }
 
       // Update UI
-      setSalaries(salaries.map(s => s.id === selectedSalary.id ? { ...s, isPaid: true, paidAt: new Date(formData.date) } : s));
+      setSalaries(salaries.map(s => s.id === selectedSalary.id ? { ...s, isPaid: true, paidAt: new Date(payDate) } : s));
       setIsModalOpen(false);
-    } catch (error) {
-      alert(error);
+    } catch (error: any) {
+      alert(error.message || error);
     } finally {
       setIsSubmitting(false);
     }
@@ -169,20 +183,67 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
 
             <form onSubmit={handlePagar} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Cuenta de Origen</label>
-                <select 
-                  value={formData.account}
-                  onChange={e => {
-                    setFormData({...formData, account: e.target.value});
-                    setSelectedCheckIds([]);
-                  }}
-                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                <label className="block text-sm font-medium text-gray-700 mb-2">Medios de Pago</label>
+                {payments.map((p, index) => (
+                  <div key={index} className="flex gap-2 mb-2 items-start">
+                    <select 
+                      value={p.account}
+                      onChange={e => {
+                        const newP = [...payments];
+                        newP[index].account = e.target.value;
+                        if (e.target.value !== 'CHEQUES' && p.account === 'CHEQUES') {
+                          setSelectedCheckIds([]);
+                        }
+                        setPayments(newP);
+                      }}
+                      className="flex-1 rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
+                    >
+                      <option value="CAJA">Caja</option>
+                      <option value="BANCOS FEDE">Bancos Fede</option>
+                      <option value="BANCOS JUANMA">Bancos Juanma</option>
+                      <option value="CHEQUES">Cheques de Terceros</option>
+                    </select>
+                    
+                    {p.account !== 'CHEQUES' ? (
+                      <input 
+                        type="number" 
+                        min="0" 
+                        step="0.01" 
+                        required
+                        value={p.amount}
+                        onChange={e => {
+                          const newP = [...payments];
+                          newP[index].amount = e.target.value;
+                          setPayments(newP);
+                        }}
+                        className="w-32 rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm font-bold"
+                        placeholder="Importe"
+                      />
+                    ) : (
+                      <div className="w-32 p-2 bg-gray-100 border border-gray-300 rounded-md text-sm font-bold text-gray-500 text-right">
+                        ${selectedChecksTotal.toLocaleString('es-AR')}
+                      </div>
+                    )}
+
+                    {payments.length > 1 && (
+                      <button 
+                        type="button" 
+                        onClick={() => setPayments(payments.filter((_, i) => i !== index))}
+                        className="p-2 text-red-500 hover:text-red-700"
+                      >
+                        X
+                      </button>
+                    )}
+                  </div>
+                ))}
+                
+                <button 
+                  type="button"
+                  onClick={() => setPayments([...payments, { account: 'CAJA', amount: '' }])}
+                  className="text-xs text-indigo-600 font-bold hover:text-indigo-800 mt-1"
                 >
-                  <option value="CAJA">Caja</option>
-                  <option value="BANCOS FEDE">Bancos Fede</option>
-                  <option value="BANCOS JUANMA">Bancos Juanma</option>
-                  <option value="CHEQUES">Cheques de Terceros</option>
-                </select>
+                  + Agregar otro medio de pago
+                </button>
               </div>
 
               <div>
@@ -190,13 +251,13 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                 <input 
                   type="date" 
                   required 
-                  value={formData.date}
-                  onChange={e => setFormData({...formData, date: e.target.value})}
+                  value={payDate}
+                  onChange={e => setPayDate(e.target.value)}
                   className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
               </div>
 
-              {formData.account === 'CHEQUES' && (
+              {payments.some(p => p.account === 'CHEQUES') && (
                 <div className="mt-4 border rounded-lg p-3 bg-gray-50 max-h-48 overflow-y-auto">
                   <h4 className="text-sm font-semibold mb-2 text-gray-700">Seleccionar Cheques</h4>
                   {availableChecks.length === 0 ? (
@@ -214,7 +275,7 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                   )}
                   <div className="mt-2 pt-2 border-t font-semibold text-sm flex justify-between">
                     <span>Total Seleccionado:</span>
-                    <span className={selectedChecksTotal === selectedSalary.amount ? 'text-green-600' : 'text-red-600'}>
+                    <span className="text-indigo-600">
                       ${selectedChecksTotal.toLocaleString('es-AR')}
                     </span>
                   </div>
@@ -233,7 +294,7 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                 <button
                   type="submit"
                   className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
-                  disabled={isSubmitting || (formData.account === 'CHEQUES' && selectedCheckIds.length === 0)}
+                  disabled={isSubmitting || (payments.some(p => p.account === 'CHEQUES') && selectedCheckIds.length === 0)}
                 >
                   {isSubmitting ? 'Registrando...' : 'Registrar Pago'}
                 </button>

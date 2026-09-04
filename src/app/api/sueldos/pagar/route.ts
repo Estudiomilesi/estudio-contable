@@ -5,10 +5,10 @@ import { parseToUtcNoon } from '@/lib/dateUtils';
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    const { salaryId, account, date, checkDetails } = data;
+    const { salaryId, date, payments } = data;
 
-    if (!salaryId || !account || !date) {
-      return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
+    if (!salaryId || !date || !payments || !Array.isArray(payments) || payments.length === 0) {
+      return NextResponse.json({ error: 'Faltan campos requeridos o pagos inválidos' }, { status: 400 });
     }
 
     const salary = await prisma.salary.findUnique({
@@ -20,46 +20,44 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Sueldo no encontrado' }, { status: 404 });
     }
 
-    if (salary.isPaid && salary.treasuryTxId) {
+    if (salary.isPaid) {
       return NextResponse.json({ error: 'Este sueldo ya fue pagado' }, { status: 400 });
     }
 
-    // Calcular el transaction amount
-    let txAmount = -salary.amount;
-    
-    // Si paga con cheques, crear cheques salientes... wait!
-    // Para simplificar, asumiremos que los sueldos rara vez se pagan transfiriendo cheques de terceros.
-    // Si se paga con CHEQUES, necesitamos vincular los IDs.
-    // Dejaremos la misma lgica que en Tesorera si es necesario, pero simplifiquemos para que slo usen Caja o Bancos.
-    if (account === 'CHEQUES' && (!checkDetails || checkDetails.length === 0)) {
-      return NextResponse.json({ error: 'Debe seleccionar cheques para el pago' }, { status: 400 });
+    const totalPagado = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
+    if (Math.abs(totalPagado - salary.amount) > 1) {
+       // Tolerance of $1 for rounding
+       return NextResponse.json({ error: 'El monto total pagado no coincide con el sueldo' }, { status: 400 });
     }
 
     const txDate = parseToUtcNoon(date);
 
-    // Create the treasury transaction
-    const nuevaTransaccion = await prisma.treasuryTransaction.create({
-      data: {
-        date: txDate,
-        amount: txAmount,
-        type: 'EXPENSE',
-        account: account,
-        category: 'Sueldos',
-        description: `Sueldo ${salary.employee.name} - ${salary.month}`,
-        clientId: null,
-      }
-    });
+    for (const payment of payments) {
+      const txAmount = -Math.abs(payment.amount);
 
-    if (account === 'CHEQUES') {
-      // Mark selected checks as delivered and link them
-      for (const checkId of checkDetails) {
-        await prisma.check.update({
-          where: { id: checkId },
-          data: {
-            status: 'DELIVERED',
-            outgoingTxId: nuevaTransaccion.id
-          }
-        });
+      const nuevaTransaccion = await prisma.treasuryTransaction.create({
+        data: {
+          date: txDate,
+          amount: txAmount,
+          type: 'EXPENSE',
+          account: payment.account,
+          category: 'Sueldos',
+          description: `Sueldo ${salary.employee.name} - ${salary.month}`,
+          clientId: null,
+          salaryId: salary.id,
+        }
+      });
+
+      if (payment.account === 'CHEQUES' && payment.checkIds && payment.checkIds.length > 0) {
+        for (const checkId of payment.checkIds) {
+          await prisma.check.update({
+            where: { id: checkId },
+            data: {
+              status: 'DELIVERED',
+              outgoingTxId: nuevaTransaccion.id
+            }
+          });
+        }
       }
     }
 
@@ -69,11 +67,9 @@ export async function POST(req: Request) {
       data: {
         isPaid: true,
         paidAt: txDate,
-        treasuryTxId: nuevaTransaccion.id
       }
     });
-
-    return NextResponse.json({ success: true, transactionId: nuevaTransaccion.id });
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Error procesando el pago' }, { status: 500 });

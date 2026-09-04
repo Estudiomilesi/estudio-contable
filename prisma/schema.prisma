@@ -154,7 +154,8 @@ model TreasuryTransaction {
   incomingChecks Check[]              @relation("IncomingChecks")
   outgoingChecks Check[]              @relation("OutgoingChecks")
   
-  salary         Salary?
+  salaryId       String?
+  salary         Salary?              @relation(fields: [salaryId], references: [id])
   createdAt      DateTime             @default(now())
 }
 
@@ -177,8 +178,7 @@ model Salary {
   employeeId     String
   employee       Employee  @relation(fields: [employeeId], references: [id])
   
-  treasuryTxId   String?   @unique
-  treasuryTx     TreasuryTransaction? @relation(fields: [treasuryTxId], references: [id])
+  treasuryTxs    TreasuryTransaction[]
 
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
