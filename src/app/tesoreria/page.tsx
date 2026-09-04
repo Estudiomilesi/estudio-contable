@@ -714,21 +714,22 @@ export default function TesoreriaPage() {
                   onChange={e => setEditingTx({...editingTx, category: e.target.value})}
                   className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 >
-                  {editingTx.type === 'INCOME' ? (
-                    <>
-                      <option value="Honorarios">Honorarios (Fijo)</option>
-                      {treasuryConcepts.filter(c => c.type === 'TREASURY_INCOME').map(c => (
-                        <option key={c.id} value={c.name}>{c.name}</option>
-                      ))}
-                    </>
-                  ) : (
-                    <>
-                      <option value="Gastos Generales">Gastos Generales (Fijo)</option>
-                      {treasuryConcepts.filter(c => c.type === 'TREASURY_EXPENSE').map(c => (
-                        <option key={c.id} value={c.name}>{c.name}</option>
-                      ))}
-                    </>
-                  )}
+                  {(() => {
+                    const isIncome = editingTx.type === 'INCOME';
+                    const fixedOption = isIncome ? 'Honorarios' : 'Gastos Generales';
+                    const dynamicOptions = treasuryConcepts
+                      .filter(c => isIncome ? c.type === 'TREASURY_INCOME' : c.type === 'TREASURY_EXPENSE')
+                      .map(c => c.name);
+                    
+                    const allOptions = [fixedOption, ...dynamicOptions];
+                    if (!allOptions.includes(editingTx.category)) {
+                      allOptions.unshift(editingTx.category);
+                    }
+
+                    return allOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ));
+                  })()}
                 </select>
               </div>
               
