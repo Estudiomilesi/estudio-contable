@@ -111,7 +111,7 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
         { category: 'Retiro Juanma' } // Reintegros de Juanma (INCOME)
       ]
     },
-    include: { client: { select: { professionalLabel: true } } }
+    include: { client: { select: { professionalLabel: true, name: true } } }
   });
 
   const gastos = { F: 0, FJ: 0, Consolidado: 0 };

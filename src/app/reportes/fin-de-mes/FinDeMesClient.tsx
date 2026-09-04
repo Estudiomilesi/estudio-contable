@@ -297,16 +297,31 @@ export default function FinDeMesClient({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {(showRetirosModal === 'F' ? retirosFedeDetalle : retirosJuanmaDetalle).map(r => (
-                      <tr key={r.id}>
-                        <td className="px-4 py-2 text-sm text-gray-600">{new Date(r.date).toLocaleDateString('es-AR')}</td>
-                        <td className="px-4 py-2 text-sm text-gray-900">{r.description || '-'}</td>
-                        <td className={`px-4 py-2 text-sm font-bold text-right tabular-nums ${r.finalAmt > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          {r.finalAmt > 0 ? '-' : '+'}${Math.abs(r.finalAmt).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                        </td>
-                      </tr>
-                    ))}
+                    {(showRetirosModal === 'F' ? retirosFedeDetalle : retirosJuanmaDetalle).map(r => {
+                      let description = r.description || '-';
+                      if (description.includes('Retiro automático s/ cobro') && r.client?.name) {
+                        description = `Retiro aut. (Cobro ${r.client.name})`;
+                      }
+
+                      return (
+                        <tr key={r.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 text-sm text-gray-600">{new Date(r.date).toLocaleDateString('es-AR')}</td>
+                          <td className="px-4 py-2 text-sm text-gray-900" title={r.description}>{description}</td>
+                          <td className={`px-4 py-2 text-sm font-bold text-right tabular-nums ${r.finalAmt > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                            {r.finalAmt > 0 ? '-' : '+'}${Math.abs(r.finalAmt).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
+                  <tfoot className="bg-gray-100 font-bold border-t-2 border-gray-300">
+                    <tr>
+                      <td colSpan={2} className="px-4 py-3 text-right text-gray-900">Total Retiros:</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-red-700">
+                        -${(showRetirosModal === 'F' ? retirosFedeDetalle : retirosJuanmaDetalle).reduce((acc, r) => acc + r.finalAmt, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               )}
             </div>
