@@ -54,13 +54,19 @@ export default function FinDeMesClient({
   const [year, month] = targetMonthStr.split('-');
   const monthName = new Date(parseInt(year), parseInt(month)-1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
 
-  const [expandedSection, setExpandedSection] = useState<'ingresos' | 'egresos' | null>(null);
+  const [isIngresosExpanded, setIsIngresosExpanded] = useState(false);
+  const [isEgresosExpanded, setIsEgresosExpanded] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   const [showRetirosModal, setShowRetirosModal] = useState<'F' | 'FJ' | null>(null);
 
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({ ...prev, [category]: !prev[category] }));
+  };
+
   const groupedEgresos = useMemo(() => {
-    const groups: Record<string, { category: string; F: number; FJ: number; Consolidado: number }> = {};
+    const groups: Record<string, { category: string; F: number; FJ: number; Consolidado: number; details: any[] }> = {};
     gastosDetalle.forEach(g => {
-      if (!groups[g.category]) groups[g.category] = { category: g.category, F: 0, FJ: 0, Consolidado: 0 };
+      if (!groups[g.category]) groups[g.category] = { category: g.category, F: 0, FJ: 0, Consolidado: 0, details: [] };
       
       let amtF = g.amtF || 0;
       let amtFJ = g.amtFJ || 0;
@@ -77,6 +83,12 @@ export default function FinDeMesClient({
       groups[g.category].F += amtF;
       groups[g.category].FJ += amtFJ;
       groups[g.category].Consolidado += amtTotal;
+      groups[g.category].details.push({
+        ...g,
+        amtF,
+        amtFJ,
+        amtTotal
+      });
     });
     return Object.values(groups).sort((a, b) => b.Consolidado - a.Consolidado);
   }, [gastosDetalle]);
@@ -225,9 +237,9 @@ export default function FinDeMesClient({
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {/* Ingresos Main Row */}
-            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedSection(expandedSection === 'ingresos' ? null : 'ingresos')}>
+            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setIsIngresosExpanded(!isIngresosExpanded)}>
               <td className="px-6 py-4 font-bold text-gray-900 flex items-center gap-2">
-                <svg className={`h-4 w-4 transform transition-transform ${expandedSection === 'ingresos' ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg className={`h-4 w-4 transform transition-transform ${isIngresosExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 Ingresos (Cobranzas)
               </td>
               <td className="px-6 py-4 text-right tabular-nums text-[#15803d] font-bold border-l border-gray-200">${ingresosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -235,9 +247,9 @@ export default function FinDeMesClient({
               <td className="px-6 py-4 text-right tabular-nums text-[#1e1b4b] font-bold border-l border-gray-200">${ingresosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             </tr>
             {/* Ingresos Details */}
-            {expandedSection === 'ingresos' && groupedIngresos.map((g, i) => (
+            {isIngresosExpanded && groupedIngresos.map((g, i) => (
               <tr key={`ing-${i}`} className="bg-gray-50">
-                <td className="px-10 py-2 text-sm text-gray-700">{g.clientName}</td>
+                <td className="px-10 py-2 text-sm text-gray-500 pl-[3.5rem]">{g.clientName}</td>
                 <td className="px-6 py-2 text-right tabular-nums text-sm text-green-700 border-l border-gray-200">${g.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td className="px-6 py-2 text-right tabular-nums text-sm text-orange-700 border-l border-gray-200">${g.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                 <td className="px-6 py-2 text-right tabular-nums text-sm text-gray-700 font-medium border-l border-gray-200">${g.Consolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -245,9 +257,9 @@ export default function FinDeMesClient({
             ))}
 
             {/* Gastos Main Row */}
-            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedSection(expandedSection === 'egresos' ? null : 'egresos')}>
+            <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setIsEgresosExpanded(!isEgresosExpanded)}>
               <td className="px-6 py-4 font-bold text-[#991b1b] flex items-center gap-2">
-                <svg className={`h-4 w-4 transform transition-transform ${expandedSection === 'egresos' ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg className={`h-4 w-4 transform transition-transform ${isEgresosExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 Egresos Operativos
               </td>
               <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">-${gastosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
@@ -255,13 +267,29 @@ export default function FinDeMesClient({
               <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">-${gastosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
             </tr>
             {/* Gastos Details */}
-            {expandedSection === 'egresos' && groupedEgresos.map((g, i) => (
-              <tr key={`egr-${i}`} className="bg-gray-50">
-                <td className="px-10 py-2 text-sm text-gray-700">{g.category}</td>
-                <td className="px-6 py-2 text-right tabular-nums text-sm text-red-600 border-l border-gray-200">-${g.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                <td className="px-6 py-2 text-right tabular-nums text-sm text-red-600 border-l border-gray-200">-${g.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                <td className="px-6 py-2 text-right tabular-nums text-sm text-red-700 font-medium border-l border-gray-200">-${g.Consolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-              </tr>
+            {isEgresosExpanded && groupedEgresos.map((g, i) => (
+              <React.Fragment key={`egr-${i}`}>
+                <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => toggleCategory(g.category)}>
+                  <td className="px-10 py-2 text-sm text-gray-600 pl-[3.5rem] flex items-center gap-2">
+                    <svg className={`h-3 w-3 transform transition-transform ${expandedCategories[g.category] ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    {g.category}
+                  </td>
+                  <td className="px-6 py-2 text-right tabular-nums text-sm text-red-500 border-l border-gray-200">-${g.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td className="px-6 py-2 text-right tabular-nums text-sm text-red-500 border-l border-gray-200">-${g.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  <td className="px-6 py-2 text-right tabular-nums text-sm text-red-600 font-medium border-l border-gray-200">-${g.Consolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                </tr>
+                {/* Nested Detail for Category */}
+                {expandedCategories[g.category] && g.details.map(d => (
+                  <tr key={d.id} className="bg-white">
+                    <td className="px-10 py-1.5 text-xs text-gray-400 pl-[5rem] italic truncate max-w-[200px]" title={d.description || 'Sin detalle'}>
+                      {d.description || 'Sin detalle'} ({new Date(d.date).toLocaleDateString('es-AR')})
+                    </td>
+                    <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-300 border-l border-gray-200">{d.amtF > 0 ? `-$${d.amtF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</td>
+                    <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-300 border-l border-gray-200">{d.amtFJ > 0 ? `-$${d.amtFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</td>
+                    <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-400 border-l border-gray-200">-${d.amtTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                  </tr>
+                ))}
+              </React.Fragment>
             ))}
           </tbody>
           <tfoot className="bg-gray-100 font-black text-lg">

@@ -89,7 +89,7 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
         { description: { contains: 'aldo a favor' } }
       ]
     },
-    include: { client: { select: { professionalLabel: true } } }
+    include: { client: { select: { professionalLabel: true, name: true } } }
   });
 
   let ingresosF = 0;
