@@ -57,6 +57,7 @@ export default function ComprobantesPage() {
     dueDate: new Date().toISOString().split('T')[0],
     billingProfile: 'NO_FISCAL',
     manualReceiptNumber: '',
+    manualDescription: '',
     hasCollaborator: false,
     collaboratorName: '',
     collabCalcType: 'MONTO' as 'MONTO' | 'PORCENTAJE',
@@ -147,14 +148,17 @@ export default function ComprobantesPage() {
         fileBase64 = await fileToBase64(pdfFile);
       }
 
-      const description = items.map(i => i.concept).join(' + ');
+      const baseDescription = items.map(i => i.concept).join(' + ');
+      const finalDescription = form.manualDescription 
+        ? `${baseDescription} (${form.manualDescription})`
+        : baseDescription;
 
       const payload = {
         ...form,
         amount: totalAmountNum,
         netAmount: netAmountNum,
         ivaAmount: ivaAmountNum,
-        description,
+        description: finalDescription,
         items,
         collaboratorAmount,
         receiptFileBase64: fileBase64
@@ -174,6 +178,7 @@ export default function ComprobantesPage() {
           dueDate: new Date().toISOString().split('T')[0],
           billingProfile: 'NO_FISCAL',
           manualReceiptNumber: '',
+          manualDescription: '',
           hasCollaborator: false,
           collaboratorName: '',
           collabCalcType: 'MONTO',
@@ -426,6 +431,17 @@ export default function ComprobantesPage() {
                     )}
                   </div>
                 ))}
+              </div>
+              
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Descripción / Aclaración (Opcional)</label>
+                <input 
+                  type="text" 
+                  placeholder="Ej: Honorarios mes en curso..."
+                  value={form.manualDescription}
+                  onChange={e => setForm({...form, manualDescription: e.target.value})}
+                  className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
               </div>
             </div>
 
