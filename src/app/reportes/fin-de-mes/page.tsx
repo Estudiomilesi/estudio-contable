@@ -116,16 +116,21 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
 
   const gastos = { F: 0, FJ: 0, Consolidado: 0 };
   const gastosDetalle: any[] = [];
+  const retirosFedeDetalle: any[] = [];
+  const retirosJuanmaDetalle: any[] = [];
   let retirosFede = 0;
   let retirosJuanma = 0;
 
   egresos.forEach(e => {
     const amt = Math.abs(e.amount);
     if (e.category === 'Retiro Fede') {
-      // If it's an EXPENSE it's a withdrawal (+ to retiros), if it's an INCOME it's a return (- to retiros)
-      retirosFede += e.type === 'EXPENSE' ? amt : -amt;
+      const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
+      retirosFede += finalAmt;
+      retirosFedeDetalle.push({...e, finalAmt});
     } else if (e.category === 'Retiro Juanma') {
-      retirosJuanma += e.type === 'EXPENSE' ? amt : -amt;
+      const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
+      retirosJuanma += finalAmt;
+      retirosJuanmaDetalle.push({...e, finalAmt});
     } else if (e.category === 'Participacion') {
       // Gastos directos al ER correspondiente
       if (e.client?.professionalLabel === 'F') {
@@ -141,7 +146,7 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
       gastos.F += expenseAmt * propF;
       gastos.FJ += expenseAmt * propFJ;
       gastos.Consolidado += expenseAmt;
-      gastosDetalle.push({ ...e, assignedTo: 'PRORRATEO' });
+      gastosDetalle.push({ ...e, assignedTo: 'PRORRATEO', amtF: expenseAmt * propF, amtFJ: expenseAmt * propFJ });
     }
   });
 
@@ -198,6 +203,9 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
       retirosFede={retirosFede}
       retirosJuanma={retirosJuanma}
       gastosDetalle={gastosDetalle}
+      ingresosDetalle={cobranzas}
+      retirosFedeDetalle={retirosFedeDetalle}
+      retirosJuanmaDetalle={retirosJuanmaDetalle}
       alertasParticipacion={alertasParticipacion}
     />
   );
