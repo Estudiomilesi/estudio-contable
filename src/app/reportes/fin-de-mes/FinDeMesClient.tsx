@@ -203,7 +203,7 @@ export default function FinDeMesClient({
               <span className="text-gray-600">50% Resultado Estudio FJ:</span>
               <span className="font-semibold">${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
-            <div className="flex justify-between border-t pt-2 font-bold text-indigo-900 mt-[26px]">
+            <div className={`flex justify-between border-t pt-2 font-bold text-indigo-900 ${!isJuanma ? 'mt-[26px]' : ''}`}>
               <span>Total a Distribuir:</span>
               <span>${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
