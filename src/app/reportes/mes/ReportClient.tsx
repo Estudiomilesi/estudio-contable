@@ -145,8 +145,8 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
                       Etiqueta {renderSortIcon('label')}
                     </span>
                     <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-xs border-gray-300 rounded focus:ring-indigo-500 font-normal py-0 pl-2 pr-6 h-6">
-                      <option value="ALL">Todas</option>
-                      <option value="F">F</option>
+                      <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
+                      {!isJuanma && <option value="F">F</option>}
                       <option value="FJ">FJ</option>
                       <option value="JF">JF</option>
                       <option value="FJ_JF">FJ+JF</option>

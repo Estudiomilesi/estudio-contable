@@ -83,5 +83,5 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
     return row;
   });
 
-  return <RankingClient data={data} months={months} isFacturado={isFacturado} />;
+  return <RankingClient data={data} months={months} isFacturado={isFacturado} isJuanma={isJuanma} />;
 }

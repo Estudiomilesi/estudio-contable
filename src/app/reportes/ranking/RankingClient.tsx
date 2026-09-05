@@ -6,9 +6,9 @@ import Link from 'next/link';
 type Row = any;
 type MonthCol = { key: string, label: string };
 
-export default function RankingClient({ data, months, isFacturado }: { data: Row[], months: MonthCol[], isFacturado: boolean }) {
+export default function RankingClient({ data, months, isFacturado, isJuanma }: { data: Row[], months: MonthCol[], isFacturado: boolean, isJuanma?: boolean }) {
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' }>({ key: 'total', direction: 'desc' });
-  const [filterLabel, setFilterLabel] = useState<string>('ALL');
+  const [filterLabel, setFilterLabel] = useState<string>(isJuanma ? 'FJ_JF' : 'ALL');
 
   const processedData = useMemo(() => {
     let result = [...data];
@@ -92,8 +92,8 @@ export default function RankingClient({ data, months, isFacturado }: { data: Row
                       Etiq {renderSortIcon('label')}
                     </span>
                     <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-xs border-gray-300 rounded focus:ring-indigo-500 font-normal py-0 pl-2 pr-6 h-6">
-                      <option value="ALL">Todas</option>
-                      <option value="F">F</option>
+                      <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
+                      {!isJuanma && <option value="F">F</option>}
                       <option value="FJ">FJ</option>
                       <option value="JF">JF</option>
                       <option value="FJ_JF">FJ+JF</option>
