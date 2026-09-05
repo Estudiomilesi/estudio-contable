@@ -25,8 +25,17 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
 
   const startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
   
+  const { headers } = await import('next/headers');
+  const isJuanma = (await headers()).get('x-is-juanma') === 'true';
+
+  const whereClause: any = {};
+  if (isJuanma) {
+    whereClause.professionalLabel = { in: ['FJ', 'JF'] };
+  }
+
   // Buscar clientes y sus transacciones en este período
   const clientes = await prisma.client.findMany({
+    where: whereClause,
     select: {
       id: true,
       name: true,

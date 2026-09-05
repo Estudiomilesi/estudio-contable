@@ -6,8 +6,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function ReportesMesPage({ searchParams }: { searchParams: Promise<{ tipo?: string, label?: string }> }) {
   const { tipo, label } = await searchParams;
+  const { headers } = await import('next/headers');
+  const isJuanma = (await headers()).get('x-is-juanma') === 'true';
+
   const isFacturado = tipo === 'facturado';
-  const currentLabel = label || 'ALL';
+  const currentLabel = isJuanma ? 'FJ_JF' : (label || 'ALL');
 
   let clientLabelFilter: any = undefined;
   if (currentLabel === 'F') clientLabelFilter = 'F';
@@ -46,5 +49,5 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
   const totalNeto = transacciones.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
   const totalIva = transacciones.reduce((sum, t) => sum + (t.ivaAmount || 0), 0);
 
-  return <ReportClient transacciones={transacciones} isFacturado={isFacturado} initialLabel={currentLabel} />;
+  return <ReportClient transacciones={transacciones} isFacturado={isFacturado} initialLabel={currentLabel} isJuanma={isJuanma} />;
 }

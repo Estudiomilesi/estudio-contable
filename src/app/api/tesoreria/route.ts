@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { parseToUtcNoon } from '@/lib/dateUtils';
 import { recalculatePaymentIva } from '@/lib/iva';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const allTxs = await prisma.treasuryTransaction.findMany({
       orderBy: [
@@ -50,8 +50,14 @@ export async function GET() {
       };
     });
 
-    // Transacciones recientes (últimas 100)
-    const transacciones = txsWithBalance.reverse().slice(0, 100);
+    const isJuanma = request.headers.get('x-is-juanma') === 'true';
+    let filteredTxs = txsWithBalance.reverse();
+    
+    if (isJuanma) {
+      filteredTxs = filteredTxs.filter(t => 
+        t.client && (t.client.professionalLabel === 'FJ' || t.client.professionalLabel === 'JF')
+      );
+    }
 
     const checksEnCartera = await prisma.check.findMany({
       where: { status: 'IN_PORTFOLIO' },
@@ -60,7 +66,7 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      transacciones,
+      transacciones: filteredTxs.slice(0, 100),
       saldos,
       cartera: checksEnCartera
     });

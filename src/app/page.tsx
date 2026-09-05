@@ -8,7 +8,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ label?: string }> }) {
   const { label } = await searchParams;
-  const currentLabel = label || 'ALL';
+  const { headers } = await import('next/headers');
+  const isJuanma = (await headers()).get('x-is-juanma') === 'true';
+
+  const currentLabel = isJuanma ? 'FJ_JF' : (label || 'ALL');
 
   // Build the label filter object for Prisma Client queries
   let clientLabelFilter: any = undefined;
@@ -231,7 +234,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard General</h1>
           <p className="text-gray-600 mt-2">Bienvenido al sistema de gestión del Estudio Contable.</p>
         </div>
-        <DashboardFilter currentLabel={currentLabel} />
+        {!isJuanma && <DashboardFilter currentLabel={currentLabel} />}
       </div>
       
       <div className="space-y-4">

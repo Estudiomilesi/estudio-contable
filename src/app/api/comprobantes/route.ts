@@ -21,15 +21,24 @@ async function extractAfipNumber(pdfBuffer: Buffer): Promise<string | null> {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const isJuanma = request.headers.get('x-is-juanma') === 'true';
+    const whereClause: any = {
+      OR: [
+        { type: 'CHARGE' },
+        { type: 'PAYMENT', description: { startsWith: 'NC:' } }
+      ]
+    };
+
+    if (isJuanma) {
+      whereClause.client = {
+        professionalLabel: { in: ['FJ', 'JF'] }
+      };
+    }
+
     const comprobantes = await prisma.accountTransaction.findMany({
-      where: {
-        OR: [
-          { type: 'CHARGE' },
-          { type: 'PAYMENT', description: { startsWith: 'NC:' } }
-        ]
-      },
+      where: whereClause,
       include: { client: { select: { name: true, professionalLabel: true } } },
       orderBy: { createdAt: 'desc' },
       take: 100

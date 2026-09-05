@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 type Transaccion = any;
 
-export default function ReportClient({ transacciones, isFacturado, initialLabel }: { transacciones: Transaccion[], isFacturado: boolean, initialLabel: string }) {
+export default function ReportClient({ transacciones, isFacturado, initialLabel, isJuanma }: { transacciones: Transaccion[], isFacturado: boolean, initialLabel: string, isJuanma?: boolean }) {
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   const [filterLabel, setFilterLabel] = useState<string>(initialLabel || 'ALL');
 
@@ -19,7 +19,10 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
   const processedData = useMemo(() => {
     let result = [...transacciones];
     
-    if (filterLabel !== 'ALL') {
+    // Si es Juanma, ya viene filtrado de backend, pero por las dudas forzamos
+    if (isJuanma) {
+      result = result.filter(t => t.client?.professionalLabel === 'FJ' || t.client?.professionalLabel === 'JF');
+    } else if (filterLabel !== 'ALL') {
       if (filterLabel === 'FJ_JF') {
         result = result.filter(t => t.client?.professionalLabel === 'FJ' || t.client?.professionalLabel === 'JF');
       } else {
@@ -50,7 +53,7 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel 
     }
     
     return result;
-  }, [transacciones, sortConfig, filterLabel]);
+  }, [transacciones, sortConfig, filterLabel, isJuanma]);
 
   const requestSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';

@@ -39,7 +39,16 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
     
-    return NextResponse.next();
+    const requestHeaders = new Headers(request.headers);
+    if (payload.email === 'juanmartin@estudiomilesi.com') {
+      requestHeaders.set('x-is-juanma', 'true');
+    }
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders,
+      }
+    });
   } catch (error) {
     // Token is invalid/expired
     const response = NextResponse.redirect(new URL('/login', request.url));

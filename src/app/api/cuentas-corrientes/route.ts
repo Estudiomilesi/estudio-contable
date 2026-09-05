@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const isJuanma = request.headers.get('x-is-juanma') === 'true';
+    const whereClause: any = isJuanma ? { professionalLabel: { in: ['FJ', 'JF'] } } : {};
+
     const clients = await prisma.client.findMany({
+      where: whereClause,
       include: {
         accountTransactions: {
           include: {
