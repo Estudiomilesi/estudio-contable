@@ -106,13 +106,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   });
 
   // 6. Tesorería General (Suma de cajas y bancos)
-  // Nota: Si se filtra por etiqueta, las transacciones sin cliente (gastos generales) se ignorarán.
+  // Este saldo SIEMPRE debe ser el real completo (no se filtra por etiqueta)
   const tesoreriaTxs = await prisma.treasuryTransaction.aggregate({
     where: {
-      account: { not: 'CAJA IVA' },
-      ...(clientLabelFilter && {
-        client: { professionalLabel: clientLabelFilter }
-      })
+      account: { not: 'CAJA IVA' }
     },
     _sum: { amount: true }
   });
