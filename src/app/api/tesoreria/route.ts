@@ -54,9 +54,11 @@ export async function GET(request: Request) {
     let filteredTxs = txsWithBalance.reverse();
     
     if (isJuanma) {
-      filteredTxs = filteredTxs.filter(t => 
-        t.client && (t.client.professionalLabel === 'FJ' || t.client.professionalLabel === 'JF')
-      );
+      filteredTxs = filteredTxs.filter(t => {
+        if (t.category === 'Sueldos') return true;
+        if (!t.client) return false;
+        return t.client.professionalLabel === 'FJ' || t.client.professionalLabel === 'JF';
+      });
     }
 
     const checksEnCartera = await prisma.check.findMany({

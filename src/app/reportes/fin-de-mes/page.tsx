@@ -142,9 +142,13 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
   egresos.forEach(e => {
     const amt = Math.abs(e.amount);
     if (e.category === 'Retiro Fede') {
-      const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
-      retirosFede += finalAmt;
-      retirosFedeDetalle.push({...e, finalAmt});
+      if (isJuanma && e.client?.professionalLabel === 'F') {
+        // Ocultar retiros automáticos de clientes F para Juanma
+      } else {
+        const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
+        retirosFede += finalAmt;
+        retirosFedeDetalle.push({...e, finalAmt});
+      }
     } else if (e.category === 'Retiro Juanma') {
       const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
       retirosJuanma += finalAmt;
