@@ -50,11 +50,26 @@ export default function FinDeMesClient({
   const juanmaShare = resultadoFJ * 0.5;
   const juanmaBalance = juanmaShare - retirosJuanma;
 
-  const fedeShare = resultadoF + (resultadoFJ * 0.5);
-  const fedeBalance = fedeShare - retirosFede;
-
   const [year, month] = targetMonthStr.split('-');
   const monthName = new Date(parseInt(year), parseInt(month)-1, 1).toLocaleDateString('es-AR', { month: 'long', year: 'numeric' });
+
+  const [viewMode, setViewMode] = useState<'ALL' | 'F' | 'FJ_JF'>('ALL');
+  const effectiveIsJuanma = isJuanma || viewMode === 'FJ_JF';
+  const hideJuanma = !isJuanma && viewMode === 'F';
+
+  const effectiveRetirosFedeDetalle = useMemo(() => {
+    if (effectiveIsJuanma) {
+      return retirosFedeDetalle.filter(r => r.client?.professionalLabel !== 'F');
+    }
+    return retirosFedeDetalle;
+  }, [retirosFedeDetalle, effectiveIsJuanma]);
+
+  const effectiveRetirosFede = useMemo(() => {
+    return effectiveRetirosFedeDetalle.reduce((sum, r) => sum + r.finalAmt, 0);
+  }, [effectiveRetirosFedeDetalle]);
+
+  const fedeShare = resultadoF + (resultadoFJ * 0.5);
+  const fedeBalance = fedeShare - effectiveRetirosFede;
 
   const [isIngresosExpanded, setIsIngresosExpanded] = useState(false);
   const [isEgresosExpanded, setIsEgresosExpanded] = useState(false);
@@ -129,6 +144,20 @@ export default function FinDeMesClient({
           <p className="text-gray-600 mt-2 capitalize">{monthName}</p>
         </div>
         <div className="flex items-center gap-4">
+          {!isJuanma && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-bold text-gray-700">Vista:</label>
+              <select
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value as any)}
+                className="rounded-md border border-gray-300 p-2 text-sm font-medium focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="ALL">Consolidada</option>
+                <option value="F">Solo Estudio F</option>
+                <option value="FJ_JF">Solo Estudio FJ (Juanma)</option>
+              </select>
+            </div>
+          )}
           <input 
             type="month" 
             value={targetMonthStr}
@@ -169,56 +198,60 @@ export default function FinDeMesClient({
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Liquidación Fede</h2>
           <div className="space-y-2 text-sm">
-            {!isJuanma && (
+            {!effectiveIsJuanma && (
               <div className="flex justify-between">
                 <span className="text-gray-600">100% Resultado Estudio F:</span>
                 <span className="font-semibold">${resultadoF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             )}
-            <div className="flex justify-between">
-              <span className="text-gray-600">50% Resultado Estudio FJ:</span>
-              <span className="font-semibold">${(resultadoFJ * 0.5).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            </div>
+            {!hideJuanma && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">50% Resultado Estudio FJ:</span>
+                <span className="font-semibold">${(resultadoFJ * 0.5).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t pt-2 font-bold text-indigo-900">
               <span>Total a Distribuir:</span>
-              <span>${(isJuanma ? resultadoFJ * 0.5 : fedeShare).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span>${(effectiveIsJuanma ? (resultadoFJ * 0.5) : (hideJuanma ? resultadoF : fedeShare)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             <div className="flex justify-between text-red-600 pt-2">
               <span>(-) Retiros Fede:</span>
               <button onClick={() => setShowRetirosModal('F')} className="hover:underline focus:outline-none">
-                -${retirosFede.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                -${effectiveRetirosFede.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
               </button>
             </div>
           </div>
-          <div className={`mt-4 p-3 rounded-lg text-center ${((isJuanma ? resultadoFJ * 0.5 : fedeShare) - retirosFede) > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-            <span className="text-sm font-bold block">{((isJuanma ? resultadoFJ * 0.5 : fedeShare) - retirosFede) > 0 ? 'Saldo a retirar' : 'Debe devolver'}</span>
-            <span className="text-2xl font-black">${Math.abs((isJuanma ? resultadoFJ * 0.5 : fedeShare) - retirosFede).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+          <div className={`mt-4 p-3 rounded-lg text-center ${((effectiveIsJuanma ? (resultadoFJ * 0.5) : (hideJuanma ? resultadoF : fedeShare)) - effectiveRetirosFede) > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+            <span className="text-sm font-bold block">{((effectiveIsJuanma ? (resultadoFJ * 0.5) : (hideJuanma ? resultadoF : fedeShare)) - effectiveRetirosFede) > 0 ? 'Saldo a retirar' : 'Debe devolver'}</span>
+            <span className="text-2xl font-black">${Math.abs((effectiveIsJuanma ? (resultadoFJ * 0.5) : (hideJuanma ? resultadoF : fedeShare)) - effectiveRetirosFede).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Liquidación Juanma</h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">50% Resultado Estudio FJ:</span>
-              <span className="font-semibold">${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+        {!hideJuanma && (
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-gray-800 border-b pb-2 mb-4">Liquidación Juanma</h2>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">50% Resultado Estudio FJ:</span>
+                <span className="font-semibold">${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              </div>
+              <div className={`flex justify-between border-t pt-2 font-bold text-indigo-900 ${!effectiveIsJuanma ? 'mt-[26px]' : ''}`}>
+                <span>Total a Distribuir:</span>
+                <span>${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              </div>
+              <div className="flex justify-between text-red-600 pt-2">
+                <span>(-) Retiros Juanma:</span>
+                <button onClick={() => setShowRetirosModal('FJ')} className="hover:underline focus:outline-none">
+                  -${retirosJuanma.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                </button>
+              </div>
             </div>
-            <div className={`flex justify-between border-t pt-2 font-bold text-indigo-900 ${!isJuanma ? 'mt-[26px]' : ''}`}>
-              <span>Total a Distribuir:</span>
-              <span>${juanmaShare.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-            </div>
-            <div className="flex justify-between text-red-600 pt-2">
-              <span>(-) Retiros Juanma:</span>
-              <button onClick={() => setShowRetirosModal('FJ')} className="hover:underline focus:outline-none">
-                -${retirosJuanma.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-              </button>
+            <div className={`mt-4 p-3 rounded-lg text-center ${juanmaBalance > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+              <span className="text-sm font-bold block">{juanmaBalance > 0 ? 'Saldo a retirar' : 'Debe devolver'}</span>
+              <span className="text-2xl font-black">${Math.abs(juanmaBalance).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
           </div>
-          <div className={`mt-4 p-3 rounded-lg text-center ${juanmaBalance > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-            <span className="text-sm font-bold block">{juanmaBalance > 0 ? 'Saldo a retirar' : 'Debe devolver'}</span>
-            <span className="text-2xl font-black">${Math.abs(juanmaBalance).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* P&L */}
@@ -234,8 +267,8 @@ export default function FinDeMesClient({
           <thead className="bg-[#1f2937] text-white">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-bold uppercase tracking-wider">Concepto</th>
-              {!isJuanma && <th className="px-6 py-4 text-right tabular-nums text-xs font-bold uppercase tracking-wider border-l border-gray-600 bg-[#166534]">Estudio F</th>}
-              <th className={`px-6 py-4 text-right tabular-nums text-xs font-bold uppercase tracking-wider border-l border-gray-600 ${isJuanma ? 'bg-[#1f2937]' : 'bg-[#9a3412]'}`}>Estudio FJ</th>
+              {!effectiveIsJuanma && <th className="px-6 py-4 text-right tabular-nums text-xs font-bold uppercase tracking-wider border-l border-gray-600 bg-[#166534]">Estudio F</th>}
+              {!hideJuanma && <th className={`px-6 py-4 text-right tabular-nums text-xs font-bold uppercase tracking-wider border-l border-gray-600 ${effectiveIsJuanma ? 'bg-[#1f2937]' : 'bg-[#9a3412]'}`}>Estudio FJ</th>}
               <th className="px-6 py-4 text-right tabular-nums text-xs font-bold uppercase tracking-wider border-l border-gray-600">Consolidado</th>
             </tr>
           </thead>
@@ -246,19 +279,20 @@ export default function FinDeMesClient({
                 <svg className={`h-4 w-4 transform transition-transform ${isIngresosExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 Ingresos (Cobranzas)
               </td>
-              {!isJuanma && <td className="px-6 py-4 text-right tabular-nums text-[#15803d] font-bold border-l border-gray-200">${ingresosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
-              <td className="px-6 py-4 text-right tabular-nums text-[#c2410c] font-bold border-l border-gray-200">${ingresosFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-              <td className="px-6 py-4 text-right tabular-nums text-[#1e1b4b] font-bold border-l border-gray-200">{isJuanma ? '-' : `$${ingresosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
+              {!effectiveIsJuanma && <td className="px-6 py-4 text-right tabular-nums text-[#15803d] font-bold border-l border-gray-200">${ingresosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+              {!hideJuanma && <td className="px-6 py-4 text-right tabular-nums text-[#c2410c] font-bold border-l border-gray-200">${ingresosFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+              <td className="px-6 py-4 text-right tabular-nums text-[#1e1b4b] font-bold border-l border-gray-200">{effectiveIsJuanma || hideJuanma ? '-' : `$${ingresosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
             </tr>
             {/* Ingresos Details */}
             {isIngresosExpanded && groupedIngresos.map((g, i) => {
-              if (isJuanma && g.FJ === 0) return null; // Hide rows with 0 FJ income if Juanma
+              if (effectiveIsJuanma && g.FJ === 0) return null; // Hide rows with 0 FJ income if Juanma
+              if (hideJuanma && g.F === 0) return null; // Hide rows with 0 F income if Solo F
               return (
                 <tr key={`ing-${i}`} className="bg-gray-50">
                   <td className="px-10 py-2 text-sm text-gray-500 pl-[3.5rem]">{g.clientName}</td>
-                  {!isJuanma && <td className="px-6 py-2 text-right tabular-nums text-sm text-green-700 border-l border-gray-200">${g.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
-                  <td className="px-6 py-2 text-right tabular-nums text-sm text-orange-700 border-l border-gray-200">${g.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                  <td className="px-6 py-2 text-right tabular-nums text-sm text-gray-700 font-medium border-l border-gray-200">{isJuanma ? '-' : `$${g.Consolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
+                  {!effectiveIsJuanma && <td className="px-6 py-2 text-right tabular-nums text-sm text-green-700 border-l border-gray-200">${g.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+                  {!hideJuanma && <td className="px-6 py-2 text-right tabular-nums text-sm text-orange-700 border-l border-gray-200">${g.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+                  <td className="px-6 py-2 text-right tabular-nums text-sm text-gray-700 font-medium border-l border-gray-200">{effectiveIsJuanma || hideJuanma ? '-' : `$${g.Consolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
                 </tr>
               );
             })}
@@ -269,35 +303,37 @@ export default function FinDeMesClient({
                 <svg className={`h-4 w-4 transform transition-transform ${isEgresosExpanded ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 Egresos Operativos
               </td>
-              {!isJuanma && <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">-${gastosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
-              <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">-${gastosFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-              <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">-${gastosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+              {!effectiveIsJuanma && <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">-${gastosF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+              {!hideJuanma && <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">-${gastosFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+              <td className="px-6 py-4 text-right tabular-nums text-[#dc2626] font-bold border-l border-gray-200">{effectiveIsJuanma || hideJuanma ? '-' : `-$${gastosConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
             </tr>
             {/* Gastos Details */}
             {isEgresosExpanded && groupedEgresos.map((g, i) => {
-              if (isJuanma && g.FJ === 0) return null; // Hide rows with 0 FJ expense if Juanma
+              if (effectiveIsJuanma && g.FJ === 0) return null; // Hide rows with 0 FJ expense if Juanma
+              if (hideJuanma && g.F === 0) return null; // Hide rows with 0 F expense if Solo F
               return (
                 <React.Fragment key={`egr-${i}`}>
                   <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer" onClick={() => toggleCategory(g.category)}>
-                    <td className="px-10 py-2 text-sm text-gray-600 pl-[3.5rem] flex items-center gap-2">
+                    <td className="px-10 py-2 text-sm text-gray-500 pl-[2rem] flex items-center gap-1">
                       <svg className={`h-3 w-3 transform transition-transform ${expandedCategories[g.category] ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       {g.category}
                     </td>
-                    {!isJuanma && <td className="px-6 py-2 text-right tabular-nums text-sm text-red-500 border-l border-gray-200">-${g.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
-                    <td className="px-6 py-2 text-right tabular-nums text-sm text-red-500 border-l border-gray-200">-${g.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td className="px-6 py-2 text-right tabular-nums text-sm text-red-600 font-medium border-l border-gray-200">-${g.Consolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    {!effectiveIsJuanma && <td className="px-6 py-2 text-right tabular-nums text-sm text-red-500 border-l border-gray-200">-${g.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+                    {!hideJuanma && <td className="px-6 py-2 text-right tabular-nums text-sm text-red-500 border-l border-gray-200">-${g.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+                    <td className="px-6 py-2 text-right tabular-nums text-sm text-gray-700 font-medium border-l border-gray-200">{effectiveIsJuanma || hideJuanma ? '-' : `-$${g.Consolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
                   </tr>
                   {/* Nested Detail for Category */}
-                  {expandedCategories[g.category] && g.details.map(d => {
-                    if (isJuanma && (d.amtFJ || 0) === 0) return null;
+                  {expandedCategories[g.category] && g.details.map((d, di) => {
+                    if (effectiveIsJuanma && (d.amtFJ || 0) === 0) return null;
+                    if (hideJuanma && (d.amtF || 0) === 0) return null;
                     return (
-                      <tr key={d.id} className="bg-white">
-                        <td className="px-10 py-1.5 text-xs text-gray-400 pl-[5rem] italic truncate max-w-[200px]" title={d.description || 'Sin detalle'}>
-                          {d.description || 'Sin detalle'} ({new Date(d.date).toLocaleDateString('es-AR')})
+                      <tr key={`egr-det-${i}-${di}`} className="bg-white">
+                        <td className="px-10 py-1.5 text-xs text-gray-400 pl-[3.5rem]">
+                          {new Date(d.date).toLocaleDateString('es-AR')} - {d.description || 'Sin detalle'} {d.clientName ? `(${d.clientName})` : ''}
                         </td>
-                        {!isJuanma && <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-300 border-l border-gray-200">{d.amtF > 0 ? `-$${d.amtF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</td>}
-                        <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-300 border-l border-gray-200">{d.amtFJ > 0 ? `-$${d.amtFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</td>
-                        <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-400 border-l border-gray-200">-${d.amtTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        {!effectiveIsJuanma && <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-300 border-l border-gray-200">{d.amtF > 0 ? `-$${d.amtF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</td>}
+                        {!hideJuanma && <td className="px-6 py-1.5 text-right tabular-nums text-xs text-red-300 border-l border-gray-200">{d.amtFJ > 0 ? `-$${d.amtFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-'}</td>}
+                        <td className="px-6 py-1.5 text-right tabular-nums text-xs text-gray-300 border-l border-gray-200">{effectiveIsJuanma || hideJuanma ? '-' : `-$${d.amtTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
                       </tr>
                     );
                   })}
@@ -306,11 +342,11 @@ export default function FinDeMesClient({
             })}
           </tbody>
           <tfoot className="bg-gray-100 font-black text-lg">
-            <tr>
-              <td className="px-6 py-5 text-gray-900">Resultado Neto</td>
-              {!isJuanma && <td className="px-6 py-5 text-right tabular-nums border-l border-gray-300 text-[#15803d]">${resultadoF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
-              <td className="px-6 py-5 text-right tabular-nums border-l border-gray-300 text-[#7c2d12]">${resultadoFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-              <td className="px-6 py-5 text-right tabular-nums border-l border-gray-300 text-[#1e1b4b]">{isJuanma ? '-' : `$${resultadoConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
+            <tr className="bg-[#f8fafc] border-t-2 border-gray-300">
+              <td className="px-6 py-5 text-gray-900 font-bold uppercase text-sm">Resultado Neto</td>
+              {!effectiveIsJuanma && <td className="px-6 py-5 text-right tabular-nums font-bold border-l border-gray-300 text-[#15803d]">${resultadoF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+              {!hideJuanma && <td className="px-6 py-5 text-right tabular-nums font-bold border-l border-gray-300 text-[#c2410c]">${resultadoFJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>}
+              <td className="px-6 py-5 text-right tabular-nums font-bold border-l border-gray-300 text-[#1e1b4b]">{effectiveIsJuanma || hideJuanma ? '-' : `$${resultadoConsolidado.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}</td>
             </tr>
           </tfoot>
         </table>
@@ -326,7 +362,7 @@ export default function FinDeMesClient({
               </button>
             </div>
             <div className="p-4 overflow-auto flex-1">
-              {(showRetirosModal === 'F' ? retirosFedeDetalle : retirosJuanmaDetalle).length === 0 ? (
+              {(showRetirosModal === 'F' ? effectiveRetirosFedeDetalle : retirosJuanmaDetalle).length === 0 ? (
                 <p className="text-gray-500 text-center py-4">No hay retiros registrados este mes.</p>
               ) : (
                 <table className="min-w-full divide-y divide-gray-200">
@@ -338,7 +374,7 @@ export default function FinDeMesClient({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {(showRetirosModal === 'F' ? retirosFedeDetalle : retirosJuanmaDetalle).map(r => {
+                    {(showRetirosModal === 'F' ? effectiveRetirosFedeDetalle : retirosJuanmaDetalle).map(r => {
                       let description = r.description || '-';
                       if (description.includes('Retiro automático s/ cobro') && r.client?.name) {
                         description = `Retiro aut. (Cobro ${r.client.name})`;
@@ -359,7 +395,7 @@ export default function FinDeMesClient({
                     <tr>
                       <td colSpan={2} className="px-4 py-3 text-right text-gray-900">Total Retiros:</td>
                       <td className="px-4 py-3 text-right tabular-nums text-red-700">
-                        -${(showRetirosModal === 'F' ? retirosFedeDetalle : retirosJuanmaDetalle).reduce((acc, r) => acc + r.finalAmt, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        -${(showRetirosModal === 'F' ? effectiveRetirosFedeDetalle : retirosJuanmaDetalle).reduce((acc, r) => acc + r.finalAmt, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>
                     </tr>
                   </tfoot>
