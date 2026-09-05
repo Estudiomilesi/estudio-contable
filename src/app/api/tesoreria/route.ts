@@ -161,6 +161,7 @@ export async function POST(request: Request) {
     }
 
     let participacionPagaEnTesoreria = 0;
+    let pagoNetoTesoreria = Math.abs(txAmount);
     // Si es un ingreso por "Honorarios" y tiene un clientId asociado, registrar el pago en cuenta corriente
     if (data.type === 'INCOME' && data.category === 'Honorarios' && data.clientId) {
       const accountTx = await prisma.accountTransaction.create({
@@ -206,6 +207,11 @@ export async function POST(request: Request) {
         
         await recalculatePaymentIva(accountTx.id);
 
+        const updatedAccountTx = await prisma.accountTransaction.findUnique({
+          where: { id: accountTx.id }
+        });
+        pagoNetoTesoreria = updatedAccountTx?.netAmount || Math.abs(txAmount);
+
         // Calculate participacion paid to net the withdrawal
         for (const app of createdApplications) {
           if (app.charge.collaboratorAmount && app.charge.collaboratorAmount > 0) {
@@ -221,7 +227,7 @@ export async function POST(request: Request) {
       const retiroSocio = data.account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
 
       if (data.type === 'INCOME') {
-        const retiroAmount = Math.max(0, Math.abs(txAmount) - participacionPagaEnTesoreria);
+        const retiroAmount = Math.max(0, pagoNetoTesoreria - participacionPagaEnTesoreria);
         if (retiroAmount > 0) {
           await prisma.treasuryTransaction.create({
             data: {

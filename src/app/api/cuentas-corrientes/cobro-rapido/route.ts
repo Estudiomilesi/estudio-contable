@@ -118,6 +118,12 @@ export async function POST(request: Request) {
     // Recalcular IVA del pago en base a lo que cubrió
     await recalculatePaymentIva(accountTx.id);
 
+    // Obtener el pago actualizado con el neto calculado (sin IVA)
+    const updatedAccountTx = await prisma.accountTransaction.findUnique({
+      where: { id: accountTx.id }
+    });
+    const pagoNeto = updatedAccountTx?.netAmount || txAmount;
+
     // 5. Automatización: Retiros automáticos en Bancos (neteando participaciones pagadas)
     if (account === 'BANCOS FEDE' || account === 'BANCOS JUANMA') {
       const retiroSocio = account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
@@ -131,7 +137,7 @@ export async function POST(request: Request) {
         }
       }
       
-      const retiroAmount = Math.max(0, txAmount - participacionPaga);
+      const retiroAmount = Math.max(0, pagoNeto - participacionPaga);
       if (retiroAmount > 0) {
         await prisma.treasuryTransaction.create({
           data: {
