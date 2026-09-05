@@ -1,11 +1,28 @@
 import { prisma } from '@/lib/prisma';
 import FinDeMesClient from './FinDeMesClient';
+import { cookies } from 'next/headers';
+import { jwtVerify } from 'jose';
 
 export const dynamic = 'force-dynamic';
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-secret-key-for-development-only-12345');
 
 export default async function FinDeMesPage({ searchParams }: { searchParams: Promise<{ month?: string }> }) {
   const params = await searchParams;
   
+  // Auth check for Juanma
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth_token')?.value;
+  let isJuanma = false;
+  if (token) {
+    try {
+      const { payload } = await jwtVerify(token, JWT_SECRET);
+      if (payload.email === 'juanmartin@estudiomilesi.com') {
+        isJuanma = true;
+      }
+    } catch (e) {}
+  }
+
   // Determinar el mes a consultar
   const today = new Date();
   const currentMonthStr = today.toISOString().substring(0, 7);
@@ -208,6 +225,7 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
       retirosFedeDetalle={retirosFedeDetalle}
       retirosJuanmaDetalle={retirosJuanmaDetalle}
       alertasParticipacion={alertasParticipacion}
+      isJuanma={isJuanma}
     />
   );
 }
