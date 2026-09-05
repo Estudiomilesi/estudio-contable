@@ -35,6 +35,19 @@ type ClientWithBalance = {
 };
 
 export default function CuentasCorrientesPage() {
+  const [isJuanma, setIsJuanma] = useState(false);
+  
+  useEffect(() => {
+    const info = document.getElementById('user-info');
+    if (info) {
+      try { 
+        const isJ = JSON.parse(info.innerText).isJuanma;
+        setIsJuanma(isJ); 
+        if (isJ) setFilterLabel('FJ_JF');
+      } catch(e){}
+    }
+  }, []);
+
   const [clientes, setClientes] = useState<ClientWithBalance[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +92,11 @@ export default function CuentasCorrientesPage() {
     let result = [...clientes];
     
     if (filterLabel !== 'ALL') {
-      result = result.filter(c => c.professionalLabel === filterLabel);
+      if (filterLabel === 'FJ_JF') {
+        result = result.filter(c => c.professionalLabel === 'FJ' || c.professionalLabel === 'JF');
+      } else {
+        result = result.filter(c => c.professionalLabel === filterLabel);
+      }
     }
 
     if (searchTerm && searchTerm.length >= 3) {
@@ -388,8 +405,8 @@ export default function CuentasCorrientesPage() {
                       onChange={e => setFilterLabel(e.target.value)}
                       className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-4"
                     >
-                      <option value="ALL">Todas</option>
-                      <option value="F">F</option>
+                      <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
+                      {!isJuanma && <option value="F">F</option>}
                       <option value="FJ">FJ</option>
                       <option value="JF">JF</option>
                     </select>

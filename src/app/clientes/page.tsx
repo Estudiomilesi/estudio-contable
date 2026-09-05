@@ -38,6 +38,22 @@ const initialForm = {
 };
 
 export default function ClientesPage() {
+  const [isJuanma, setIsJuanma] = useState(false);
+  
+  useEffect(() => {
+    const info = document.getElementById('user-info');
+    if (info) {
+      try { 
+        const isJ = JSON.parse(info.innerText).isJuanma;
+        setIsJuanma(isJ); 
+        if (isJ) {
+          setFormData(prev => ({...prev, professionalLabel: 'FJ'}));
+          setFilterLabel('FJ_JF');
+        }
+      } catch(e){}
+    }
+  }, []);
+
   const [clientes, setClientes] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -69,7 +85,11 @@ export default function ClientesPage() {
     let result = [...clientes];
     
     if (filterLabel !== 'ALL') {
-      result = result.filter(c => c.professionalLabel === filterLabel);
+      if (filterLabel === 'FJ_JF') {
+        result = result.filter(c => c.professionalLabel === 'FJ' || c.professionalLabel === 'JF');
+      } else {
+        result = result.filter(c => c.professionalLabel === filterLabel);
+      }
     }
 
     if (filterBillingProfile !== 'ALL') {
@@ -234,7 +254,7 @@ export default function ClientesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700">Etiqueta</label>
                 <select value={formData.professionalLabel} onChange={e => setFormData({...formData, professionalLabel: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                  <option value="F">F</option>
+                  {!isJuanma && <option value="F">F</option>}
                   <option value="FJ">FJ</option>
                   <option value="JF">JF</option>
                 </select>
@@ -315,8 +335,8 @@ export default function ClientesPage() {
                     <div className="flex items-center gap-1">
                       <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
                       <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5">
-                        <option value="ALL">Todas</option>
-                        <option value="F">F</option>
+                        <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
+                        {!isJuanma && <option value="F">F</option>}
                         <option value="FJ">FJ</option>
                         <option value="JF">JF</option>
                       </select>

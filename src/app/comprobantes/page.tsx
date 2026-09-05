@@ -36,6 +36,19 @@ type Concept = {
 };
 
 export default function ComprobantesPage() {
+  const [isJuanma, setIsJuanma] = useState(false);
+  
+  useEffect(() => {
+    const info = document.getElementById('user-info');
+    if (info) {
+      try { 
+        const isJ = JSON.parse(info.innerText).isJuanma;
+        setIsJuanma(isJ); 
+        if (isJ) setFilterLabel('FJ_JF');
+      } catch(e){}
+    }
+  }, []);
+
   const [clientes, setClientes] = useState<Client[]>([]);
   const [billingConcepts, setBillingConcepts] = useState<Concept[]>([]);
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([]);
@@ -268,7 +281,11 @@ export default function ComprobantesPage() {
   const processedComprobantes = () => {
     let result = [...comprobantes];
     if (filterLabel !== 'ALL') {
-      result = result.filter(c => c.client?.professionalLabel === filterLabel);
+      if (filterLabel === 'FJ_JF') {
+        result = result.filter(c => c.client?.professionalLabel === 'FJ' || c.client?.professionalLabel === 'JF');
+      } else {
+        result = result.filter(c => c.client?.professionalLabel === filterLabel);
+      }
     }
     if (sortConfig) {
       result.sort((a: any, b: any) => {
@@ -565,12 +582,16 @@ export default function ComprobantesPage() {
                   <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiq.</span>
-                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[9px] border-gray-300 rounded p-0 h-4">
-                        <option value="ALL">Todas</option>
-                        <option value="F">F</option>
-                        <option value="FJ">FJ</option>
-                        <option value="JF">JF</option>
-                      </select>
+                      <select 
+                      value={filterLabel} 
+                      onChange={e => setFilterLabel(e.target.value)}
+                      className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-4"
+                    >
+                      <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
+                      {!isJuanma && <option value="F">F</option>}
+                      <option value="FJ">FJ</option>
+                      <option value="JF">JF</option>
+                    </select>
                     </div>
                   </th>
                   <th className="px-2 py-2 text-left text-[10px] font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('clientName')}>Cliente</th>

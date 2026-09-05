@@ -19,6 +19,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let userRole = 'COLLABORATOR';
+  let isJuanma = false;
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
 
@@ -29,6 +30,9 @@ export default async function RootLayout({
       if (payload.role) {
         userRole = payload.role as string;
       }
+      if (payload.email === 'juanmartin@estudiomilesi.com') {
+        isJuanma = true;
+      }
     } catch (e) {
       // invalid token, ignore
     }
@@ -36,6 +40,13 @@ export default async function RootLayout({
 
   return (
     <html lang="es">
+      <head>
+        <script
+          id="user-info"
+          type="application/json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({ isJuanma }) }}
+        />
+      </head>
       <body className={`${inter.className} flex h-screen bg-gray-50 text-gray-900`}>
         <Sidebar userRole={userRole} />
         <main className="flex-1 overflow-y-auto p-8">
