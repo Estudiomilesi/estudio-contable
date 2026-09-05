@@ -142,7 +142,9 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
   egresos.forEach(e => {
     const amt = Math.abs(e.amount);
     if (e.category === 'Retiro Fede') {
-      if (isJuanma && e.client?.professionalLabel === 'F') {
+      if (e.description?.toLowerCase().includes('retiro automático iva')) {
+        // Ignorar retiros automáticos de IVA para el resultado neto
+      } else if (isJuanma && e.client?.professionalLabel === 'F') {
         // Ocultar retiros automáticos de clientes F para Juanma
       } else {
         const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
@@ -150,9 +152,13 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
         retirosFedeDetalle.push({...e, finalAmt});
       }
     } else if (e.category === 'Retiro Juanma') {
-      const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
-      retirosJuanma += finalAmt;
-      retirosJuanmaDetalle.push({...e, finalAmt});
+      if (e.description?.toLowerCase().includes('retiro automático iva')) {
+        // Ignorar retiros automáticos de IVA para el resultado neto
+      } else {
+        const finalAmt = e.type === 'EXPENSE' ? amt : -amt;
+        retirosJuanma += finalAmt;
+        retirosJuanmaDetalle.push({...e, finalAmt});
+      }
     } else if (e.category === 'Participacion') {
       // Gastos directos al ER correspondiente
       if (e.client?.professionalLabel === 'F') {

@@ -227,16 +227,32 @@ export async function POST(request: Request) {
       const retiroSocio = data.account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
 
       if (data.type === 'INCOME') {
-        const retiroAmount = Math.max(0, pagoNetoTesoreria - participacionPagaEnTesoreria);
-        if (retiroAmount > 0) {
+        const retiroNetoAmount = Math.max(0, pagoNetoTesoreria - participacionPagaEnTesoreria);
+        const ivaAmount = Math.abs(txAmount) - pagoNetoTesoreria;
+
+        if (retiroNetoAmount > 0) {
           await prisma.treasuryTransaction.create({
             data: {
               date: parseToUtcNoon(data.date),
-              amount: -retiroAmount,
+              amount: -retiroNetoAmount,
               type: 'EXPENSE',
               account: data.account,
               category: retiroSocio,
               description: `Retiro automático s/ cobro ${data.description || ''}`,
+              clientId: data.clientId || null
+            }
+          });
+        }
+
+        if (ivaAmount > 0) {
+          await prisma.treasuryTransaction.create({
+            data: {
+              date: parseToUtcNoon(data.date),
+              amount: -ivaAmount,
+              type: 'EXPENSE',
+              account: data.account,
+              category: retiroSocio,
+              description: `Retiro automático IVA s/ cobro ${data.description || ''}`,
               clientId: data.clientId || null
             }
           });

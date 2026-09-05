@@ -137,16 +137,32 @@ export async function POST(request: Request) {
         }
       }
       
-      const retiroAmount = Math.max(0, pagoNeto - participacionPaga);
-      if (retiroAmount > 0) {
+      const retiroNetoAmount = Math.max(0, pagoNeto - participacionPaga);
+      const ivaAmount = txAmount - pagoNeto;
+
+      if (retiroNetoAmount > 0) {
         await prisma.treasuryTransaction.create({
           data: {
             date: txDate,
-            amount: -retiroAmount,
+            amount: -retiroNetoAmount,
             type: 'EXPENSE',
             account: account,
             category: retiroSocio,
             description: `Retiro automático s/ cobro ${description || ''}`,
+            clientId: clientId
+          }
+        });
+      }
+
+      if (ivaAmount > 0) {
+        await prisma.treasuryTransaction.create({
+          data: {
+            date: txDate,
+            amount: -ivaAmount,
+            type: 'EXPENSE',
+            account: account,
+            category: retiroSocio,
+            description: `Retiro automático IVA s/ cobro ${description || ''}`,
             clientId: clientId
           }
         });
