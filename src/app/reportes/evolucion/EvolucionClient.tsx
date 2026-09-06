@@ -67,42 +67,16 @@ export default function EvolucionClient({
 
   return (
     <div className="space-y-8">
-      {/* Gráfico 1: Facturación vs Cobranza (Evolución) */}
+      {/* Gráfico Único: Facturación, Cobranza y Gastos */}
       <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-800 mb-6">Facturación vs Cobranza Neta</h2>
-        <div className="h-80 w-full">
+        <h2 className="text-xl font-bold text-gray-800 mb-6">Evolución de Facturación, Cobranza y Gastos Operativos</h2>
+        <div className="h-[500px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
               <XAxis dataKey="name" tick={{fill: '#6b7280', fontSize: 12}} tickLine={false} axisLine={false} />
               <YAxis 
-                tickFormatter={(val) => `$${(val / 1000000).toFixed(1)}M`} 
-                tick={{fill: '#6b7280', fontSize: 12}} 
-                tickLine={false} 
-                axisLine={false} 
-              />
-              <Tooltip 
-                formatter={(value: any) => formatCurrency(Number(value) || 0)}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Legend wrapperStyle={{ paddingTop: '20px' }} />
-              <Bar dataKey="Facturación" fill="#4f46e5" radius={[4, 4, 0, 0]} maxBarSize={50} />
-              <Line type="monotone" dataKey="Cobranza" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Gráfico 2: Evolución de Gastos por Concepto (Apilado) */}
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-        <h2 className="text-xl font-bold text-gray-800 mb-6">Estructura de Gastos Operativos</h2>
-        <div className="h-96 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 20, right: 30, left: 40, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-              <XAxis dataKey="name" tick={{fill: '#6b7280', fontSize: 12}} tickLine={false} axisLine={false} />
-              <YAxis 
-                tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} 
+                tickFormatter={(val) => val >= 1000000 ? `$${(val / 1000000).toFixed(1)}M` : `$${(val / 1000).toFixed(0)}k`} 
                 tick={{fill: '#6b7280', fontSize: 12}} 
                 tickLine={false} 
                 axisLine={false} 
@@ -113,20 +87,25 @@ export default function EvolucionClient({
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />
               
+              {/* Gastos por Concepto (Apilados) */}
               {categoriasGastos.map((cat, index) => (
                 <Bar 
                   key={cat} 
                   dataKey={`Gasto: ${cat}`} 
-                  stackId="a" 
+                  stackId="gastos" 
                   fill={COLORS[index % COLORS.length]} 
                   maxBarSize={50}
-                  radius={
-                    // Redondear la barra superior si es la última categoría en este mes (complejo en recharts, mejor dejar plano o sin radius)
-                    [0, 0, 0, 0]
-                  }
+                  radius={[0, 0, 0, 0]}
                 />
               ))}
-            </BarChart>
+
+              {/* Gasto Total Oculto para que aparezca en el Tooltip o usar Línea si prefiere, pero el Tooltip ya mostrará "Gastos Totales" */}
+              <Line type="monotone" dataKey="Gastos Totales" stroke="transparent" strokeWidth={0} dot={false} activeDot={false} legendType="none" />
+
+              {/* Facturación y Cobranza como Líneas */}
+              <Line type="monotone" dataKey="Facturación" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="Cobranza" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
       </div>
