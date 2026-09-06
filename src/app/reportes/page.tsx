@@ -30,6 +30,13 @@ export default function ReportesDashboard() {
       href: "/reportes/mes?tipo=cobrado",
       icon: "📅",
       color: "bg-orange-50 border-orange-200 text-orange-900 hover:bg-orange-100"
+    },
+    {
+      title: "Evolución Histórica",
+      description: "Gráficos de tendencia de facturación, cobranza y gastos de los últimos 13 meses.",
+      href: "/reportes/evolucion",
+      icon: "📈",
+      color: "bg-teal-50 border-teal-200 text-teal-900 hover:bg-teal-100"
     }
   ];
 
