@@ -99,12 +99,10 @@ export default function EvolucionClient({
                 />
               ))}
 
-              {/* Gasto Total Oculto para que aparezca en el Tooltip o usar Línea si prefiere, pero el Tooltip ya mostrará "Gastos Totales" */}
-              <Line type="monotone" dataKey="Gastos Totales" stroke="transparent" strokeWidth={0} dot={false} activeDot={false} legendType="none" />
-
-              {/* Facturación y Cobranza como Líneas */}
+              {/* Facturación, Cobranza y Gastos Totales como Líneas */}
               <Line type="monotone" dataKey="Facturación" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, fill: '#4f46e5', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
               <Line type="monotone" dataKey="Cobranza" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="Gastos Totales" stroke="#374151" strokeWidth={3} dot={{ r: 4, fill: '#374151', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
