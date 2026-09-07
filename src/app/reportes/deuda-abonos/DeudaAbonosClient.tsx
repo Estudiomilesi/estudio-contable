@@ -9,10 +9,11 @@ type ClientDebt = {
   code: string;
   name: string;
   totalDebt: number;
+  monthsCount: number;
   monthsDebt: Record<string, number>;
 };
 
-type SortField = 'name' | 'code' | 'totalDebt';
+type SortField = 'name' | 'code' | 'totalDebt' | 'monthsCount';
 type SortOrder = 'asc' | 'desc';
 
 export default function DeudaAbonosClient({ 
@@ -39,7 +40,7 @@ export default function DeudaAbonosClient({
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortOrder(field === 'totalDebt' ? 'desc' : 'asc');
+      setSortOrder(field === 'totalDebt' || field === 'monthsCount' ? 'desc' : 'asc');
     }
   };
 
@@ -52,6 +53,8 @@ export default function DeudaAbonosClient({
         comparison = a.code.localeCompare(b.code);
       } else if (sortField === 'totalDebt') {
         comparison = a.totalDebt - b.totalDebt;
+      } else if (sortField === 'monthsCount') {
+        comparison = a.monthsCount - b.monthsCount;
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });
@@ -96,6 +99,16 @@ export default function DeudaAbonosClient({
                 </th>
                 <th 
                   scope="col" 
+                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('monthsCount')}
+                  title="Cantidad de meses de deuda"
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    Meses <ArrowUpDown className="h-3 w-3" />
+                  </div>
+                </th>
+                <th 
+                  scope="col" 
                   className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('totalDebt')}
                 >
@@ -129,6 +142,9 @@ export default function DeudaAbonosClient({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                       {client.name}
+                    </td>
+                    <td className="px-4 py-4 whitespace-nowrap text-sm text-center font-bold text-orange-600 bg-orange-50/30">
+                      {client.monthsCount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-bold text-red-600 bg-red-50/30">
                       {formatCurrency(client.totalDebt)}

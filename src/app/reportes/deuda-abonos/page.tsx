@@ -28,6 +28,7 @@ export default async function DeudaAbonosPage() {
     code: string,
     name: string,
     totalDebt: number,
+    monthsCount: number,
     monthsDebt: Record<string, number>
   }> = {};
 
@@ -46,6 +47,7 @@ export default async function DeudaAbonosPage() {
           code: charge.client.code,
           name: charge.client.name,
           totalDebt: 0,
+          monthsCount: 0,
           monthsDebt: {}
         };
       }
@@ -61,6 +63,7 @@ export default async function DeudaAbonosPage() {
       
       if (!rawData[charge.clientId].monthsDebt[monthKey]) {
         rawData[charge.clientId].monthsDebt[monthKey] = 0;
+        rawData[charge.clientId].monthsCount = (rawData[charge.clientId].monthsCount || 0) + 1;
       }
       rawData[charge.clientId].monthsDebt[monthKey] += deuda;
     }
