@@ -161,6 +161,30 @@ export default function DeudaAbonosClient({
                 ))
               )}
             </tbody>
+            {sortedData.length > 0 && (
+              <tfoot className="bg-gray-100 border-t-2 border-gray-300 font-bold">
+                <tr>
+                  <td colSpan={2} className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                    TOTAL GENERAL:
+                  </td>
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-center text-gray-900">
+                    {/* Vacío o suma de meses, mejor vacío para evitar confusión */}
+                    -
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-700 bg-red-100/50">
+                    {formatCurrency(sortedData.reduce((acc, curr) => acc + curr.totalDebt, 0))}
+                  </td>
+                  {months.map(m => {
+                    const totalMonth = sortedData.reduce((acc, curr) => acc + (curr.monthsDebt[m.key] || 0), 0);
+                    return (
+                      <td key={m.key} className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
+                        {totalMonth > 0 ? formatCurrency(totalMonth) : '-'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>
