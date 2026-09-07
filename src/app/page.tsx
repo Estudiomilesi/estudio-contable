@@ -72,7 +72,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
       type: 'PAYMENT',
       date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
       NOT: [
-        { description: { startsWith: 'NC:' } },
+        { description: { startsWith: 'NC' } },
         { description: { contains: 'aldo a favor' } }
       ],
       ...txWhere
