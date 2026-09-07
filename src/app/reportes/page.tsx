@@ -32,6 +32,13 @@ export default function ReportesDashboard() {
       color: "bg-orange-50 border-orange-200 text-orange-900 hover:bg-orange-100"
     },
     {
+      title: "Deuda de Abonos",
+      description: "Estado de deuda de abonos mensuales pendiente de cobro por cliente y mes.",
+      href: "/reportes/deuda-abonos",
+      icon: "🚨",
+      color: "bg-red-50 border-red-200 text-red-900 hover:bg-red-100"
+    },
+    {
       title: "Evolución Histórica",
       description: "Gráficos de tendencia de facturación, cobranza y gastos de los últimos 13 meses.",
       href: "/reportes/evolucion",
