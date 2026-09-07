@@ -38,7 +38,7 @@ export default async function HistorialChequesPage() {
                 <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Cliente/Origen</th>
                 <th className="px-4 py-3 text-right text-xs font-bold text-gray-600 uppercase tracking-wider">Importe</th>
                 <th className="px-4 py-3 text-center text-xs font-bold text-gray-600 uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Salida/Destino</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Egreso (Detalle)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
@@ -73,13 +73,14 @@ export default async function HistorialChequesPage() {
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={check.outgoingTx?.description || ''}>
+                  <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={`${check.outgoingTx?.category || ''} - ${check.outgoingTx?.description || ''}`}>
                     {check.status === 'DELIVERED' ? (
                       check.outgoingTx ? (
-                        <>
-                          <span className="text-xs text-gray-500 block">{new Date(check.outgoingTx.date).toLocaleDateString('es-AR')}</span>
-                          {check.outgoingTx.description}
-                        </>
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-gray-800">{check.outgoingTx.category}</span>
+                          <span className="text-xs text-gray-500">{new Date(check.outgoingTx.date).toLocaleDateString('es-AR')}</span>
+                          <span className="truncate" title={check.outgoingTx.description || ''}>{check.outgoingTx.description}</span>
+                        </div>
                       ) : 'Entregado (sin detalle)'
                     ) : '-'}
                   </td>
