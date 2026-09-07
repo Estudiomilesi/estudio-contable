@@ -82,20 +82,6 @@ export default function DeudaAbonosClient({
             <p className="text-gray-600 mt-2">Detalle de meses impagos de abonos mensuales.</p>
           </div>
         </div>
-        
-        <div>
-          <label className="text-sm font-medium text-gray-700 mr-2">Filtrar por etiqueta:</label>
-          <select 
-            value={filterLabel}
-            onChange={(e) => setFilterLabel(e.target.value)}
-            className="rounded-md border border-gray-300 py-1 px-3 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          >
-            <option value="ALL">Todas las etiquetas</option>
-            {!isJuanma && <option value="F">Solo Estudio F</option>}
-            <option value="FJ">FJ</option>
-            <option value="JF">JF</option>
-          </select>
-        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[75vh]">
@@ -114,11 +100,22 @@ export default function DeudaAbonosClient({
                 </th>
                 <th 
                   scope="col" 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('label')}
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
-                  <div className="flex items-center gap-1">
-                    Etiqueta <ArrowUpDown className="h-3 w-3" />
+                  <div className="flex items-center gap-2">
+                    <span className="cursor-pointer flex items-center hover:text-gray-700" onClick={() => handleSort('label')}>
+                      Etiqueta <ArrowUpDown className="h-3 w-3 ml-1" />
+                    </span>
+                    <select 
+                      value={filterLabel}
+                      onChange={(e) => setFilterLabel(e.target.value)}
+                      className="text-xs border-gray-300 rounded focus:ring-indigo-500 font-normal py-0 pl-2 pr-6 h-6"
+                    >
+                      <option value="ALL">Todas</option>
+                      {!isJuanma && <option value="F">F</option>}
+                      <option value="FJ">FJ</option>
+                      <option value="JF">JF</option>
+                    </select>
                   </div>
                 </th>
                 <th 
@@ -173,8 +170,12 @@ export default function DeudaAbonosClient({
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {client.code}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-500">
-                      {client.label || '-'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {client.label ? (
+                        <span className={`inline-flex rounded-full px-2 text-xs font-bold leading-5 ${client.label === 'F' ? 'bg-green-200 text-green-900' : client.label === 'FJ' ? 'bg-orange-200 text-orange-900' : 'bg-blue-200 text-blue-900'}`}>
+                          {client.label}
+                        </span>
+                      ) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                       {client.name}
