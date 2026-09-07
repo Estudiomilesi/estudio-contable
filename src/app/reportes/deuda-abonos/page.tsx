@@ -17,7 +17,7 @@ export default async function DeudaAbonosPage() {
       client: whereClient
     },
     include: {
-      client: { select: { id: true, code: true, name: true } },
+      client: { select: { id: true, code: true, name: true, professionalLabel: true } },
       paymentsApplied: { select: { amount: true } }
     },
     orderBy: { date: 'desc' }
@@ -27,6 +27,7 @@ export default async function DeudaAbonosPage() {
     clientId: string,
     code: string,
     name: string,
+    label: string,
     totalDebt: number,
     monthsCount: number,
     monthsDebt: Record<string, number>
@@ -46,6 +47,7 @@ export default async function DeudaAbonosPage() {
           clientId: charge.clientId,
           code: charge.client.code,
           name: charge.client.name,
+          label: charge.client.professionalLabel,
           totalDebt: 0,
           monthsCount: 0,
           monthsDebt: {}
@@ -86,6 +88,7 @@ export default async function DeudaAbonosPage() {
     <DeudaAbonosClient 
       data={clientData} 
       months={monthLabels} 
+      isJuanma={isJuanma}
     />
   );
 }
