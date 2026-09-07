@@ -174,7 +174,19 @@ export default function CuentasCorrientesPage() {
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!applyingPayment || !targetChargeId || !applyAmount) return;
+    if (!applyingPayment) return;
+
+    let chargeIdsToApply: string[] = [];
+    if (selectedChargeIds.size > 0) {
+      chargeIdsToApply = Array.from(selectedChargeIds);
+    } else if (targetChargeId) {
+      chargeIdsToApply = [targetChargeId];
+    }
+
+    if (chargeIdsToApply.length === 0) {
+      alert("Seleccioná al menos un cargo para aplicar.");
+      return;
+    }
 
     try {
       const res = await fetch('/api/cuentas-corrientes/aplicar', {
@@ -182,8 +194,7 @@ export default function CuentasCorrientesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           paymentId: applyingPayment.id,
-          chargeId: targetChargeId,
-          amount: parseFloat(applyAmount)
+          chargeIds: chargeIdsToApply
         })
       });
 
@@ -191,9 +202,11 @@ export default function CuentasCorrientesPage() {
         setApplyingPayment(null);
         setTargetChargeId('');
         setApplyAmount('');
+        setSelectedChargeIds(new Set());
         fetchClientes(); // refresh data
       } else {
-        alert('Error al aplicar el pago');
+        const err = await res.json();
+        alert('Error al aplicar el pago: ' + (err.error || ''));
       }
     } catch (error) {
       console.error(error);
@@ -638,43 +651,41 @@ export default function CuentasCorrientesPage() {
         {applyingPayment && (
           <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-lg p-6 w-[450px]">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">Aplicar Pago a Comprobante</h3>
+              <h3 className="text-xl font-bold mb-4 text-gray-900">Aplicar Saldo a Favor</h3>
               <p className="text-sm text-gray-700 mb-4">
-                Estás por aplicar un pago (Disponible: <strong>${(applyingPayment.amount - getAppliedAmount(applyingPayment)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>) a un cargo pendiente.
+                Saldo Disponible: <strong>${(applyingPayment.amount - getAppliedAmount(applyingPayment)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
               </p>
+              
               <form onSubmit={handleApplySubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Seleccionar Cargo a Pagar</label>
-                  <select 
-                    required 
-                    value={targetChargeId} 
-                    onChange={e => setTargetChargeId(e.target.value)}
-                    className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 border"
-                  >
-                    <option value="">-- Elegir comprobante adeudado --</option>
-                    {selectedClient?.transactions
-                      .filter(t => t.type === 'CHARGE' && getAppliedAmount(t) < t.amount)
-                      .map(t => (
-                        <option key={t.id} value={t.id}>
-                          {new Date(t.date).toLocaleDateString('es-AR')} - {t.description} (Debe: ${(t.amount - getAppliedAmount(t)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
-                        </option>
-                      ))
-                    }
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Importe a Aplicar ($)</label>
-                  <input 
-                    type="number" 
-                    required 
-                    min="0.01" 
-                    step="0.01"
-                    max={applyingPayment.amount - getAppliedAmount(applyingPayment)}
-                    value={applyAmount} 
-                    onChange={e => setApplyAmount(e.target.value)}
-                    className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 border"
-                  />
-                </div>
+                {selectedChargeIds.size > 0 ? (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-800 font-semibold mb-1">Aplicación en lote</p>
+                    <p className="text-sm text-blue-900">
+                      El saldo disponible se aplicará secuencialmente a los <strong>{selectedChargeIds.size}</strong> comprobantes seleccionados (hasta cubrir el saldo o la deuda total).
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Seleccionar Comprobante a Cancelar</label>
+                    <select 
+                      required 
+                      value={targetChargeId} 
+                      onChange={e => setTargetChargeId(e.target.value)}
+                      className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 border text-sm"
+                    >
+                      <option value="">-- Elegir comprobante adeudado --</option>
+                      {selectedClient?.transactions
+                        .filter(t => t.type === 'CHARGE' && getAppliedAmount(t) < t.amount)
+                        .map(t => (
+                          <option key={t.id} value={t.id}>
+                            {new Date(t.date).toLocaleDateString('es-AR')} - Debe: ${(t.amount - getAppliedAmount(t)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </option>
+                        ))
+                      }
+                    </select>
+                  </div>
+                )}
+                
                 <div className="flex justify-end gap-3 mt-6">
                   <button 
                     type="button" 
@@ -687,7 +698,7 @@ export default function CuentasCorrientesPage() {
                     type="submit"
                     className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
                   >
-                    Confirmar Aplicación
+                    {selectedChargeIds.size > 0 ? 'Aplicar a Seleccionados' : 'Confirmar Aplicación'}
                   </button>
                 </div>
               </form>
