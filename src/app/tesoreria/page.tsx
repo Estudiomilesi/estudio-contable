@@ -70,6 +70,7 @@ export default function TesoreriaPage() {
     date: new Date().toISOString().split('T')[0],
     type: 'INCOME',
     account: 'CAJA',
+    toAccount: 'BANCOS FEDE',
     category: 'Honorarios',
     amount: '',
     description: '',
@@ -291,7 +292,7 @@ export default function TesoreriaPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         {/* Formulario */}
-        <div className={`col-span-1 rounded-xl border p-6 shadow-sm h-fit max-h-[800px] overflow-y-auto transition-colors duration-300 ${formData.type === 'INCOME' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+        <div className={`col-span-1 rounded-xl border p-6 shadow-sm h-fit max-h-[800px] overflow-y-auto transition-colors duration-300 ${formData.type === 'INCOME' ? 'bg-green-50 border-green-200' : (formData.type === 'TRANSFER' ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200')}`}>
           <h2 className="mb-4 text-xl font-semibold">Registrar Movimiento</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -303,7 +304,7 @@ export default function TesoreriaPage() {
                   setFormData({
                     ...formData, 
                     type: e.target.value,
-                    category: e.target.value === 'INCOME' ? 'Honorarios' : 'Gastos Generales'
+                    category: e.target.value === 'INCOME' ? 'Honorarios' : (e.target.value === 'TRANSFER' ? 'Pase de Caja' : 'Gastos Generales')
                   });
                   setSelectedCheckIds([]);
                 }} 
@@ -311,6 +312,7 @@ export default function TesoreriaPage() {
               >
                   <option value="INCOME">Ingreso</option>
                   <option value="EXPENSE">Egreso</option>
+                  <option value="TRANSFER">Pase entre cajas</option>
                 </select>
               </div>
               <div>
@@ -321,7 +323,7 @@ export default function TesoreriaPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Cuenta</label>
+                <label className="block text-sm font-medium text-gray-700">{formData.type === 'TRANSFER' ? 'Origen' : 'Cuenta'}</label>
                 <select value={formData.account} onChange={e => {
                   setFormData({...formData, account: e.target.value});
                   setSelectedCheckIds([]);
@@ -334,13 +336,35 @@ export default function TesoreriaPage() {
                 </select>
               </div>
               
-              {formData.account !== 'CHEQUES' && (
+              {formData.type === 'TRANSFER' ? (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Importe ($)</label>
-                  <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold" />
+                  <label className="block text-sm font-medium text-gray-700">Destino</label>
+                  <select value={formData.toAccount} onChange={e => {
+                    setFormData({...formData, toAccount: e.target.value});
+                  }} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="CAJA">Caja</option>
+                    <option value="CAJA IVA">Caja IVA</option>
+                    <option value="BANCOS FEDE">Bancos Fede</option>
+                    <option value="BANCOS JUANMA">Bancos Juanma</option>
+                    <option value="CHEQUES">Cheques</option>
+                  </select>
                 </div>
+              ) : (
+                formData.account !== 'CHEQUES' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Importe ($)</label>
+                    <input type="number" required min="0" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold" />
+                  </div>
+                )
               )}
             </div>
+
+            {formData.type === 'TRANSFER' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Importe a transferir ($)</label>
+                <input type="number" required min="0.01" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold" />
+              </div>
+            )}
 
             {/* CHECK INCOME FIELDS */}
             {formData.account === 'CHEQUES' && formData.type === 'INCOME' && (
@@ -466,7 +490,9 @@ export default function TesoreriaPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Categoría</label>
               <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                {formData.type === 'INCOME' ? (
+                {formData.type === 'TRANSFER' ? (
+                  <option value="Pase de Caja">Pase de Caja (Automático)</option>
+                ) : formData.type === 'INCOME' ? (
                   <>
                     <option value="Honorarios">Honorarios (Fijo)</option>
                     {treasuryConcepts.filter(c => c.type === 'TREASURY_INCOME').map(c => (
@@ -549,8 +575,8 @@ export default function TesoreriaPage() {
               <input type="text" required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ej: Pago internet, Factura N°123..." />
             </div>
             
-            <button type="submit" disabled={formData.account === 'CHEQUES' && formData.type === 'EXPENSE' && selectedCheckIds.length === 0} className={`w-full rounded-md py-2 px-4 text-white font-medium focus:ring-2 focus:ring-offset-2 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : 'bg-red-600 hover:bg-red-700 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed'}`}>
-              Registrar {formData.type === 'INCOME' ? 'Ingreso' : 'Egreso'}
+            <button type="submit" disabled={formData.account === 'CHEQUES' && formData.type === 'EXPENSE' && selectedCheckIds.length === 0} className={`w-full rounded-md py-2 px-4 text-white font-medium focus:ring-2 focus:ring-offset-2 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : (formData.type === 'TRANSFER' ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'bg-red-600 hover:bg-red-700 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed')}`}>
+              Registrar {formData.type === 'INCOME' ? 'Ingreso' : (formData.type === 'TRANSFER' ? 'Pase' : 'Egreso')}
             </button>
           </form>
         </div>

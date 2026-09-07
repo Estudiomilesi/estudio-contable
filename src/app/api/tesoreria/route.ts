@@ -80,8 +80,41 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    let txAmount = parseFloat(data.amount);
 
-    let txAmount = parseFloat(data.amount || '0');
+    if (data.type === 'TRANSFER') {
+      const parsedAmount = Math.abs(txAmount);
+      if (parsedAmount <= 0) return NextResponse.json({ error: 'Importe inválido' }, { status: 400 });
+      if (!data.toAccount || data.account === data.toAccount) {
+        return NextResponse.json({ error: 'Cuenta destino inválida' }, { status: 400 });
+      }
+
+      const txOut = await prisma.treasuryTransaction.create({
+        data: {
+          date: parseToUtcNoon(data.date),
+          amount: -parsedAmount,
+          type: 'TRANSFER',
+          account: data.account,
+          category: 'Pase de Caja',
+          description: data.description || `Pase hacia ${data.toAccount}`,
+        }
+      });
+
+      const txIn = await prisma.treasuryTransaction.create({
+        data: {
+          date: parseToUtcNoon(data.date),
+          amount: parsedAmount,
+          type: 'TRANSFER',
+          account: data.toAccount,
+          category: 'Pase de Caja',
+          description: data.description || `Pase desde ${data.account}`,
+        }
+      });
+
+      return NextResponse.json({ success: true }, { status: 201 });
+    }
+    
+    txAmount = parseFloat(data.amount || '0');
     
     // Si es un egreso de cheques, sumamos los cheques seleccionados
     if (data.account === 'CHEQUES' && data.type !== 'INCOME') {
