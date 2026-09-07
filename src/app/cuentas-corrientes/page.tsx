@@ -8,6 +8,9 @@ import { FileSpreadsheet, FileText, Send } from 'lucide-react';
 type PaymentApplication = {
   id: string;
   amount: number;
+  payment?: {
+    description: string | null;
+  };
 };
 
 type Transaction = {
@@ -579,7 +582,14 @@ export default function CuentasCorrientesPage() {
                           <td className="px-3 py-3 text-center text-sm whitespace-nowrap space-y-1">
                             {isCharge ? (
                               isFullyApplied ? (
-                                <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-800">Pagado</span>
+                                (() => {
+                                  // Revisar si algún pago aplicado es NC
+                                  const isAppliedByNC = tx.paymentsApplied?.some(app => app.payment?.description?.includes('NC -') || app.payment?.description?.includes('Anula Comprobantes'));
+                                  if (isAppliedByNC) {
+                                    return <span className="inline-flex rounded-full bg-blue-100 px-2 py-1 text-xs font-bold text-blue-800">Aplicado</span>;
+                                  }
+                                  return <span className="inline-flex rounded-full bg-green-100 px-2 py-1 text-xs font-bold text-green-800">Pagado</span>;
+                                })()
                               ) : (
                                 <div className="flex flex-col items-center gap-1">
                                   <span className="inline-flex rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold text-red-800">

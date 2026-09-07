@@ -11,7 +11,13 @@ export async function GET(request: Request) {
       include: {
         accountTransactions: {
           include: {
-            paymentsApplied: true,
+            paymentsApplied: {
+              include: {
+                payment: {
+                  select: { description: true }
+                }
+              }
+            },
             chargesCovered: true
           },
           orderBy: [

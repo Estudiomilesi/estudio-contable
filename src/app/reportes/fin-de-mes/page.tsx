@@ -102,7 +102,7 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
       type: 'PAYMENT',
       date: { gte: firstDay, lte: lastDay },
       NOT: [
-        { description: { startsWith: 'NC:' } },
+        { description: { startsWith: 'NC' } },
         { description: { contains: 'aldo a favor' } }
       ]
     },

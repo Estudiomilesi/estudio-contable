@@ -34,7 +34,7 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
 
   if (!isFacturado) {
     whereClause.NOT = [
-      { description: { startsWith: 'NC:' } },
+      { description: { startsWith: 'NC' } },
       { description: { contains: 'aldo a favor' } }
     ];
   }

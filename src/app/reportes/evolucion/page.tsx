@@ -31,7 +31,7 @@ export default async function EvolucionPage() {
       type: 'PAYMENT',
       date: { gte: startDate, lte: endDate },
       NOT: [
-        { description: { startsWith: 'NC:' } },
+        { description: { startsWith: 'NC' } },
         { description: { contains: 'aldo a favor' } }
       ],
       client: whereClient

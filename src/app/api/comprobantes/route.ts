@@ -104,7 +104,7 @@ export async function POST(request: Request) {
         dueDate: txDueDate,
         type: comprobanteType === 'FACTURA' ? 'CHARGE' : 'PAYMENT',
         billingProfile,
-        description,
+        description: comprobanteType === 'NOTA_CREDITO' && !description.startsWith('NC') ? `NC - ${description}` : description,
         amount,
         netAmount,
         ivaAmount,

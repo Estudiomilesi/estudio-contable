@@ -45,7 +45,7 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
           type: typeFilter,
           date: { gte: startDate },
           NOT: isFacturado ? [] : [
-            { description: { startsWith: 'NC:' } },
+            { description: { startsWith: 'NC' } },
             { description: { contains: 'aldo a favor' } }
           ]
         },
