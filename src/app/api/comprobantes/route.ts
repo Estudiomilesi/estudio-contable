@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     const whereClause: any = {
       OR: [
         { type: 'CHARGE' },
-        { type: 'PAYMENT', description: { startsWith: 'NC:' } }
+        { type: 'PAYMENT', description: { startsWith: 'NC' } }
       ]
     };
 
