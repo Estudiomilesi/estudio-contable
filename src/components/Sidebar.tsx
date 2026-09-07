@@ -25,15 +25,17 @@ export default function Sidebar({ userRole }: { userRole?: string }) {
 
   return (
     <div 
-      className={`flex h-full flex-col bg-gray-900 text-white transition-all duration-300 ${isHovered ? 'w-64' : 'w-20'}`}
+      className={`flex h-full flex-col bg-black text-white transition-all duration-300 ${isHovered ? 'w-64' : 'w-20'}`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex h-16 items-center justify-center border-b border-gray-800 px-4">
+      <div className="flex h-20 items-center justify-center border-b border-gray-800 px-4">
         {isHovered ? (
-          <h1 className="text-xl font-bold whitespace-nowrap overflow-hidden">Estudio Contable</h1>
+          <img src="/logo-dark.png" alt="Estudio Jurídico Contable" className="h-14 object-contain" />
         ) : (
-          <span className="text-xl font-bold">EC</span>
+          <div className="w-10 h-10 overflow-hidden relative">
+            <img src="/logo-dark.png" alt="EC" className="h-14 absolute top-1/2 left-0 -translate-y-1/2" style={{ maxWidth: 'max-content' }} />
+          </div>
         )}
       </div>
       <nav className="flex-1 space-y-2 p-4">

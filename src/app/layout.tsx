@@ -6,7 +6,7 @@ import Sidebar from '@/components/Sidebar';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Estudio Contable - Gestión',
+  title: 'Estudio Jurídico Contable - Gestión',
   description: 'Sistema de gestión de abonos, tesorería y reportes',
 };
 
