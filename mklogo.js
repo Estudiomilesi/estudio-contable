@@ -1,0 +1,1 @@
+const fs = require('fs'); const img = fs.readFileSync('public/logo-dark.png'); fs.writeFileSync('src/lib/logo.ts', 'export const LOGO_BASE64 = data:image/png;base64,' + img.toString('base64') + ';\n');  

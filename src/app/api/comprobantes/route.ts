@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
     const comprobantes = await prisma.accountTransaction.findMany({
       where: whereClause,
-      include: { client: { select: { name: true, professionalLabel: true } } },
+      include: { client: { select: { name: true, professionalLabel: true, defaultBankAccountId: true } }, items: true },
       orderBy: { createdAt: 'desc' },
       take: 100
     });

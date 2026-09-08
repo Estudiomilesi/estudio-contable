@@ -55,9 +55,28 @@ model Client {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
+  defaultBankAccountId String?
+  defaultBankAccount   BankAccount?    @relation("ClientBankAccount", fields: [defaultBankAccountId], references: [id])
+
   accountTransactions AccountTransaction[]
   treasuryTransactions TreasuryTransaction[]
   checks              Check[]
+}
+
+model BankAccount {
+  id                String   @id @default(cuid())
+  name              String
+  cbu               String?
+  cvu               String?
+  alias             String?
+  owner             String
+  isFedeRIDefault   Boolean  @default(false)
+  isJuanmaMonoDefault Boolean @default(false)
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  clients           Client[] @relation("ClientBankAccount")
 }
 
 enum TransactionType {

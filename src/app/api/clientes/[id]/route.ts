@@ -22,6 +22,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         fiscalCondition: data.fiscalCondition !== undefined ? data.fiscalCondition : existingCliente.fiscalCondition,
         professionalLabel: data.professionalLabel ?? existingCliente.professionalLabel,
         defaultBillingProfile: data.defaultBillingProfile ?? existingCliente.defaultBillingProfile,
+        defaultBankAccountId: data.defaultBankAccountId !== undefined ? data.defaultBankAccountId : existingCliente.defaultBankAccountId,
         currentFee: data.currentFee !== undefined ? parseFloat(data.currentFee) : existingCliente.currentFee,
         isActive: data.isActive !== undefined ? data.isActive : existingCliente.isActive,
         hasAbono: data.hasAbono !== undefined ? data.hasAbono : existingCliente.hasAbono,

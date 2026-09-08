@@ -18,6 +18,7 @@ type Client = {
   isActive: boolean;
   hasAbono: boolean;
   defaultBillingProfile: string;
+  defaultBankAccountId: string | null;
 };
 
 const initialForm = {
@@ -32,6 +33,7 @@ const initialForm = {
   fiscalCondition: '',
   professionalLabel: 'F',
   defaultBillingProfile: 'NO_FISCAL',
+  defaultBankAccountId: '',
   currentFee: 0,
   isActive: true,
   hasAbono: true,
@@ -55,6 +57,7 @@ export default function ClientesPage() {
   }, []);
 
   const [clientes, setClientes] = useState<Client[]>([]);
+  const [bancos, setBancos] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
@@ -70,6 +73,8 @@ export default function ClientesPage() {
       const res = await fetch('/api/clientes');
       const data = await res.json();
       setClientes(data);
+      const resB = await fetch('/api/bancos');
+      if (resB.ok) setBancos(await resB.json());
     } catch (error) {
       console.error(error);
     } finally {
@@ -187,6 +192,7 @@ export default function ClientesPage() {
       fiscalCondition: c.fiscalCondition || '',
       professionalLabel: c.professionalLabel,
       defaultBillingProfile: c.defaultBillingProfile || 'NO_FISCAL',
+      defaultBankAccountId: c.defaultBankAccountId || '',
       currentFee: c.currentFee,
       isActive: c.isActive,
       hasAbono: c.hasAbono,
@@ -281,6 +287,19 @@ export default function ClientesPage() {
                 <label className="block text-sm font-medium text-gray-700">Abono Neto($)</label>
                 <input type="number" min="0" step="0.01" value={formData.currentFee} onChange={e => setFormData({...formData, currentFee: parseFloat(e.target.value)})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
               </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Cuenta de Cobro Predeterminada <span className="text-xs text-gray-400 font-normal">(solo para Perfil No Fiscal)</span></label>
+              <select 
+                value={formData.defaultBankAccountId || ''} 
+                onChange={e => setFormData({...formData, defaultBankAccountId: e.target.value})} 
+                className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="">-- Sin cuenta predeterminada --</option>
+                {bancos.map(b => (
+                  <option key={b.id} value={b.id}>{b.name} ({b.owner})</option>
+                ))}
+              </select>
             </div>
             {/* Opcionales */}
             <details className="text-sm text-gray-800" open={isEditing}>
