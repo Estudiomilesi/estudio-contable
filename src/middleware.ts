@@ -40,6 +40,9 @@ export async function middleware(request: NextRequest) {
     }
     
     const requestHeaders = new Headers(request.headers);
+    if (payload.email) {
+      requestHeaders.set('x-user-email', payload.email as string);
+    }
     if (payload.email === 'juanmartin@estudiomilesi.com') {
       requestHeaders.set('x-is-juanma', 'true');
     }

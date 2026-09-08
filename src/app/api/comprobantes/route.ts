@@ -118,6 +118,10 @@ export async function POST(request: Request) {
             amount: parseFloat(i.amount)
           }))
         }
+      },
+      include: {
+        client: { select: { name: true, professionalLabel: true, defaultBankAccountId: true, email: true } },
+        items: true
       }
     });
 

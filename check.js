@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient(); async function main() { const txs = await prisma.accountTransaction.findMany({ where: { billingProfile: 'NO_FISCAL', receiptNumber: { startsWith: 'FACT-' } }, orderBy: { createdAt: 'asc' } }); console.log(txs.map(t = t.id, n: t.receiptNumber}))); } main();  

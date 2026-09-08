@@ -83,6 +83,7 @@ export default function ComprobantesPage() {
   const [items, setItems] = useState<{concept: string, amount: string}[]>([{ concept: '', amount: '' }]);
   
   const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [sendEmail, setSendEmail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -190,6 +191,26 @@ export default function ComprobantesPage() {
       });
 
       if (res.ok) {
+        const createdComp = await res.json();
+        
+        if (sendEmail && createdComp.billingProfile === 'NO_FISCAL' && createdComp.client?.email) {
+          try {
+            const doc = generatePdfDoc(createdComp);
+            const pdfBase64 = doc.output('datauristring');
+            await fetch('/api/comprobantes/enviar', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: createdComp.id, pdfBase64 })
+            });
+            alert('Comprobante generado y enviado por email con éxito.');
+          } catch (e) {
+            console.error(e);
+            alert('Comprobante generado, pero hubo un error al enviarlo por email.');
+          }
+        } else {
+          alert('Comprobante generado con éxito.');
+        }
+
         setForm({
           comprobanteType: 'FACTURA',
           clientId: '',
@@ -206,8 +227,8 @@ export default function ComprobantesPage() {
         setClientSearch('');
         setItems([{ concept: '', amount: '' }]);
         setPdfFile(null);
+        setSendEmail(false);
         fetchData();
-        alert('Comprobante generado con éxito.');
       } else {
         const err = await res.json();
         alert('Error: ' + err.error);
@@ -234,6 +255,162 @@ export default function ComprobantesPage() {
     }
   };
 
+  const generatePdfDoc = (c: Comprobante) => {
+    const doc = new jsPDF({ compress: true });
+    
+    // LOGO
+    doc.addImage(LOGO_BASE64, 'PNG', 15, 15, 30, 21.2, undefined, 'FAST');
+    
+    // HEADER TEXT
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    const studioName = c.client.professionalLabel === 'F' ? "Estudio Milesi" : "Estudio Contable F & J";
+    doc.text(studioName, 15, 42);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text("Servicios Contables e Impositivos", 15, 48);
+    
+    // TIPO DE COMPROBANTE BOX
+    doc.setDrawColor(200);
+    doc.setFillColor(245, 247, 250);
+    doc.roundedRect(105, 15, 90, 25, 3, 3, 'FD');
+    
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    const isNC = c.type === 'PAYMENT';
+    doc.text(isNC ? "NOTA DE CRÉDITO" : "COMPROBANTE DE HONORARIOS", 150, 24, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`N°: ${c.receiptNumber || 'S/N'}`, 150, 32, { align: 'center' });
+    doc.text(`Fecha: ${new Date(c.date).toLocaleDateString('es-AR')}`, 150, 38, { align: 'center' });
+    
+    // DIVIDER
+    doc.setDrawColor(220);
+    doc.line(15, 55, 195, 55);
+    
+    // CLIENT INFO
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text("DATOS DEL CLIENTE", 15, 65);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Señor/es: ${c.client.name}`, 15, 73);
+    
+    // DETAIL TABLE
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "bold");
+    doc.text("DETALLE", 15, 90);
+    
+    doc.setFillColor(240, 240, 240);
+    doc.rect(15, 95, 180, 10, 'F');
+    
+    doc.setFontSize(10);
+    doc.text("Descripción", 20, 101.5);
+    doc.text("Importe", 185, 101.5, { align: 'right' });
+    
+    doc.setFont("helvetica", "normal");
+    
+    // We might have items array, or just a description
+    let y = 112;
+    if (c.items && c.items.length > 0) {
+      c.items.forEach(item => {
+        doc.text(item.concept, 20, y);
+        doc.text(`$${item.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y, { align: 'right' });
+        y += 8;
+      });
+    } else {
+      // Fallback for old comprobantes without items
+      doc.text('Honorarios Contables', 20, y);
+      doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y, { align: 'right' });
+      y += 8;
+    }
+    
+    let manualDesc = "";
+    if (c.items && c.items.length > 0) {
+      const baseDesc = c.items.map(i => i.concept).join(' + ');
+      if (c.description && c.description.startsWith(baseDesc + ' (')) {
+        manualDesc = c.description.slice(baseDesc.length + 2, -1);
+      }
+    } else {
+      manualDesc = c.description;
+    }
+    
+    if (manualDesc) {
+      y += 4;
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(100);
+      // split description into lines to avoid overflow
+      const descLines = doc.splitTextToSize(`Observaciones: ${manualDesc}`, 170);
+      doc.text(descLines, 20, y);
+      y += descLines.length * 5 + 4;
+    }
+
+    // TOTAL BOX
+    doc.setDrawColor(200);
+    doc.line(15, y, 195, y);
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text("TOTAL:", 120, y + 10);
+    doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y + 10, { align: 'right' });
+    
+    // BANK ACCOUNTS
+    // Determine which bank to use
+    let bank = null;
+    if (c.billingProfile === 'FEDE_RI') {
+      bank = bancos.find(b => b.isFedeRIDefault);
+    } else if (c.billingProfile === 'JUANMA_MONO') {
+      bank = bancos.find(b => b.isJuanmaMonoDefault);
+    } else {
+      // NO_FISCAL uses client's default bank
+      bank = bancos.find(b => b.id === c.client.defaultBankAccountId);
+    }
+
+    let nextY = y + 25;
+    
+    if (bank && !isNC) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(50);
+      doc.text("DATOS PARA TRANSFERENCIA:", 15, nextY);
+      
+      doc.setFont("helvetica", "normal");
+      nextY += 6;
+      doc.text(`Titular: ${bank.owner}`, 15, nextY);
+      if (bank.cuit) { nextY += 6; doc.text(`CUIT: ${bank.cuit}`, 15, nextY); }
+      if (bank.cbu || bank.cvu) { nextY += 6; doc.text(`CBU / CVU: ${bank.cbu || bank.cvu}`, 15, nextY); }
+      if (bank.alias) { nextY += 6; doc.text(`Alias: ${bank.alias}`, 15, nextY); }
+    }
+    
+    // FOOTER
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100);
+    doc.text("¡Muchas gracias por confiar en nuestros servicios!", 105, 275, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150);
+    
+    if (c.client.professionalLabel === 'F') {
+      doc.text("CP. Federico Milesi", 105, 285, { align: 'center' });
+    } else {
+      doc.text("CP. Federico Milesi", 105, 280, { align: 'center' });
+      doc.text("CP. Juan Martin Brigi", 105, 285, { align: 'center' });
+    }
+
+    return doc;
+  };
+
   const handleDownload = (c: Comprobante) => {
     if (c.billingProfile !== 'NO_FISCAL' && c.receiptFileBase64) {
       const a = document.createElement("a");
@@ -241,158 +418,7 @@ export default function ComprobantesPage() {
       a.download = `Comprobante_${c.receiptNumber || 'AFIP'}.pdf`;
       a.click();
     } else {
-      const doc = new jsPDF({ compress: true });
-      
-      // LOGO
-      doc.addImage(LOGO_BASE64, 'PNG', 15, 15, 30, 21.2, undefined, 'FAST');
-      
-      // HEADER TEXT
-      doc.setFontSize(16);
-      doc.setFont("helvetica", "bold");
-      const studioName = c.client.professionalLabel === 'F' ? "Estudio Milesi" : "Estudio Contable F & J";
-      doc.text(studioName, 15, 42);
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100);
-      doc.text("Servicios Contables e Impositivos", 15, 48);
-      
-      // TIPO DE COMPROBANTE BOX
-      doc.setDrawColor(200);
-      doc.setFillColor(245, 247, 250);
-      doc.roundedRect(105, 15, 90, 25, 3, 3, 'FD');
-      
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0);
-      const isNC = c.type === 'PAYMENT';
-      doc.text(isNC ? "NOTA DE CRÉDITO" : "COMPROBANTE DE HONORARIOS", 150, 24, { align: 'center' });
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(100);
-      doc.text(`N°: ${c.receiptNumber || 'S/N'}`, 150, 32, { align: 'center' });
-      doc.text(`Fecha: ${new Date(c.date).toLocaleDateString('es-AR')}`, 150, 38, { align: 'center' });
-      
-      // DIVIDER
-      doc.setDrawColor(220);
-      doc.line(15, 55, 195, 55);
-      
-      // CLIENT INFO
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0);
-      doc.text("DATOS DEL CLIENTE", 15, 65);
-      
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(`Señor/es: ${c.client.name}`, 15, 73);
-      
-      // DETAIL TABLE
-      doc.setFontSize(11);
-      doc.setFont("helvetica", "bold");
-      doc.text("DETALLE", 15, 90);
-      
-      doc.setFillColor(240, 240, 240);
-      doc.rect(15, 95, 180, 10, 'F');
-      
-      doc.setFontSize(10);
-      doc.text("Descripción", 20, 101.5);
-      doc.text("Importe", 185, 101.5, { align: 'right' });
-      
-      doc.setFont("helvetica", "normal");
-      
-      // We might have items array, or just a description
-      let y = 112;
-      if (c.items && c.items.length > 0) {
-        c.items.forEach(item => {
-          doc.text(item.concept, 20, y);
-          doc.text(`$${item.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y, { align: 'right' });
-          y += 8;
-        });
-      } else {
-        // Fallback for old comprobantes without items
-        doc.text('Honorarios Contables', 20, y);
-        doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y, { align: 'right' });
-        y += 8;
-      }
-      
-      let manualDesc = "";
-      if (c.items && c.items.length > 0) {
-        const baseDesc = c.items.map(i => i.concept).join(' + ');
-        if (c.description && c.description.startsWith(baseDesc + ' (')) {
-          manualDesc = c.description.slice(baseDesc.length + 2, -1);
-        }
-      } else {
-        manualDesc = c.description;
-      }
-      
-      if (manualDesc) {
-        y += 4;
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "italic");
-        doc.setTextColor(100);
-        // split description into lines to avoid overflow
-        const descLines = doc.splitTextToSize(`Observaciones: ${manualDesc}`, 170);
-        doc.text(descLines, 20, y);
-        y += descLines.length * 5 + 4;
-      }
-
-      // TOTAL BOX
-      doc.setDrawColor(200);
-      doc.line(15, y, 195, y);
-      
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(0);
-      doc.text("TOTAL:", 120, y + 10);
-      doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y + 10, { align: 'right' });
-      
-      // BANK ACCOUNTS
-      // Determine which bank to use
-      let bank = null;
-      if (c.billingProfile === 'FEDE_RI') {
-        bank = bancos.find(b => b.isFedeRIDefault);
-      } else if (c.billingProfile === 'JUANMA_MONO') {
-        bank = bancos.find(b => b.isJuanmaMonoDefault);
-      } else {
-        // NO_FISCAL uses client's default bank
-        bank = bancos.find(b => b.id === c.client.defaultBankAccountId);
-      }
-
-      let nextY = y + 25;
-      
-      if (bank && !isNC) {
-        doc.setFontSize(10);
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(50);
-        doc.text("DATOS PARA TRANSFERENCIA:", 15, nextY);
-        
-        doc.setFont("helvetica", "normal");
-        nextY += 6;
-        doc.text(`Titular: ${bank.owner}`, 15, nextY);
-        if (bank.cuit) { nextY += 6; doc.text(`CUIT: ${bank.cuit}`, 15, nextY); }
-        if (bank.cbu || bank.cvu) { nextY += 6; doc.text(`CBU / CVU: ${bank.cbu || bank.cvu}`, 15, nextY); }
-        if (bank.alias) { nextY += 6; doc.text(`Alias: ${bank.alias}`, 15, nextY); }
-      }
-      
-      // FOOTER
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "italic");
-      doc.setTextColor(100);
-      doc.text("¡Muchas gracias por confiar en nuestros servicios!", 105, 275, { align: 'center' });
-
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
-      doc.setTextColor(150);
-      
-      if (c.client.professionalLabel === 'F') {
-        doc.text("CP. Federico Milesi", 105, 285, { align: 'center' });
-      } else {
-        doc.text("CP. Federico Milesi", 105, 280, { align: 'center' });
-        doc.text("CP. Juan Martin Brigi", 105, 285, { align: 'center' });
-      }
-
+      const doc = generatePdfDoc(c);
       doc.save(`Comprobante_${c.receiptNumber || 'Interno'}.pdf`);
     }
   };
@@ -696,6 +722,18 @@ export default function ComprobantesPage() {
                   />
                 </div>
               </div>
+            )}
+            
+            {!isFiscal && (
+              <label className="flex items-center mt-2 pb-2">
+                <input 
+                  type="checkbox" 
+                  checked={sendEmail}
+                  onChange={e => setSendEmail(e.target.checked)}
+                  className="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+                />
+                <span className="ml-2 text-sm text-gray-700 font-medium">Enviar comprobante automáticamente al cliente por email</span>
+              </label>
             )}
 
             <button
