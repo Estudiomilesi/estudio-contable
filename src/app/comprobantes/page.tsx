@@ -260,19 +260,19 @@ export default function ComprobantesPage() {
       // TIPO DE COMPROBANTE BOX
       doc.setDrawColor(200);
       doc.setFillColor(245, 247, 250);
-      doc.roundedRect(120, 15, 75, 25, 3, 3, 'FD');
+      doc.roundedRect(105, 15, 90, 25, 3, 3, 'FD');
       
-      doc.setFontSize(14);
+      doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0);
       const isNC = c.type === 'PAYMENT';
-      doc.text(isNC ? "NOTA DE CRÉDITO" : "COMPROBANTE DE HONORARIOS", 157.5, 24, { align: 'center' });
+      doc.text(isNC ? "NOTA DE CRÉDITO" : "COMPROBANTE DE HONORARIOS", 150, 24, { align: 'center' });
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100);
-      doc.text(`N°: ${c.receiptNumber || 'S/N'}`, 157.5, 32, { align: 'center' });
-      doc.text(`Fecha: ${new Date(c.date).toLocaleDateString('es-AR')}`, 157.5, 38, { align: 'center' });
+      doc.text(`N°: ${c.receiptNumber || 'S/N'}`, 150, 32, { align: 'center' });
+      doc.text(`Fecha: ${new Date(c.date).toLocaleDateString('es-AR')}`, 150, 38, { align: 'center' });
       
       // DIVIDER
       doc.setDrawColor(220);
