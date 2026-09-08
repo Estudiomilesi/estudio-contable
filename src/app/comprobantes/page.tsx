@@ -241,10 +241,10 @@ export default function ComprobantesPage() {
       a.download = `Comprobante_${c.receiptNumber || 'AFIP'}.pdf`;
       a.click();
     } else {
-      const doc = new jsPDF();
+      const doc = new jsPDF({ compress: true });
       
       // LOGO
-      doc.addImage(LOGO_BASE64, 'PNG', 15, 15, 30, 21.2);
+      doc.addImage(LOGO_BASE64, 'PNG', 15, 15, 30, 21.2, undefined, 'FAST');
       
       // HEADER TEXT
       doc.setFontSize(16);
@@ -266,7 +266,7 @@ export default function ComprobantesPage() {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0);
       const isNC = c.type === 'PAYMENT';
-      doc.text(isNC ? "NOTA DE CRÉDITO" : "FACTURA NO FISCAL", 157.5, 24, { align: 'center' });
+      doc.text(isNC ? "NOTA DE CRÉDITO" : "COMPROBANTE DE HONORARIOS", 157.5, 24, { align: 'center' });
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
@@ -377,7 +377,13 @@ export default function ComprobantesPage() {
       }
       
       // FOOTER
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(100);
+      doc.text("¡Muchas gracias por confiar en nuestros servicios!", 105, 275, { align: 'center' });
+
       doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
       doc.setTextColor(150);
       
       if (c.client.professionalLabel === 'F') {
