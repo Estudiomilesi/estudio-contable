@@ -317,13 +317,23 @@ export default function ComprobantesPage() {
         y += 8;
       }
       
-      if (c.description) {
+      let manualDesc = "";
+      if (c.items && c.items.length > 0) {
+        const baseDesc = c.items.map(i => i.concept).join(' + ');
+        if (c.description && c.description.startsWith(baseDesc + ' (')) {
+          manualDesc = c.description.slice(baseDesc.length + 2, -1);
+        }
+      } else {
+        manualDesc = c.description;
+      }
+      
+      if (manualDesc) {
         y += 4;
         doc.setFontSize(9);
         doc.setFont("helvetica", "italic");
         doc.setTextColor(100);
         // split description into lines to avoid overflow
-        const descLines = doc.splitTextToSize(`Observaciones: ${c.description}`, 170);
+        const descLines = doc.splitTextToSize(`Observaciones: ${manualDesc}`, 170);
         doc.text(descLines, 20, y);
         y += descLines.length * 5 + 4;
       }
