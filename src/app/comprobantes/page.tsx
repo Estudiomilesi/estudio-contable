@@ -244,17 +244,18 @@ export default function ComprobantesPage() {
       const doc = new jsPDF();
       
       // LOGO
-      doc.addImage(LOGO_BASE64, 'PNG', 15, 15, 50, 15);
+      doc.addImage(LOGO_BASE64, 'PNG', 15, 15, 30, 21.2);
       
       // HEADER TEXT
       doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("Estudio Milesi", 15, 40);
+      const studioName = c.client.professionalLabel === 'F' ? "Estudio Milesi" : "Estudio Contable F & J";
+      doc.text(studioName, 15, 42);
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.setTextColor(100);
-      doc.text("Servicios Contables e Impositivos", 15, 46);
+      doc.text("Servicios Contables e Impositivos", 15, 48);
       
       // TIPO DE COMPROBANTE BOX
       doc.setDrawColor(200);
@@ -265,7 +266,7 @@ export default function ComprobantesPage() {
       doc.setFont("helvetica", "bold");
       doc.setTextColor(0);
       const isNC = c.type === 'PAYMENT';
-      doc.text(isNC ? "NOTA DE CRÉDITO" : "RECIBO PROVISORIO", 157.5, 24, { align: 'center' });
+      doc.text(isNC ? "NOTA DE CRÉDITO" : "FACTURA NO FISCAL", 157.5, 24, { align: 'center' });
       
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
@@ -297,7 +298,7 @@ export default function ComprobantesPage() {
       
       doc.setFontSize(10);
       doc.text("Descripción", 20, 101.5);
-      doc.text("Importe", 175, 101.5, { align: 'right' });
+      doc.text("Importe", 185, 101.5, { align: 'right' });
       
       doc.setFont("helvetica", "normal");
       
@@ -306,23 +307,36 @@ export default function ComprobantesPage() {
       if (c.items && c.items.length > 0) {
         c.items.forEach(item => {
           doc.text(item.concept, 20, y);
-          doc.text(`$${item.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 175, y, { align: 'right' });
+          doc.text(`$${item.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y, { align: 'right' });
           y += 8;
         });
       } else {
-        doc.text(c.description || 'Honorarios Contables', 20, y);
-        doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 175, y, { align: 'right' });
+        // Fallback for old comprobantes without items
+        doc.text('Honorarios Contables', 20, y);
+        doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y, { align: 'right' });
         y += 8;
       }
       
+      if (c.description) {
+        y += 4;
+        doc.setFontSize(9);
+        doc.setFont("helvetica", "italic");
+        doc.setTextColor(100);
+        // split description into lines to avoid overflow
+        const descLines = doc.splitTextToSize(`Observaciones: ${c.description}`, 170);
+        doc.text(descLines, 20, y);
+        y += descLines.length * 5 + 4;
+      }
+
       // TOTAL BOX
       doc.setDrawColor(200);
-      doc.line(15, y + 5, 195, y + 5);
+      doc.line(15, y, 195, y);
       
       doc.setFontSize(14);
       doc.setFont("helvetica", "bold");
-      doc.text("TOTAL:", 135, y + 15);
-      doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 175, y + 15, { align: 'right' });
+      doc.setTextColor(0);
+      doc.text("TOTAL:", 120, y + 10);
+      doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y + 10, { align: 'right' });
       
       // BANK ACCOUNTS
       // Determine which bank to use
@@ -336,7 +350,7 @@ export default function ComprobantesPage() {
         bank = bancos.find(b => b.id === c.client.defaultBankAccountId);
       }
 
-      let nextY = y + 35;
+      let nextY = y + 25;
       
       if (bank && !isNC) {
         doc.setFontSize(10);
