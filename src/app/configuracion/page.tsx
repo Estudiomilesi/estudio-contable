@@ -19,7 +19,7 @@ export default function ConfiguracionPage() {
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', type: 'BILLING' });
-  const [bankForm, setBankForm] = useState({ name: '', cbu: '', cvu: '', alias: '', owner: '', isFedeRIDefault: false, isJuanmaMonoDefault: false, isActive: true });
+  const [bankForm, setBankForm] = useState({ name: '', cbu: '', cvu: '', alias: '', owner: '', cuit: '', isFedeRIDefault: false, isJuanmaMonoDefault: false, isActive: true });
 
   useEffect(() => {
     fetchConceptos();
@@ -133,13 +133,13 @@ export default function ConfiguracionPage() {
 
   const openNewBank = () => {
     setEditingId(null);
-    setBankForm({ name: '', cbu: '', cvu: '', alias: '', owner: '', isFedeRIDefault: false, isJuanmaMonoDefault: false, isActive: true });
+    setBankForm({ name: '', cbu: '', cvu: '', alias: '', owner: '', cuit: '', isFedeRIDefault: false, isJuanmaMonoDefault: false, isActive: true });
     setIsBankModalOpen(true);
   };
 
   const openEditBank = (b: any) => {
     setEditingId(b.id);
-    setBankForm({ name: b.name, cbu: b.cbu || '', cvu: b.cvu || '', alias: b.alias || '', owner: b.owner, isFedeRIDefault: b.isFedeRIDefault, isJuanmaMonoDefault: b.isJuanmaMonoDefault, isActive: b.isActive });
+    setBankForm({ name: b.name, cbu: b.cbu || '', cvu: b.cvu || '', alias: b.alias || '', owner: b.owner, cuit: b.cuit || '', isFedeRIDefault: b.isFedeRIDefault, isJuanmaMonoDefault: b.isJuanmaMonoDefault, isActive: b.isActive });
     setIsBankModalOpen(true);
   };
 
@@ -186,8 +186,8 @@ export default function ConfiguracionPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">Nombre</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">Titular</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">CBU / CVU / Alias</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">Titular / CUIT</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">CBU/CVU y Alias</th>
                 <th className="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">Predeterminadas</th>
                 <th className="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase">Acciones</th>
               </tr>
@@ -196,10 +196,12 @@ export default function ConfiguracionPage() {
               {bancos.map(b => (
                 <tr key={b.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{b.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{b.owner}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <div>{b.owner}</div>
+                    {b.cuit && <div className="text-xs text-gray-400">CUIT: {b.cuit}</div>}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
-                    {b.cbu && <div>CBU: {b.cbu}</div>}
-                    {b.cvu && <div>CVU: {b.cvu}</div>}
+                    {(b.cbu || b.cvu) && <div>Nro: {b.cbu || b.cvu}</div>}
                     {b.alias && <div>Alias: {b.alias}</div>}
                   </td>
                   <td className="px-6 py-4 text-center text-sm">
@@ -327,28 +329,30 @@ export default function ConfiguracionPage() {
               {editingId ? 'Editar Cuenta Bancaria' : 'Nueva Cuenta Bancaria'}
             </h3>
             <form onSubmit={handleSaveBank} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nombre (ej: Santander Fede)</label>
-                <input type="text" required value={bankForm.name} onChange={e => setBankForm({...bankForm, name: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
-              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">CBU</label>
-                  <input type="text" value={bankForm.cbu} onChange={e => setBankForm({...bankForm, cbu: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                  <label className="block text-sm font-medium text-gray-700">Nombre (ej: Santander Fede)</label>
+                  <input type="text" required value={bankForm.name} onChange={e => setBankForm({...bankForm, name: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">CVU</label>
-                  <input type="text" value={bankForm.cvu} onChange={e => setBankForm({...bankForm, cvu: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Alias</label>
                   <input type="text" value={bankForm.alias} onChange={e => setBankForm({...bankForm, alias: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">CBU / CVU</label>
+                  <input type="text" value={bankForm.cbu} onChange={e => setBankForm({...bankForm, cbu: e.target.value, cvu: ''})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ingresar CBU o CVU" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Titular de la cuenta</label>
                   <input type="text" required value={bankForm.owner} onChange={e => setBankForm({...bankForm, owner: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">CUIT del titular</label>
+                  <input type="text" value={bankForm.cuit} onChange={e => setBankForm({...bankForm, cuit: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ej: 20-12345678-9" />
                 </div>
               </div>
               <div className="space-y-2 pt-2 border-t mt-4">

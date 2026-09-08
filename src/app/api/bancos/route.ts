@@ -15,7 +15,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
-    const { name, cbu, cvu, alias, owner, isFedeRIDefault, isJuanmaMonoDefault } = data;
+    const { name, cbu, cvu, alias, owner, cuit, isFedeRIDefault, isJuanmaMonoDefault } = data;
     
     if (!name || !owner) {
       return NextResponse.json({ error: 'Faltan campos obligatorios' }, { status: 400 });
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     }
 
     const banco = await prisma.bankAccount.create({
-      data: { name, cbu, cvu, alias, owner, isFedeRIDefault, isJuanmaMonoDefault }
+      data: { name, cbu, cvu, alias, owner, cuit, isFedeRIDefault, isJuanmaMonoDefault }
     });
     return NextResponse.json(banco, { status: 201 });
   } catch (error) {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const data = await request.json();
-    const { id, name, cbu, cvu, alias, owner, isFedeRIDefault, isJuanmaMonoDefault, isActive } = data;
+    const { id, name, cbu, cvu, alias, owner, cuit, isFedeRIDefault, isJuanmaMonoDefault, isActive } = data;
 
     // Reset defaults if needed
     if (isFedeRIDefault) {
@@ -65,7 +65,7 @@ export async function PUT(request: Request) {
 
     const banco = await prisma.bankAccount.update({
       where: { id },
-      data: { name, cbu, cvu, alias, owner, isFedeRIDefault, isJuanmaMonoDefault, isActive }
+      data: { name, cbu, cvu, alias, owner, cuit, isFedeRIDefault, isJuanmaMonoDefault, isActive }
     });
     return NextResponse.json(banco);
   } catch (error) {

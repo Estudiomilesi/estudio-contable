@@ -70,6 +70,7 @@ model BankAccount {
   cvu               String?
   alias             String?
   owner             String
+  cuit              String?
   isFedeRIDefault   Boolean  @default(false)
   isJuanmaMonoDefault Boolean @default(false)
   isActive          Boolean  @default(true)

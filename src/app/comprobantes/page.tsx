@@ -347,8 +347,8 @@ export default function ComprobantesPage() {
         doc.setFont("helvetica", "normal");
         nextY += 6;
         doc.text(`Titular: ${bank.owner}`, 15, nextY);
-        if (bank.cbu) { nextY += 6; doc.text(`CBU: ${bank.cbu}`, 15, nextY); }
-        if (bank.cvu) { nextY += 6; doc.text(`CVU: ${bank.cvu}`, 15, nextY); }
+        if (bank.cuit) { nextY += 6; doc.text(`CUIT: ${bank.cuit}`, 15, nextY); }
+        if (bank.cbu || bank.cvu) { nextY += 6; doc.text(`CBU / CVU: ${bank.cbu || bank.cvu}`, 15, nextY); }
         if (bank.alias) { nextY += 6; doc.text(`Alias: ${bank.alias}`, 15, nextY); }
       }
       
