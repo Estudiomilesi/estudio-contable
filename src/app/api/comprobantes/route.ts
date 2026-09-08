@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       const lastTx = await prisma.accountTransaction.findFirst({
         where: {
           billingProfile: 'NO_FISCAL',
-          receiptNumber: { not: null }
+          receiptNumber: { startsWith: `${prefijo}-` }
         },
         orderBy: { createdAt: 'desc' }
       });
