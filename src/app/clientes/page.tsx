@@ -81,6 +81,16 @@ export default function ClientesPage() {
     fetchClientes();
   }, []);
 
+  useEffect(() => {
+    if (!isEditing && clientes.length > 0) {
+      const nums = clientes
+        .map(c => parseInt(c.code, 10))
+        .filter(n => !isNaN(n) && n !== 999);
+      const max = nums.length > 0 ? Math.max(...nums) : 0;
+      setFormData(prev => ({ ...prev, code: (max + 1).toString() }));
+    }
+  }, [clientes, isEditing]);
+
   const filteredAndSortedClientes = useMemo(() => {
     let result = [...clientes];
     
