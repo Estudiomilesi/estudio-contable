@@ -19,6 +19,7 @@ type Client = {
   hasAbono: boolean;
   defaultBillingProfile: string;
   defaultBankAccountId: string | null;
+  assignedCollaborator: string | null;
 };
 
 const initialForm = {
@@ -37,6 +38,7 @@ const initialForm = {
   currentFee: 0,
   isActive: true,
   hasAbono: true,
+  assignedCollaborator: '',
 };
 
 export default function ClientesPage() {
@@ -58,14 +60,24 @@ export default function ClientesPage() {
 
   const [clientes, setClientes] = useState<Client[]>([]);
   const [bancos, setBancos] = useState<any[]>([]);
+  const [employees, setEmployees] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'clientes' | 'asignaciones'>('clientes');
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
   const [filterBillingProfile, setFilterBillingProfile] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState(initialForm);
+
+  const collaboratorOptions = useMemo(() => {
+    const list = ["Fede", "Juanma"];
+    const empNames = employees
+      .filter(e => e.name.toLowerCase() !== 'gessi')
+      .map(e => e.name);
+    return [...list, ...empNames];
+  }, [employees]);
 
   const fetchClientes = async () => {
     setIsLoading(true);
@@ -75,6 +87,8 @@ export default function ClientesPage() {
       setClientes(data);
       const resB = await fetch('/api/bancos');
       if (resB.ok) setBancos(await resB.json());
+      const resE = await fetch('/api/empleados');
+      if (resE.ok) setEmployees(await resE.json());
     } catch (error) {
       console.error(error);
     } finally {
@@ -156,6 +170,12 @@ export default function ClientesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.hasAbono && !formData.assignedCollaborator) {
+      alert("Al estar activada la opción 'Abono Mensual', debe asignarse un Colaborador Responsable.");
+      return;
+    }
+
     const method = isEditing ? 'PUT' : 'POST';
     const url = isEditing ? `/api/clientes/${formData.id}` : '/api/clientes';
 
@@ -196,6 +216,7 @@ export default function ClientesPage() {
       currentFee: c.currentFee,
       isActive: c.isActive,
       hasAbono: c.hasAbono,
+      assignedCollaborator: c.assignedCollaborator || '',
     });
     setIsEditing(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -223,7 +244,23 @@ export default function ClientesPage() {
         <h1 className="text-3xl font-bold tracking-tight">Gestión de Clientes</h1>
       </div>
 
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div className="flex border-b border-gray-200">
+        <button
+          onClick={() => setActiveTab('clientes')}
+          className={`py-2 px-4 text-sm font-medium border-b-2 ${activeTab === 'clientes' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Directorio de Clientes
+        </button>
+        <button
+          onClick={() => setActiveTab('asignaciones')}
+          className={`py-2 px-4 text-sm font-medium border-b-2 ${activeTab === 'asignaciones' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Asignación de Colaboradores
+        </button>
+      </div>
+
+      {activeTab === 'clientes' && (
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {/* Formulario */}
         <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm sticky top-6 h-fit max-h-[calc(100vh-40px)] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
@@ -245,6 +282,23 @@ export default function ClientesPage() {
                 <label htmlFor="hasAbono" className="text-sm font-medium text-gray-700">Incluir en Abono Mensual</label>
               </div>
             </div>
+
+            {formData.hasAbono && (
+              <div>
+                <label className="block text-sm font-medium text-indigo-700">Colaborador Responsable *</label>
+                <select 
+                  required
+                  value={formData.assignedCollaborator || ''}
+                  onChange={e => setFormData({...formData, assignedCollaborator: e.target.value})}
+                  className="mt-1 block w-full rounded-md border border-indigo-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-indigo-50"
+                >
+                  <option value="">-- Seleccionar Colaborador --</option>
+                  {collaboratorOptions.map((name, idx) => (
+                    <option key={idx} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             
             <div>
               <label className="block text-sm font-medium text-gray-700">Código *</label>
@@ -431,6 +485,85 @@ export default function ClientesPage() {
           </div>
         </div>
       </div>
+      )}
+
+      {activeTab === 'asignaciones' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col max-h-[800px]">
+          <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800">Clientes con Abono</h2>
+            <div className="flex gap-2">
+              <select
+                value={filterLabel}
+                onChange={e => setFilterLabel(e.target.value)}
+                className="rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                <option value="ALL">Todas las Etiquetas</option>
+                <option value="F">Etiqueta F</option>
+                <option value="FJ">Etiqueta FJ</option>
+                <option value="JF">Etiqueta JF</option>
+                {isJuanma && <option value="FJ_JF">Solo FJ y JF</option>}
+              </select>
+            </div>
+          </div>
+          
+          <div className="overflow-auto flex-1">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Cliente</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('professionalLabel')}>Etiqueta</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('assignedCollaborator')}>Colaborador</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredAndSortedClientes.filter(c => c.hasAbono).map(c => (
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{c.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${c.professionalLabel === 'F' ? 'bg-blue-100 text-blue-800' : ''}
+                        ${c.professionalLabel === 'FJ' ? 'bg-purple-100 text-purple-800' : ''}
+                        ${c.professionalLabel === 'JF' ? 'bg-orange-100 text-orange-800' : ''}
+                      `}>
+                        {c.professionalLabel}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {c.assignedCollaborator ? (
+                        <span className="font-medium bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-100">{c.assignedCollaborator}</span>
+                      ) : (
+                        <span className="text-gray-400 italic">Sin asignar</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="p-4 bg-gray-50 border-t border-gray-200">
+            <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Resumen de Asignaciones</h3>
+            <div className="flex flex-wrap gap-4">
+              {Object.entries(
+                filteredAndSortedClientes
+                  .filter(c => c.hasAbono)
+                  .reduce((acc, c) => {
+                    const col = c.assignedCollaborator || 'Sin asignar';
+                    acc[col] = (acc[col] || 0) + 1;
+                    return acc;
+                  }, {} as Record<string, number>)
+              )
+              .sort((a, b) => b[1] - a[1]) // Sort by count descending
+              .map(([colaborador, count]) => (
+                <div key={colaborador} className="bg-white border border-gray-200 rounded-lg px-4 py-2 flex flex-col shadow-sm">
+                  <span className="text-xs text-gray-500 font-medium">{colaborador}</span>
+                  <span className="text-xl font-bold text-indigo-700">{count} <span className="text-sm font-normal text-gray-600">clientes</span></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

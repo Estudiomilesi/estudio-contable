@@ -58,6 +58,8 @@ model Client {
   defaultBankAccountId String?
   defaultBankAccount   BankAccount?    @relation("ClientBankAccount", fields: [defaultBankAccountId], references: [id])
 
+  assignedCollaborator String?
+
   accountTransactions AccountTransaction[]
   treasuryTransactions TreasuryTransaction[]
   checks              Check[]
