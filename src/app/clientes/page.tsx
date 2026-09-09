@@ -84,6 +84,7 @@ export default function ClientesPage() {
   const [sortConfig, setSortConfig] = useState<{ key: keyof Client, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
   const [filterBillingProfile, setFilterBillingProfile] = useState<string>('ALL');
+  const [filterCollaborator, setFilterCollaborator] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState(initialForm);
@@ -142,6 +143,14 @@ export default function ClientesPage() {
       result = result.filter(c => c.defaultBillingProfile === filterBillingProfile);
     }
 
+    if (filterCollaborator !== 'ALL') {
+      if (filterCollaborator === 'Sin asignar') {
+        result = result.filter(c => c.hasAbono && (!c.assignedCollaborator || c.assignedCollaborator.trim() === ''));
+      } else {
+        result = result.filter(c => c.hasAbono && c.assignedCollaborator === filterCollaborator);
+      }
+    }
+
     if (searchTerm && searchTerm.length >= 3) {
       const lowerSearch = searchTerm.toLowerCase();
       result = result.filter(c => 
@@ -175,7 +184,29 @@ export default function ClientesPage() {
       });
     }
     return result;
-  }, [clientes, sortConfig, filterLabel, filterBillingProfile, searchTerm]);
+  }, [clientes, sortConfig, filterLabel, filterBillingProfile, filterCollaborator, searchTerm]);
+
+  const summaryData = useMemo(() => {
+    let result = [...clientes];
+    if (filterLabel !== 'ALL') {
+      if (filterLabel === 'FJ_JF') {
+        result = result.filter(c => c.professionalLabel === 'FJ' || c.professionalLabel === 'JF');
+      } else {
+        result = result.filter(c => c.professionalLabel === filterLabel);
+      }
+    }
+    if (filterBillingProfile !== 'ALL') {
+      result = result.filter(c => c.defaultBillingProfile === filterBillingProfile);
+    }
+    if (searchTerm && searchTerm.length >= 3) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(c => 
+        (c.name?.toLowerCase().includes(lowerSearch) || false) || 
+        (c.code?.toLowerCase().includes(lowerSearch) || false)
+      );
+    }
+    return result.filter(c => c.hasAbono);
+  }, [clientes, filterLabel, filterBillingProfile, searchTerm]);
 
   const requestSort = (key: keyof Client) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -426,7 +457,18 @@ export default function ClientesPage() {
                       </select>
                     </div>
                   </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('assignedCollaborator')}>Colab.</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                    <div className="flex items-center gap-1">
+                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('assignedCollaborator')}>Colab.</span>
+                      <select value={filterCollaborator} onChange={e => setFilterCollaborator(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 bg-white font-normal shadow-sm">
+                        <option value="ALL">Todos</option>
+                        <option value="Sin asignar">Sin asig.</option>
+                        {collaboratorOptions.map((name, idx) => (
+                          <option key={idx} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('defaultBillingProfile')}>Perfil</span>
@@ -500,22 +542,34 @@ export default function ClientesPage() {
           <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0">
             <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Resumen de Asignaciones (Abonos)</h3>
             <div className="flex flex-wrap gap-4">
+              <div 
+                onClick={() => setFilterCollaborator('ALL')}
+                className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-[100px] cursor-pointer hover:shadow-md transition-shadow ${filterCollaborator === 'ALL' ? 'ring-2 ring-indigo-500 bg-indigo-50 text-indigo-900 border-indigo-200' : 'bg-white border-gray-200 text-gray-700'}`}
+              >
+                <span className="text-xs font-medium opacity-80">Todos</span>
+                <span className="text-lg font-bold">{summaryData.length} <span className="text-xs font-normal opacity-80">clientes</span></span>
+              </div>
+              
               {Object.entries(
-                filteredAndSortedClientes
-                  .filter((c: Client) => c.hasAbono)
-                  .reduce((acc: Record<string, number>, c: Client) => {
-                    const col = c.assignedCollaborator || 'Sin asignar';
-                    acc[col] = (acc[col] || 0) + 1;
-                    return acc;
-                  }, {})
+                summaryData.reduce((acc: Record<string, number>, c: Client) => {
+                  const col = c.assignedCollaborator || 'Sin asignar';
+                  acc[col] = (acc[col] || 0) + 1;
+                  return acc;
+                }, {})
               )
               .sort((a, b) => b[1] - a[1])
-              .map(([colaborador, count]) => (
-                <div key={colaborador} className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-[100px] ${getCollabColor(colaborador)}`}>
+              .map(([colaborador, count]) => {
+                const isActive = filterCollaborator === colaborador;
+                return (
+                <div 
+                  key={colaborador} 
+                  onClick={() => setFilterCollaborator(colaborador)}
+                  className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-[100px] cursor-pointer hover:shadow-md transition-shadow ${isActive ? 'ring-2 ring-indigo-500 shadow-md ' : 'opacity-80 hover:opacity-100 '} ${getCollabColor(colaborador)}`}
+                >
                   <span className="text-xs font-medium opacity-80">{colaborador}</span>
                   <span className="text-lg font-bold">{count} <span className="text-xs font-normal opacity-80">clientes</span></span>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         </div>
