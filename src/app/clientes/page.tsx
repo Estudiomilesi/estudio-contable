@@ -41,6 +41,23 @@ const initialForm = {
   assignedCollaborator: '',
 };
 
+const getCollabColor = (name: string) => {
+  if (!name || name === 'Sin asignar') return 'bg-gray-100 text-gray-500 border-gray-200';
+  if (name === 'Fede') return 'bg-cyan-100 text-cyan-800 border-cyan-200';
+  if (name === 'Juanma') return 'bg-amber-100 text-amber-800 border-amber-200';
+  const colors = [
+    'bg-emerald-100 text-emerald-800 border-emerald-200',
+    'bg-rose-100 text-rose-800 border-rose-200',
+    'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+    'bg-lime-100 text-lime-800 border-lime-200',
+    'bg-sky-100 text-sky-800 border-sky-200',
+    'bg-violet-100 text-violet-800 border-violet-200'
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+};
+
 export default function ClientesPage() {
   const [isJuanma, setIsJuanma] = useState(false);
   
@@ -244,23 +261,7 @@ export default function ClientesPage() {
         <h1 className="text-3xl font-bold tracking-tight">Gestión de Clientes</h1>
       </div>
 
-      <div className="flex border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab('clientes')}
-          className={`py-2 px-4 text-sm font-medium border-b-2 ${activeTab === 'clientes' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-        >
-          Directorio de Clientes
-        </button>
-        <button
-          onClick={() => setActiveTab('asignaciones')}
-          className={`py-2 px-4 text-sm font-medium border-b-2 ${activeTab === 'asignaciones' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-        >
-          Asignación de Colaboradores
-        </button>
-      </div>
-
-      {activeTab === 'clientes' && (
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
         {/* Formulario */}
         <div className="col-span-1 rounded-xl border bg-white p-6 shadow-sm sticky top-6 h-fit max-h-[calc(100vh-40px)] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
@@ -412,12 +413,12 @@ export default function ClientesPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Nombre</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Nombre</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
-                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5">
+                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 bg-white font-normal shadow-sm">
                         <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
                         {!isJuanma && <option value="F">F</option>}
                         <option value="FJ">FJ</option>
@@ -425,10 +426,11 @@ export default function ClientesPage() {
                       </select>
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('assignedCollaborator')}>Colab.</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
-                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('defaultBillingProfile')}>Perfil Fac.</span>
-                      <select value={filterBillingProfile} onChange={e => setFilterBillingProfile(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 w-20">
+                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('defaultBillingProfile')}>Perfil</span>
+                      <select value={filterBillingProfile} onChange={e => setFilterBillingProfile(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 w-16 bg-white font-normal shadow-sm">
                         <option value="ALL">Todos</option>
                         <option value="FEDE_RI">RI</option>
                         <option value="JUANMA_MONO">Mono</option>
@@ -436,9 +438,9 @@ export default function ClientesPage() {
                       </select>
                     </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('isActive')}>Estado</th>
-                  <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('isActive')}>Est.</th>
+                  <th className="px-3 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -449,33 +451,44 @@ export default function ClientesPage() {
                 ) : (
                   filteredAndSortedClientes.map((c: Client) => (
                     <tr key={c.id} className={!c.isActive ? 'opacity-50 bg-gray-50' : ''}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{c.code}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{c.name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        <span className={`inline-flex rounded-full px-2 text-xs font-bold leading-5 ${
-                          c.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
-                          c.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
-                          'bg-blue-200 text-blue-900'
+                      <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{c.code}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">{c.name}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
+                        <span className={`inline-flex rounded-full px-2 text-[10px] font-bold leading-5 border ${
+                          c.professionalLabel === 'F' ? 'bg-blue-100 text-blue-800 border-blue-200' : 
+                          c.professionalLabel === 'FJ' ? 'bg-purple-100 text-purple-800 border-purple-200' : 
+                          'bg-orange-100 text-orange-800 border-orange-200'
                         }`}>
                           {c.professionalLabel}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {c.defaultBillingProfile === 'FEDE_RI' ? 'Fede RI' : c.defaultBillingProfile === 'JUANMA_MONO' ? 'JuanMa Mono' : 'No Fiscal'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
-                        ${c.currentFee.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                        {c.isActive ? (
-                          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500"></span> Activo</span>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
+                        {c.hasAbono && c.assignedCollaborator ? (
+                          <span className={`font-medium px-2 py-0.5 rounded border text-[10px] ${getCollabColor(c.assignedCollaborator)}`}>
+                            {c.assignedCollaborator}
+                          </span>
+                        ) : c.hasAbono ? (
+                          <span className="text-gray-400 italic px-2 py-0.5 text-[10px]">Sin asignar</span>
                         ) : (
-                          <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500"></span> Inactivo</span>
+                          <span className="text-gray-300 text-[10px]">-</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right tabular-nums text-sm font-medium flex justify-end gap-2">
-                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 p-1"><Pencil size={18} /></button>
-                        <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 p-1"><Trash2 size={18} /></button>
+                      <td className="px-3 py-2 whitespace-nowrap text-[11px] text-gray-700">
+                        {c.defaultBillingProfile === 'FEDE_RI' ? 'Fede RI' : c.defaultBillingProfile === 'JUANMA_MONO' ? 'JuanMa Mono' : 'No Fiscal'}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700 font-medium">
+                        ${c.currentFee.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
+                        {c.isActive ? (
+                          <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-green-500"></span> Activo</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-red-500"></span> Inactivo</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-right tabular-nums text-xs font-medium flex justify-end gap-1">
+                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 p-1"><Pencil size={14} /></button>
+                        <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 p-1"><Trash2 size={14} /></button>
                       </td>
                     </tr>
                   ))
@@ -483,128 +496,30 @@ export default function ClientesPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
-      )}
-
-      {activeTab === 'asignaciones' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col max-h-[800px]">
-          <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800">Clientes con Abono</h2>
-          </div>
           
-          <div className="overflow-auto flex-1">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Código</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider hover:bg-gray-200">
-                    <div className="flex items-center gap-2">
-                      <span className="cursor-pointer" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
-                      <select 
-                        value={filterLabel}
-                        onChange={(e) => setFilterLabel(e.target.value)}
-                        className="text-xs border-gray-300 rounded font-normal py-0 pl-2 pr-6 h-6 shadow-sm"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <option value="ALL">Todas</option>
-                        {!isJuanma && <option value="F">F</option>}
-                        <option value="FJ">FJ</option>
-                        <option value="JF">JF</option>
-                        {isJuanma && <option value="FJ_JF">FJ/JF</option>}
-                      </select>
-                    </div>
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('assignedCollaborator')}>Colaborador</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAndSortedClientes.filter(c => c.hasAbono).map(c => {
-                  const getCollabColor = (name: string) => {
-                    if (!name) return 'bg-gray-100 text-gray-500 border-gray-200';
-                    if (name === 'Fede') return 'bg-cyan-100 text-cyan-800 border-cyan-200';
-                    if (name === 'Juanma') return 'bg-amber-100 text-amber-800 border-amber-200';
-                    const colors = [
-                      'bg-emerald-100 text-emerald-800 border-emerald-200',
-                      'bg-rose-100 text-rose-800 border-rose-200',
-                      'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
-                      'bg-lime-100 text-lime-800 border-lime-200',
-                      'bg-sky-100 text-sky-800 border-sky-200',
-                      'bg-violet-100 text-violet-800 border-violet-200'
-                    ];
-                    let hash = 0;
-                    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-                    return colors[Math.abs(hash) % colors.length];
-                  };
-                  return (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.code}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{c.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border
-                        ${c.professionalLabel === 'F' ? 'bg-blue-100 text-blue-800 border-blue-200' : ''}
-                        ${c.professionalLabel === 'FJ' ? 'bg-purple-100 text-purple-800 border-purple-200' : ''}
-                        ${c.professionalLabel === 'JF' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''}
-                      `}>
-                        {c.professionalLabel}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {c.assignedCollaborator ? (
-                        <span className={`font-medium px-2 py-1 rounded border ${getCollabColor(c.assignedCollaborator)}`}>
-                          {c.assignedCollaborator}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400 italic px-2 py-1">Sin asignar</span>
-                      )}
-                    </td>
-                  </tr>
-                )})}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="p-4 bg-gray-50 border-t border-gray-200">
-            <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Resumen de Asignaciones</h3>
+          <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0">
+            <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Resumen de Asignaciones (Abonos)</h3>
             <div className="flex flex-wrap gap-4">
               {Object.entries(
                 filteredAndSortedClientes
-                  .filter(c => c.hasAbono)
-                  .reduce((acc, c) => {
+                  .filter((c: Client) => c.hasAbono)
+                  .reduce((acc: Record<string, number>, c: Client) => {
                     const col = c.assignedCollaborator || 'Sin asignar';
                     acc[col] = (acc[col] || 0) + 1;
                     return acc;
-                  }, {} as Record<string, number>)
+                  }, {})
               )
-              .sort((a, b) => b[1] - a[1]) // Sort by count descending
-              .map(([colaborador, count]) => {
-                const getCollabColor = (name: string) => {
-                  if (name === 'Sin asignar') return 'bg-gray-100 text-gray-500 border-gray-200';
-                  if (name === 'Fede') return 'bg-cyan-100 text-cyan-800 border-cyan-200';
-                  if (name === 'Juanma') return 'bg-amber-100 text-amber-800 border-amber-200';
-                  const colors = [
-                    'bg-emerald-100 text-emerald-800 border-emerald-200',
-                    'bg-rose-100 text-rose-800 border-rose-200',
-                    'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
-                    'bg-lime-100 text-lime-800 border-lime-200',
-                    'bg-sky-100 text-sky-800 border-sky-200',
-                    'bg-violet-100 text-violet-800 border-violet-200'
-                  ];
-                  let hash = 0;
-                  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-                  return colors[Math.abs(hash) % colors.length];
-                };
-                return (
-                <div key={colaborador} className={`border rounded-lg px-4 py-2 flex flex-col shadow-sm ${getCollabColor(colaborador)}`}>
+              .sort((a, b) => b[1] - a[1])
+              .map(([colaborador, count]) => (
+                <div key={colaborador} className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-[100px] ${getCollabColor(colaborador)}`}>
                   <span className="text-xs font-medium opacity-80">{colaborador}</span>
-                  <span className="text-xl font-bold">{count} <span className="text-sm font-normal opacity-80">clientes</span></span>
+                  <span className="text-lg font-bold">{count} <span className="text-xs font-normal opacity-80">clientes</span></span>
                 </div>
-              )})}
+              ))}
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
