@@ -42,16 +42,29 @@ const initialForm = {
 };
 
 const getCollabColor = (name: string) => {
-  if (!name || name === 'Sin asignar') return 'bg-gray-100 text-gray-500 border-gray-200';
-  if (name === 'Fede') return 'bg-cyan-100 text-cyan-800 border-cyan-200';
-  if (name === 'Juanma') return 'bg-amber-100 text-amber-800 border-amber-200';
+  const explicitColors: Record<string, string> = {
+    'Sin asignar': 'bg-gray-100 text-gray-500 border-gray-200',
+    'Fede': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    'Juanma': 'bg-amber-100 text-amber-800 border-amber-200',
+    'Alma': 'bg-rose-100 text-rose-800 border-rose-200',
+    'Lucho': 'bg-lime-100 text-lime-800 border-lime-200',
+    'Juli': 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+    'Noe': 'bg-purple-100 text-purple-800 border-purple-200', // distinct from fuchsia
+    'Melisa': 'bg-pink-100 text-pink-800 border-pink-200',
+    'Belén': 'bg-teal-100 text-teal-800 border-teal-200',
+    'Pauli': 'bg-orange-100 text-orange-800 border-orange-200', // distinct from lime
+  };
+  
+  if (!name) return explicitColors['Sin asignar'];
+  if (explicitColors[name]) return explicitColors[name];
+
   const colors = [
     'bg-emerald-100 text-emerald-800 border-emerald-200',
-    'bg-rose-100 text-rose-800 border-rose-200',
-    'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
-    'bg-lime-100 text-lime-800 border-lime-200',
     'bg-sky-100 text-sky-800 border-sky-200',
-    'bg-violet-100 text-violet-800 border-violet-200'
+    'bg-violet-100 text-violet-800 border-violet-200',
+    'bg-red-100 text-red-800 border-red-200',
+    'bg-yellow-100 text-yellow-800 border-yellow-200',
+    'bg-blue-100 text-blue-800 border-blue-200'
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -541,10 +554,10 @@ export default function ClientesPage() {
           
           <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0">
             <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Resumen de Asignaciones (Abonos)</h3>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-nowrap overflow-x-auto gap-3 pb-2 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300">
               <div 
                 onClick={() => setFilterCollaborator('ALL')}
-                className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-[100px] cursor-pointer hover:shadow-md transition-shadow ${filterCollaborator === 'ALL' ? 'ring-2 ring-indigo-500 bg-indigo-50 text-indigo-900 border-indigo-200' : 'bg-white border-gray-200 text-gray-700'}`}
+                className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${filterCollaborator === 'ALL' ? 'ring-2 ring-indigo-500 bg-indigo-50 text-indigo-900 border-indigo-200' : 'bg-white border-gray-200 text-gray-700'}`}
               >
                 <span className="text-xs font-medium opacity-80">Todos</span>
                 <span className="text-lg font-bold">{summaryData.length} <span className="text-xs font-normal opacity-80">clientes</span></span>
@@ -564,7 +577,7 @@ export default function ClientesPage() {
                 <div 
                   key={colaborador} 
                   onClick={() => setFilterCollaborator(colaborador)}
-                  className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-[100px] cursor-pointer hover:shadow-md transition-shadow ${isActive ? 'ring-2 ring-indigo-500 shadow-md ' : 'opacity-80 hover:opacity-100 '} ${getCollabColor(colaborador)}`}
+                  className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${isActive ? 'ring-2 ring-indigo-500 shadow-md ' : 'opacity-80 hover:opacity-100 '} ${getCollabColor(colaborador)}`}
                 >
                   <span className="text-xs font-medium opacity-80">{colaborador}</span>
                   <span className="text-lg font-bold">{count} <span className="text-xs font-normal opacity-80">clientes</span></span>
