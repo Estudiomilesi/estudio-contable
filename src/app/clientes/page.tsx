@@ -491,52 +491,76 @@ export default function ClientesPage() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col max-h-[800px]">
           <div className="p-4 border-b bg-gray-50 flex items-center justify-between">
             <h2 className="font-semibold text-gray-800">Clientes con Abono</h2>
-            <div className="flex gap-2">
-              <select
-                value={filterLabel}
-                onChange={e => setFilterLabel(e.target.value)}
-                className="rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-              >
-                <option value="ALL">Todas las Etiquetas</option>
-                <option value="F">Etiqueta F</option>
-                <option value="FJ">Etiqueta FJ</option>
-                <option value="JF">Etiqueta JF</option>
-                {isJuanma && <option value="FJ_JF">Solo FJ y JF</option>}
-              </select>
-            </div>
           </div>
           
           <div className="overflow-auto flex-1">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 z-10 shadow-sm">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Código</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Cliente</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('professionalLabel')}>Etiqueta</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider hover:bg-gray-200">
+                    <div className="flex items-center gap-2">
+                      <span className="cursor-pointer" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
+                      <select 
+                        value={filterLabel}
+                        onChange={(e) => setFilterLabel(e.target.value)}
+                        className="text-xs border-gray-300 rounded font-normal py-0 pl-2 pr-6 h-6 shadow-sm"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <option value="ALL">Todas</option>
+                        {!isJuanma && <option value="F">F</option>}
+                        <option value="FJ">FJ</option>
+                        <option value="JF">JF</option>
+                        {isJuanma && <option value="FJ_JF">FJ/JF</option>}
+                      </select>
+                    </div>
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('assignedCollaborator')}>Colaborador</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAndSortedClientes.filter(c => c.hasAbono).map(c => (
+                {filteredAndSortedClientes.filter(c => c.hasAbono).map(c => {
+                  const getCollabColor = (name: string) => {
+                    if (!name) return 'bg-gray-100 text-gray-500 border-gray-200';
+                    if (name === 'Fede') return 'bg-cyan-100 text-cyan-800 border-cyan-200';
+                    if (name === 'Juanma') return 'bg-amber-100 text-amber-800 border-amber-200';
+                    const colors = [
+                      'bg-emerald-100 text-emerald-800 border-emerald-200',
+                      'bg-rose-100 text-rose-800 border-rose-200',
+                      'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+                      'bg-lime-100 text-lime-800 border-lime-200',
+                      'bg-sky-100 text-sky-800 border-sky-200',
+                      'bg-violet-100 text-violet-800 border-violet-200'
+                    ];
+                    let hash = 0;
+                    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                    return colors[Math.abs(hash) % colors.length];
+                  };
+                  return (
                   <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{c.code}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{c.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${c.professionalLabel === 'F' ? 'bg-blue-100 text-blue-800' : ''}
-                        ${c.professionalLabel === 'FJ' ? 'bg-purple-100 text-purple-800' : ''}
-                        ${c.professionalLabel === 'JF' ? 'bg-orange-100 text-orange-800' : ''}
+                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border
+                        ${c.professionalLabel === 'F' ? 'bg-blue-100 text-blue-800 border-blue-200' : ''}
+                        ${c.professionalLabel === 'FJ' ? 'bg-purple-100 text-purple-800 border-purple-200' : ''}
+                        ${c.professionalLabel === 'JF' ? 'bg-orange-100 text-orange-800 border-orange-200' : ''}
                       `}>
                         {c.professionalLabel}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       {c.assignedCollaborator ? (
-                        <span className="font-medium bg-indigo-50 text-indigo-700 px-2 py-1 rounded border border-indigo-100">{c.assignedCollaborator}</span>
+                        <span className={`font-medium px-2 py-1 rounded border ${getCollabColor(c.assignedCollaborator)}`}>
+                          {c.assignedCollaborator}
+                        </span>
                       ) : (
-                        <span className="text-gray-400 italic">Sin asignar</span>
+                        <span className="text-gray-400 italic px-2 py-1">Sin asignar</span>
                       )}
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
@@ -554,12 +578,29 @@ export default function ClientesPage() {
                   }, {} as Record<string, number>)
               )
               .sort((a, b) => b[1] - a[1]) // Sort by count descending
-              .map(([colaborador, count]) => (
-                <div key={colaborador} className="bg-white border border-gray-200 rounded-lg px-4 py-2 flex flex-col shadow-sm">
-                  <span className="text-xs text-gray-500 font-medium">{colaborador}</span>
-                  <span className="text-xl font-bold text-indigo-700">{count} <span className="text-sm font-normal text-gray-600">clientes</span></span>
+              .map(([colaborador, count]) => {
+                const getCollabColor = (name: string) => {
+                  if (name === 'Sin asignar') return 'bg-gray-100 text-gray-500 border-gray-200';
+                  if (name === 'Fede') return 'bg-cyan-100 text-cyan-800 border-cyan-200';
+                  if (name === 'Juanma') return 'bg-amber-100 text-amber-800 border-amber-200';
+                  const colors = [
+                    'bg-emerald-100 text-emerald-800 border-emerald-200',
+                    'bg-rose-100 text-rose-800 border-rose-200',
+                    'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
+                    'bg-lime-100 text-lime-800 border-lime-200',
+                    'bg-sky-100 text-sky-800 border-sky-200',
+                    'bg-violet-100 text-violet-800 border-violet-200'
+                  ];
+                  let hash = 0;
+                  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+                  return colors[Math.abs(hash) % colors.length];
+                };
+                return (
+                <div key={colaborador} className={`border rounded-lg px-4 py-2 flex flex-col shadow-sm ${getCollabColor(colaborador)}`}>
+                  <span className="text-xs font-medium opacity-80">{colaborador}</span>
+                  <span className="text-xl font-bold">{count} <span className="text-sm font-normal opacity-80">clientes</span></span>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
         </div>
