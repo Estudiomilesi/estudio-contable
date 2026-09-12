@@ -20,7 +20,8 @@ export default async function EvolucionPage() {
     where: {
       type: 'CHARGE',
       date: { gte: startDate, lte: endDate },
-      client: whereClient
+      client: whereClient,
+      NOT: [{ description: { contains: 'Migración' } }]
     },
     select: { date: true, netAmount: true, amount: true }
   });

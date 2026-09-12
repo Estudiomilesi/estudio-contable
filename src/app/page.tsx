@@ -62,6 +62,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
       where: {
         type: 'CHARGE',
         date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+        NOT: [{ description: { contains: 'Migración' } }],
         ...txWhere
       },
       select: { netAmount: true, amount: true }

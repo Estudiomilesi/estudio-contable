@@ -37,6 +37,10 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
       { description: { startsWith: 'NC' } },
       { description: { contains: 'aldo a favor' } }
     ];
+  } else {
+    whereClause.NOT = [
+      { description: { contains: 'Migración' } }
+    ];
   }
 
   const transacciones = await prisma.accountTransaction.findMany({
