@@ -45,9 +45,44 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
     orderBy: { date: 'desc' }
   });
 
-  const totalAmount = transacciones.reduce((sum, t) => sum + t.amount, 0);
-  const totalNeto = transacciones.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
-  const totalIva = transacciones.reduce((sum, t) => sum + (t.ivaAmount || 0), 0);
+  let extraTransacciones: any[] = [];
+  if (!isFacturado) {
+    // Si estamos viendo cobros, inyectar los cobros manuales de Tesorería (migración inicial de honorarios)
+    const treasuryWhere: any = {
+      category: 'Honorarios',
+      date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
+      description: { in: ['Migración inicial', '181.500 Honorarios 38.115 IVA', '532.500 honorarios, 111.825 IVA'] },
+      ...(clientLabelFilter && { client: { professionalLabel: clientLabelFilter } })
+    };
+    const treasuryTxs = await prisma.treasuryTransaction.findMany({
+      where: treasuryWhere,
+      include: { client: true }
+    });
 
-  return <ReportClient transacciones={transacciones} isFacturado={isFacturado} initialLabel={currentLabel} isJuanma={isJuanma} />;
+    extraTransacciones = treasuryTxs.map(t => ({
+      id: t.id,
+      clientId: t.clientId,
+      client: t.client,
+      date: t.date,
+      type: 'PAYMENT',
+      billingProfile: 'NO_FISCAL', // as fallback
+      netAmount: t.amount,
+      ivaAmount: 0,
+      amount: t.amount,
+      description: t.description || 'Honorarios Cobrados (Tesoreria)',
+      dueDate: null,
+      receiptNumber: null,
+      receiptFileBase64: null,
+      createdAt: t.createdAt,
+      isEmailed: false
+    }));
+  }
+
+  const allTransacciones = [...transacciones, ...extraTransacciones].sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  const totalAmount = allTransacciones.reduce((sum, t) => sum + t.amount, 0);
+  const totalNeto = allTransacciones.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
+  const totalIva = allTransacciones.reduce((sum, t) => sum + (t.ivaAmount || 0), 0);
+
+  return <ReportClient transacciones={allTransacciones} isFacturado={isFacturado} initialLabel={currentLabel} isJuanma={isJuanma} />;
 }

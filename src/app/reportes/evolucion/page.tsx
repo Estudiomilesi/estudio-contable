@@ -39,6 +39,22 @@ export default async function EvolucionPage() {
     select: { date: true, netAmount: true, amount: true }
   });
 
+  // Inject manual Treasury cobranzas
+  const treasuryCobranza = await prisma.treasuryTransaction.findMany({
+    where: {
+      category: 'Honorarios',
+      date: { gte: startDate, lte: endDate },
+      description: { in: ['Migración inicial', '181.500 Honorarios 38.115 IVA', '532.500 honorarios, 111.825 IVA'] },
+      ...(isJuanma && { client: { professionalLabel: { in: ['FJ', 'JF'] as any } } })
+    },
+    select: { date: true, amount: true }
+  });
+
+  const allCobranzas = [
+    ...cobranza, 
+    ...treasuryCobranza.map(t => ({ date: t.date, netAmount: t.amount, amount: t.amount }))
+  ];
+
   // 3. Gastos (EXPENSE) - solo tesorería, ignorando los retiros si no es un "gasto" real?
   // Ojo: los retiros de los socios NO son un gasto del estudio, son retiros de utilidades.
   // Fede dijo "y los gastos por concepto y total"
@@ -90,7 +106,7 @@ export default async function EvolucionPage() {
   });
 
   // Llenar cobranza
-  cobranza.forEach(c => {
+  allCobranzas.forEach(c => {
     const monthKey = c.date.toISOString().substring(0, 7);
     if (monthlyData[monthKey]) {
       monthlyData[monthKey].cobranza += (c.netAmount || c.amount);
