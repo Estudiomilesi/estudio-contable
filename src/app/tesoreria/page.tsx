@@ -13,6 +13,8 @@ type TreasuryTransaction = {
   category: string;
   description: string | null;
   client?: { name: string };
+  employeeId?: string | null;
+  employeeName?: string | null;
   runningBalance?: number;
   createdAt: string;
 };
@@ -74,10 +76,12 @@ export default function TesoreriaPage() {
     category: 'Honorarios',
     amount: '',
     description: '',
-    clientId: ''
+    clientId: '',
+    employeeId: ''
   });
 
   const [treasuryConcepts, setTreasuryConcepts] = useState<{id: string, name: string, type: string}[]>([]);
+  const [empleados, setEmpleados] = useState<{id: string, name: string}[]>([]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -95,6 +99,10 @@ export default function TesoreriaPage() {
       const resConcepts = await fetch('/api/conceptos');
       const dataConcepts = await resConcepts.json();
       setTreasuryConcepts(dataConcepts.filter((c: any) => (c.type === 'TREASURY_INCOME' || c.type === 'TREASURY_EXPENSE') && c.isActive));
+
+      const resEmp = await fetch('/api/empleados');
+      const dataEmp = await resEmp.json();
+      setEmpleados(dataEmp.filter((e: any) => e.name !== 'Gessi' && e.name !== 'Juanma' && e.name !== 'Fede'));
     } catch (error) {
       console.error(error);
     } finally {
@@ -512,6 +520,18 @@ export default function TesoreriaPage() {
               </select>
             </div>
 
+            {(formData.category === 'Sueldos' || formData.category === 'Participacion') && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Colaborador (Oculto p/ rest. usuarios)</label>
+                <select value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                  <option value="">-- Seleccionar Colaborador --</option>
+                  {empleados.map(e => (
+                    <option key={e.id} value={e.id}>{e.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {(formData.category === 'Honorarios' || formData.category === 'Participacion') && (
               <div className="space-y-4">
                 <div>
@@ -783,6 +803,22 @@ export default function TesoreriaPage() {
                   className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
               </div>
+
+              {(editingTx.category === 'Sueldos' || editingTx.category === 'Participacion') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Colaborador (Oculto p/ rest. usuarios)</label>
+                  <select 
+                    value={editingTx.employeeId || ''} 
+                    onChange={e => setEditingTx({...editingTx, employeeId: e.target.value})}
+                    className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                  >
+                    <option value="">-- Seleccionar Colaborador --</option>
+                    {empleados.map(e => (
+                      <option key={e.id} value={e.id}>{e.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="mt-6 flex justify-end gap-3">
                 <button

@@ -6,14 +6,15 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const { id } = await params;
     const data = await request.json();
     
-    // Only allow updating category and description for safety.
-    const { category, description } = data;
+    // Only allow updating category, description, and employeeId for safety.
+    const { category, description, employeeId } = data;
 
     const tx = await prisma.treasuryTransaction.update({
       where: { id },
       data: {
         category,
-        description
+        description,
+        employeeId: employeeId !== undefined ? employeeId : undefined
       }
     });
 

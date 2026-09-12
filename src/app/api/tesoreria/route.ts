@@ -10,7 +10,7 @@ export async function GET(request: Request) {
         { date: 'asc' },
         { createdAt: 'asc' }
       ],
-      include: { client: true }
+      include: { client: true, employee: { select: { id: true, name: true } } }
     });
 
     const saldos: Record<string, number> = { 
@@ -39,8 +39,12 @@ export async function GET(request: Request) {
       saldos[t.account] += t.amount;
       
       let description = t.description;
-      if (t.category === 'Sueldos' && userRole !== 'ADMIN') {
-        description = 'Pago de Sueldos Varios';
+      
+      if ((t.category === 'Sueldos' || t.category === 'Participacion') && userRole !== 'ADMIN') {
+        description = `Pago de ${t.category} Varios`;
+      } else if (t.employee?.name) {
+        description = `${description || ''} - Colaborador: ${t.employee.name}`.trim();
+        if (description.startsWith('- ')) description = description.substring(2);
       }
 
       return {
@@ -163,6 +167,7 @@ export async function POST(request: Request) {
         category: data.category, // Honorarios, Gastos, Retiro Fede, etc
         description: data.description || null,
         clientId: data.clientId || null,
+        employeeId: data.employeeId || null,
       }
     });
 

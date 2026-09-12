@@ -54,6 +54,7 @@ export async function POST(req: Request) {
           category: 'Sueldos',
           description: desc,
           clientId: null,
+          employeeId: salariesToPay.length === 1 ? salariesToPay[0].employeeId : null,
           salaries: {
             connect: salariesToPay.map(s => ({ id: s.id }))
           }
