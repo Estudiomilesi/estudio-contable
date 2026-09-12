@@ -59,23 +59,36 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
       include: { client: true }
     });
 
-    extraTransacciones = treasuryTxs.map(t => ({
-      id: t.id,
-      clientId: t.clientId,
-      client: t.client,
-      date: t.date,
-      type: 'PAYMENT',
-      billingProfile: 'NO_FISCAL', // as fallback
-      netAmount: t.amount,
-      ivaAmount: 0,
-      amount: t.amount,
-      description: t.description || 'Honorarios Cobrados (Tesoreria)',
-      dueDate: null,
-      receiptNumber: null,
-      receiptFileBase64: null,
-      createdAt: t.createdAt,
-      isEmailed: false
-    }));
+    extraTransacciones = treasuryTxs.map(t => {
+      let net = t.amount;
+      let iva = 0;
+      
+      if (t.description === '181.500 Honorarios 38.115 IVA') {
+        net = 181500;
+        iva = 38115;
+      } else if (t.description === '532.500 honorarios, 111.825 IVA') {
+        net = 532500;
+        iva = 111825;
+      }
+
+      return {
+        id: t.id,
+        clientId: t.clientId,
+        client: t.client,
+        date: t.date,
+        type: 'PAYMENT',
+        billingProfile: 'NO_FISCAL', // as fallback
+        netAmount: net,
+        ivaAmount: iva,
+        amount: t.amount,
+        description: t.description || 'Honorarios Cobrados (Tesoreria)',
+        dueDate: null,
+        receiptNumber: null,
+        receiptFileBase64: null,
+        createdAt: t.createdAt,
+        isEmailed: false
+      };
+    });
   }
 
   const allTransacciones = [...transacciones, ...extraTransacciones].sort((a, b) => b.date.getTime() - a.date.getTime());

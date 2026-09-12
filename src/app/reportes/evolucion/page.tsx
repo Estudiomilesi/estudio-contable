@@ -47,12 +47,17 @@ export default async function EvolucionPage() {
       description: { in: ['Migración inicial', '181.500 Honorarios 38.115 IVA', '532.500 honorarios, 111.825 IVA'] },
       ...(isJuanma && { client: { professionalLabel: { in: ['FJ', 'JF'] as any } } })
     },
-    select: { date: true, amount: true }
+    select: { date: true, amount: true, description: true }
   });
 
   const allCobranzas = [
     ...cobranza, 
-    ...treasuryCobranza.map(t => ({ date: t.date, netAmount: t.amount, amount: t.amount }))
+    ...treasuryCobranza.map(t => {
+      let net = t.amount;
+      if (t.description === '181.500 Honorarios 38.115 IVA') net = 181500;
+      if (t.description === '532.500 honorarios, 111.825 IVA') net = 532500;
+      return { date: t.date, netAmount: net, amount: t.amount };
+    })
   ];
 
   // 3. Gastos (EXPENSE) - solo tesorería, ignorando los retiros si no es un "gasto" real?
