@@ -16,6 +16,7 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
 
   const [isLiquidarModalOpen, setIsLiquidarModalOpen] = useState(false);
   const [liquidarMonth, setLiquidarMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [sumarAExistentes, setSumarAExistentes] = useState(true);
   const [liquidarAmounts, setLiquidarAmounts] = useState<Record<string, string>>({});
 
   // Group by month
@@ -130,7 +131,8 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           month: liquidarMonth,
-          salaries: payloadSalaries
+          salaries: payloadSalaries,
+          sumarAExistentes
         })
       });
 
@@ -394,6 +396,19 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                   onChange={e => setLiquidarMonth(e.target.value)}
                   className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="sumarAExistentes"
+                  checked={sumarAExistentes}
+                  onChange={e => setSumarAExistentes(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                />
+                <label htmlFor="sumarAExistentes" className="text-sm font-medium text-blue-800">
+                  Sumar al saldo existente del mes (ej: participaciones ya pagadas)
+                </label>
               </div>
 
               <div className="mt-4">

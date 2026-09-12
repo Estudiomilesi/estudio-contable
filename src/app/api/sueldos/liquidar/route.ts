@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 export async function POST(req: Request) {
   try {
     const data = await req.json();
-    const { month, salaries } = data; // salaries: { employeeId, amount }[]
+    const { month, salaries, sumarAExistentes = true } = data; // salaries: { employeeId, amount }[]
 
     if (!month || !salaries || !Array.isArray(salaries)) {
       return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 });
@@ -26,7 +26,8 @@ export async function POST(req: Request) {
             }
           },
           update: {
-            amount: s.amount
+            amount: sumarAExistentes ? { increment: s.amount } : s.amount,
+            isPaid: false
           },
           create: {
             employeeId: s.employeeId,
