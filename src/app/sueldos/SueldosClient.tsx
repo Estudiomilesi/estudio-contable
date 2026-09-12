@@ -65,7 +65,7 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
 
   const selectedChecksTotal = availableChecks.filter(c => selectedCheckIds.includes(c.id)).reduce((sum, c) => sum + c.amount, 0);
 
-  const totalToPay = selectedSalaries.reduce((acc, s) => acc + s.amount, 0);
+  const totalToPay = selectedSalaries.reduce((acc, s) => acc + (s.pendingAmount !== undefined ? s.pendingAmount : s.amount), 0);
 
   const handlePagar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,7 +217,10 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                         ) : (
                           <div className="flex flex-col items-end gap-1">
                             <label className="flex items-center gap-2 cursor-pointer bg-yellow-50 hover:bg-yellow-100 px-2 py-1 rounded border border-yellow-200 shadow-sm w-full justify-end">
-                              <span className="font-bold text-red-600">${s.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                              <div className="flex flex-col items-end text-right">
+                                <span className="font-bold text-red-600">${(s.pendingAmount !== undefined ? s.pendingAmount : s.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                                {s.paidAmount > 0 && <span className="text-[10px] text-gray-500 font-normal mt-0.5">resta de ${(s.amount).toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>}
+                              </div>
                               <input 
                                 type="checkbox" 
                                 checked={isSelected}

@@ -13,23 +13,31 @@ export async function POST(req: Request) {
 
     const salariesToPay = await prisma.salary.findMany({
       where: { id: { in: salaryIds } },
-      include: { employee: true }
+      include: { employee: true, treasuryTxs: true }
     });
 
     if (salariesToPay.length !== salaryIds.length) {
       return NextResponse.json({ error: 'Algunos sueldos no fueron encontrados' }, { status: 404 });
     }
 
-    if (salariesToPay.some(s => s.isPaid)) {
-      return NextResponse.json({ error: 'Uno o más sueldos ya fueron pagados' }, { status: 400 });
+    // Check if fully paid manually
+    let totalToPay = 0;
+    for (const s of salariesToPay) {
+      const paidAmount = s.treasuryTxs.reduce((acc, tx) => acc + Math.abs(tx.amount), 0);
+      const effectivePaidAmount = s.isPaid && paidAmount === 0 ? s.amount : paidAmount;
+      const pendingAmount = Math.max(0, s.amount - effectivePaidAmount);
+      
+      if (pendingAmount <= 1) {
+        return NextResponse.json({ error: `El sueldo de ${s.employee.name} (${s.month}) ya está pagado` }, { status: 400 });
+      }
+      totalToPay += pendingAmount;
     }
 
-    const totalToPay = salariesToPay.reduce((acc, s) => acc + s.amount, 0);
     const totalPagado = payments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0);
     
     if (Math.abs(totalPagado - totalToPay) > 1) {
        // Tolerance of $1 for rounding
-       return NextResponse.json({ error: 'El monto total pagado no coincide con el total de los sueldos seleccionados' }, { status: 400 });
+       return NextResponse.json({ error: 'El monto total pagado no coincide con el remanente de los sueldos seleccionados' }, { status: 400 });
     }
 
     const txDate = parseToUtcNoon(date);
