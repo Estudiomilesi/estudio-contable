@@ -72,7 +72,7 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({
-      transacciones: filteredTxs.slice(0, 100),
+      transacciones: filteredTxs,
       saldos,
       cartera: checksEnCartera
     });
