@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       
       let description = t.description;
       
-      if ((t.category === 'Sueldos' || t.category === 'Participacion') && userRole !== 'ADMIN') {
+      if ((t.category === 'Sueldos' || t.category?.includes('Participacion') || t.category?.includes('Participación')) && userRole !== 'ADMIN') {
         description = `Pago de ${t.category} Varios`;
       } else if (t.employee?.name) {
         description = `${description || ''} - Colaborador: ${t.employee.name}`.trim();

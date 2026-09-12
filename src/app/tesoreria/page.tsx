@@ -520,7 +520,7 @@ export default function TesoreriaPage() {
               </select>
             </div>
 
-            {(formData.category === 'Sueldos' || formData.category === 'Participacion') && (
+            {(formData.category === 'Sueldos' || formData.category?.includes('Participacion') || formData.category?.includes('Participación')) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700">Colaborador (Oculto p/ rest. usuarios)</label>
                 <select value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -804,7 +804,7 @@ export default function TesoreriaPage() {
                 />
               </div>
 
-              {(editingTx.category === 'Sueldos' || editingTx.category === 'Participacion') && (
+              {(editingTx.category === 'Sueldos' || editingTx.category?.includes('Participacion') || editingTx.category?.includes('Participación')) && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Colaborador (Oculto p/ rest. usuarios)</label>
                   <select 
