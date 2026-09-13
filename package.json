@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "node scripts/patch-pdf-parse.js"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
