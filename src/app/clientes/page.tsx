@@ -71,6 +71,8 @@ const getCollabColor = (name: string) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+const IS_SINGLE_USER = process.env.NEXT_PUBLIC_SINGLE_USER_MODE === 'true';
+
 export default function ClientesPage() {
   const [isJuanma, setIsJuanma] = useState(false);
   
@@ -232,7 +234,7 @@ export default function ClientesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (formData.hasAbono && !formData.assignedCollaborator) {
+    if (!IS_SINGLE_USER && formData.hasAbono && !formData.assignedCollaborator) {
       alert("Al estar activada la opción 'Abono Mensual', debe asignarse un Colaborador Responsable.");
       return;
     }
@@ -328,7 +330,7 @@ export default function ClientesPage() {
               </div>
             </div>
 
-            {formData.hasAbono && (
+            {!IS_SINGLE_USER && formData.hasAbono && (
               <div>
                 <label className="block text-sm font-medium text-indigo-700">Colaborador Responsable *</label>
                 <select 
@@ -366,14 +368,16 @@ export default function ClientesPage() {
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Etiqueta</label>
-                <select value={formData.professionalLabel} onChange={e => setFormData({...formData, professionalLabel: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                  {!isJuanma && <option value="F">F</option>}
-                  <option value="FJ">FJ</option>
-                  <option value="JF">JF</option>
-                </select>
-              </div>
+              {!IS_SINGLE_USER && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Etiqueta</label>
+                  <select value={formData.professionalLabel} onChange={e => setFormData({...formData, professionalLabel: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    {!isJuanma && <option value="F">F</option>}
+                    <option value="FJ">FJ</option>
+                    <option value="JF">JF</option>
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700">Perfil Fac.</label>
                 <select value={formData.defaultBillingProfile} onChange={e => setFormData({...formData, defaultBillingProfile: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
@@ -459,29 +463,33 @@ export default function ClientesPage() {
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('code')}>Cód</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>Nombre</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
-                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
-                      <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 bg-white font-normal shadow-sm">
-                        <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
-                        {!isJuanma && <option value="F">F</option>}
-                        <option value="FJ">FJ</option>
-                        <option value="JF">JF</option>
-                      </select>
-                    </div>
-                  </th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
-                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('assignedCollaborator')}>Colab.</span>
-                      <select value={filterCollaborator} onChange={e => setFilterCollaborator(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 bg-white font-normal shadow-sm">
-                        <option value="ALL">Todos</option>
-                        <option value="Sin asignar">Sin asig.</option>
-                        {collaboratorOptions.map((name, idx) => (
-                          <option key={idx} value={name}>{name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </th>
+                  {!IS_SINGLE_USER && (
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
+                        <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 bg-white font-normal shadow-sm">
+                          <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
+                          {!isJuanma && <option value="F">F</option>}
+                          <option value="FJ">FJ</option>
+                          <option value="JF">JF</option>
+                        </select>
+                      </div>
+                    </th>
+                  )}
+                  {!IS_SINGLE_USER && (
+                    <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('assignedCollaborator')}>Colab.</span>
+                        <select value={filterCollaborator} onChange={e => setFilterCollaborator(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 bg-white font-normal shadow-sm">
+                          <option value="ALL">Todos</option>
+                          <option value="Sin asignar">Sin asig.</option>
+                          {collaboratorOptions.map((name, idx) => (
+                            <option key={idx} value={name}>{name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </th>
+                  )}
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
                     <div className="flex items-center gap-1">
                       <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('defaultBillingProfile')}>Perfil</span>
@@ -508,26 +516,30 @@ export default function ClientesPage() {
                     <tr key={c.id} className={!c.isActive ? 'opacity-50 bg-gray-50' : ''}>
                       <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{c.code}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">{c.name}</td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
-                        <span className={`inline-flex rounded-full px-2 text-[10px] font-bold leading-5 border ${
-                          c.professionalLabel === 'F' ? 'bg-blue-100 text-blue-800 border-blue-200' : 
-                          c.professionalLabel === 'FJ' ? 'bg-purple-100 text-purple-800 border-purple-200' : 
-                          'bg-orange-100 text-orange-800 border-orange-200'
-                        }`}>
-                          {c.professionalLabel}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
-                        {c.hasAbono && c.assignedCollaborator ? (
-                          <span className={`font-medium px-2 py-0.5 rounded border text-[10px] ${getCollabColor(c.assignedCollaborator)}`}>
-                            {c.assignedCollaborator}
+                      {!IS_SINGLE_USER && (
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
+                          <span className={`inline-flex rounded-full px-2 text-[10px] font-bold leading-5 border ${
+                            c.professionalLabel === 'F' ? 'bg-blue-100 text-blue-800 border-blue-200' : 
+                            c.professionalLabel === 'FJ' ? 'bg-purple-100 text-purple-800 border-purple-200' : 
+                            'bg-orange-100 text-orange-800 border-orange-200'
+                          }`}>
+                            {c.professionalLabel}
                           </span>
-                        ) : c.hasAbono ? (
-                          <span className="text-gray-400 italic px-2 py-0.5 text-[10px]">Sin asignar</span>
-                        ) : (
-                          <span className="text-gray-300 text-[10px]">-</span>
-                        )}
-                      </td>
+                        </td>
+                      )}
+                      {!IS_SINGLE_USER && (
+                        <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
+                          {c.hasAbono && c.assignedCollaborator ? (
+                            <span className={`font-medium px-2 py-0.5 rounded border text-[10px] ${getCollabColor(c.assignedCollaborator)}`}>
+                              {c.assignedCollaborator}
+                            </span>
+                          ) : c.hasAbono ? (
+                            <span className="text-gray-400 italic px-2 py-0.5 text-[10px]">Sin asignar</span>
+                          ) : (
+                            <span className="text-gray-300">-</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-3 py-2 whitespace-nowrap text-[11px] text-gray-700">
                         {c.defaultBillingProfile === 'FEDE_RI' ? 'Fede RI' : c.defaultBillingProfile === 'JUANMA_MONO' ? 'JuanMa Mono' : 'No Fiscal'}
                       </td>
@@ -552,39 +564,41 @@ export default function ClientesPage() {
             </table>
           </div>
           
-          <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0">
-            <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Resumen de Asignaciones (Abonos)</h3>
-            <div className="flex flex-nowrap overflow-x-auto gap-3 pb-2 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300">
-              <div 
-                onClick={() => setFilterCollaborator('ALL')}
-                className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${filterCollaborator === 'ALL' ? 'ring-2 ring-indigo-500 bg-indigo-50 text-indigo-900 border-indigo-200' : 'bg-white border-gray-200 text-gray-700'}`}
-              >
-                <span className="text-xs font-medium opacity-80">Todos</span>
-                <span className="text-lg font-bold">{summaryData.length} <span className="text-xs font-normal opacity-80">clientes</span></span>
-              </div>
-              
-              {Object.entries(
-                summaryData.reduce((acc: Record<string, number>, c: Client) => {
-                  const col = c.assignedCollaborator || 'Sin asignar';
-                  acc[col] = (acc[col] || 0) + 1;
-                  return acc;
-                }, {})
-              )
-              .sort((a, b) => b[1] - a[1])
-              .map(([colaborador, count]) => {
-                const isActive = filterCollaborator === colaborador;
-                return (
+          {!IS_SINGLE_USER && (
+            <div className="p-4 bg-gray-50 border-t border-gray-200 shrink-0">
+              <h3 className="font-bold text-gray-800 mb-3 text-sm uppercase tracking-wide">Resumen de Asignaciones (Abonos)</h3>
+              <div className="flex flex-nowrap overflow-x-auto gap-3 pb-2 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300">
                 <div 
-                  key={colaborador} 
-                  onClick={() => setFilterCollaborator(colaborador)}
-                  className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${isActive ? 'ring-2 ring-indigo-500 shadow-md ' : 'opacity-80 hover:opacity-100 '} ${getCollabColor(colaborador)}`}
+                  onClick={() => setFilterCollaborator('ALL')}
+                  className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${filterCollaborator === 'ALL' ? 'ring-2 ring-indigo-500 bg-indigo-50 text-indigo-900 border-indigo-200' : 'bg-white border-gray-200 text-gray-700'}`}
                 >
-                  <span className="text-xs font-medium opacity-80">{colaborador}</span>
-                  <span className="text-lg font-bold">{count} <span className="text-xs font-normal opacity-80">clientes</span></span>
+                  <span className="text-xs font-medium opacity-80">Todos</span>
+                  <span className="text-lg font-bold">{summaryData.length} <span className="text-xs font-normal opacity-80">clientes</span></span>
                 </div>
-              )})}
+                
+                {Object.entries(
+                  summaryData.reduce((acc: Record<string, number>, c: Client) => {
+                    const col = c.assignedCollaborator || 'Sin asignar';
+                    acc[col] = (acc[col] || 0) + 1;
+                    return acc;
+                  }, {})
+                )
+                .sort((a, b) => b[1] - a[1])
+                .map(([colaborador, count]) => {
+                  const isActive = filterCollaborator === colaborador;
+                  return (
+                  <div 
+                    key={colaborador} 
+                    onClick={() => setFilterCollaborator(colaborador)}
+                    className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${isActive ? 'ring-2 ring-indigo-500 shadow-md ' : 'opacity-80 hover:opacity-100 '} ${getCollabColor(colaborador)}`}
+                  >
+                    <span className="text-xs font-medium opacity-80">{colaborador}</span>
+                    <span className="text-lg font-bold">{count} <span className="text-xs font-normal opacity-80">clientes</span></span>
+                  </div>
+                )})}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

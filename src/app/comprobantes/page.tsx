@@ -37,6 +37,8 @@ type Concept = {
   type: string;
 };
 
+const IS_SINGLE_USER = process.env.NEXT_PUBLIC_SINGLE_USER_MODE === 'true';
+
 export default function ComprobantesPage() {
   const [isJuanma, setIsJuanma] = useState(false);
   
@@ -647,7 +649,7 @@ export default function ComprobantesPage() {
             </div>
 
             {/* Participación Colaborador */}
-            {form.comprobanteType === 'FACTURA' && (
+            {!IS_SINGLE_USER && form.comprobanteType === 'FACTURA' && (
               <div className="border border-gray-200 p-4 rounded-md space-y-3 bg-gray-50">
                 <label className="flex items-center">
                   <input 

@@ -37,6 +37,8 @@ type ClientWithBalance = {
   transactions: Transaction[];
 };
 
+const IS_SINGLE_USER = process.env.NEXT_PUBLIC_SINGLE_USER_MODE === 'true';
+
 export default function CuentasCorrientesPage() {
   const [isJuanma, setIsJuanma] = useState(false);
   
@@ -413,21 +415,23 @@ export default function CuentasCorrientesPage() {
                 <th className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase cursor-pointer hover:bg-gray-200" onClick={() => requestSort('name')}>
                   Cliente
                 </th>
-                <th className="px-3 py-2 text-center text-xs font-bold text-gray-700 uppercase">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiq</span>
-                    <select 
-                      value={filterLabel} 
-                      onChange={e => setFilterLabel(e.target.value)}
-                      className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-4"
-                    >
-                      <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
-                      {!isJuanma && <option value="F">F</option>}
-                      <option value="FJ">FJ</option>
-                      <option value="JF">JF</option>
-                    </select>
-                  </div>
-                </th>
+                {!IS_SINGLE_USER && (
+                  <th className="px-3 py-2 text-center text-xs font-bold text-gray-700 uppercase">
+                    <div className="flex items-center justify-center gap-1">
+                      <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiq</span>
+                      <select 
+                        value={filterLabel} 
+                        onChange={e => setFilterLabel(e.target.value)}
+                        className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-4"
+                      >
+                        <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
+                        {!isJuanma && <option value="F">F</option>}
+                        <option value="FJ">FJ</option>
+                        <option value="JF">JF</option>
+                      </select>
+                    </div>
+                  </th>
+                )}
                 <th className="px-3 py-2 text-right tabular-nums text-xs font-bold text-gray-700 uppercase cursor-pointer hover:bg-gray-200" onClick={() => requestSort('balance')}>
                   Saldo
                 </th>
@@ -451,15 +455,17 @@ export default function CuentasCorrientesPage() {
                     <td className="px-3 py-2 text-sm text-gray-900 font-medium truncate max-w-[150px]" title={c.name}>
                       {c.name}
                     </td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                        c.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
-                        c.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
-                        'bg-blue-200 text-blue-900'
-                      }`}>
-                        {c.professionalLabel}
-                      </span>
-                    </td>
+                    {!IS_SINGLE_USER && (
+                      <td className="px-3 py-2 text-center">
+                        <span className={`inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                          c.professionalLabel === 'F' ? 'bg-green-200 text-green-900' : 
+                          c.professionalLabel === 'FJ' ? 'bg-orange-200 text-orange-900' : 
+                          'bg-blue-200 text-blue-900'
+                        }`}>
+                          {c.professionalLabel}
+                        </span>
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-right tabular-nums">
                       <div className={`text-sm font-bold ${c.balance > 0 ? 'text-red-700' : c.balance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
                         ${Math.abs(c.balance).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}

@@ -4,6 +4,8 @@ import DashboardFilter from '@/components/DashboardFilter';
 
 export const dynamic = 'force-dynamic';
 
+const IS_SINGLE_USER = process.env.NEXT_PUBLIC_SINGLE_USER_MODE === 'true';
+
 export default async function Home({ searchParams }: { searchParams: Promise<{ label?: string }> }) {
   const { label } = await searchParams;
   const { headers } = await import('next/headers');
@@ -218,7 +220,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard General</h1>
           <p className="text-gray-600 mt-2">Bienvenido al sistema de gestión del Estudio Contable.</p>
         </div>
-        {!isJuanma && <DashboardFilter currentLabel={currentLabel} />}
+        {!IS_SINGLE_USER && !isJuanma && <DashboardFilter currentLabel={currentLabel} />}
       </div>
       
       <div className="space-y-4">
