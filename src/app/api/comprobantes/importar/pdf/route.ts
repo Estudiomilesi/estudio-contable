@@ -1,7 +1,19 @@
 import { NextResponse } from 'next/server';
+import fs from 'fs';
+
 export async function POST(request: Request) {
   try {
+    // Vercel/Next.js bug fix for pdf-parse module.parent isDebugMode
+    const originalReadFileSync = fs.readFileSync;
+    fs.readFileSync = (path: any, options: any): any => {
+      if (typeof path === 'string' && path.includes('05-versions-space.pdf')) {
+        return Buffer.from('');
+      }
+      return originalReadFileSync(path, options);
+    };
     const pdfParse = require('pdf-parse');
+    fs.readFileSync = originalReadFileSync;
+
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
 

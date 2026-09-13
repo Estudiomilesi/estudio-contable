@@ -4,7 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { Trash2, FileText, Download, Plus, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { LOGO_BASE64 } from '@/lib/logo';
-import ImportAFIPModal from '@/components/ImportAFIPModal';
+import dynamic from 'next/dynamic';
+
+const ImportAFIPModal = dynamic(() => import('@/components/ImportAFIPModal'), { ssr: false });
 
 type Client = {
   id: string;
