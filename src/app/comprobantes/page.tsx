@@ -4,13 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 import { Trash2, FileText, Download, Plus, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { LOGO_BASE64 } from '@/lib/logo';
+import ImportAFIPModal from '@/components/ImportAFIPModal';
 
 type Client = {
   id: string;
   name: string;
+  code: string;
   defaultBillingProfile: string;
   professionalLabel: string;
   defaultBankAccountId: string | null;
+  cuit: string | null;
+  assignedCollaborator: string | null;
 };
 
 type Comprobante = {
@@ -477,6 +481,8 @@ export default function ComprobantesPage() {
     return result;
   };
 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
   if (isLoading) {
     return <div className="p-8 text-center text-gray-500">Cargando...</div>;
   }
@@ -485,9 +491,18 @@ export default function ComprobantesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Comprobantes Individuales</h1>
-        <p className="text-sm text-gray-500 mt-1">Emití facturas, notas de crédito y adjuntá comprobantes de AFIP.</p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Comprobantes Individuales</h1>
+          <p className="text-sm text-gray-500 mt-1">Emití facturas, notas de crédito y adjuntá comprobantes de AFIP.</p>
+        </div>
+        <button 
+          onClick={() => setIsImportModalOpen(true)}
+          className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md shadow-sm transition-colors text-sm flex items-center gap-2"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+          Importar AFIP (Excel)
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -837,6 +852,14 @@ export default function ComprobantesPage() {
         </div>
 
       </div>
+      <ImportAFIPModal 
+        isOpen={isImportModalOpen} 
+        onClose={() => setIsImportModalOpen(false)} 
+        clientes={clientes}
+        onImportComplete={() => {
+          fetchData(); // Reload data after import
+        }}
+      />
     </div>
   );
 }
