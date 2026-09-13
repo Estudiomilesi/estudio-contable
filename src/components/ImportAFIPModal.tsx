@@ -292,7 +292,7 @@ export default function ImportAFIPModal({
                   <tbody className="bg-white divide-y divide-gray-200">
                     {parsedData.map((tx, i) => (
                       <tr key={i} className={!tx.clientId ? 'bg-red-50' : ''}>
-                        <td className="px-3 py-2 whitespace-nowrap">{tx.date.toLocaleDateString('es-AR')}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">{new Date(tx.date).toLocaleDateString('es-AR')}</td>
                         <td className="px-3 py-2 whitespace-nowrap">{tx.description}</td>
                         <td className="px-3 py-2">{tx._denominacion} {tx._cuit ? `(${tx._cuit})` : ''}</td>
                         <td className="px-3 py-2 font-medium text-indigo-700">
