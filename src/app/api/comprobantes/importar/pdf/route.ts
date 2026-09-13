@@ -60,19 +60,11 @@ export async function POST(request: Request) {
         dateIso = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).toISOString();
       }
 
-      // 4. CUIT Receptor
+      // 4. CUITs
       // Get all valid CUIT-like 11 digit numbers (ignoring Fede's specific formatting requirements)
       const allCuits = [...text.matchAll(/\b(20|23|24|27|30|33|34)-?(\d{8})-?(\d{1})\b/g)];
       // Unique CUITs stripped of dashes
       const uniqueCuits = Array.from(new Set(allCuits.map(m => (m[1] + m[2] + m[3]))));
-      
-      let receptorCuit = '';
-      if (uniqueCuits.length > 1) {
-        // Typically the first CUIT is the issuer, the second is the receiver.
-        receptorCuit = uniqueCuits[1];
-      } else if (uniqueCuits.length === 1) {
-        receptorCuit = uniqueCuits[0];
-      }
 
       // 5. Total Amounts
       // "Importe Total: $ 15.000,00"
@@ -96,7 +88,7 @@ export async function POST(request: Request) {
 
       results.push({
         fileName: file.name,
-        _cuit: receptorCuit,
+        _cuits: uniqueCuits,
         _denominacion: "Cliente extraído del PDF", // Name extraction is messy in PDF, we rely on CUIT matching
         date: dateIso,
         type: isNotaCredito ? 'PAYMENT' : 'CHARGE',

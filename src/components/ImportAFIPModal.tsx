@@ -71,19 +71,56 @@ export default function ImportAFIPModal({
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Error al procesar PDFs');
 
-        // Match clients
+        // Match clients and determine billing profile
         const parsed = data.parsed.map((tx: any, index: number) => {
-          let matchedClient = clientes.find(c => c.cuit && c.cuit.replace(/-/g, '') === tx._cuit);
+          let matchedClient = null;
+          let receptorCuitMatch = '';
+          let issuerCuitMatch = '';
+          
+          if (tx._cuits && tx._cuits.length > 0) {
+            // Fede's CUIT
+            const fedeCuit = '20316100660';
+            // Juanma's CUIT (Example, we don't know it exactly so we rely on client match)
+            
+            // First, find the receiver by checking which CUIT belongs to a client in the DB
+            for (const cuit of tx._cuits) {
+              const c = clientes.find(c => c.cuit && c.cuit.replace(/-/g, '') === cuit);
+              if (c) {
+                matchedClient = c;
+                receptorCuitMatch = cuit;
+                break; // Found the client!
+              }
+            }
+            
+            // If no match in DB, fallback: assume last CUIT is receiver, first is issuer
+            if (!matchedClient && tx._cuits.length > 1) {
+              receptorCuitMatch = tx._cuits[tx._cuits.length - 1];
+            } else if (!matchedClient) {
+              receptorCuitMatch = tx._cuits[0];
+            }
+
+            // Identify issuer CUIT (the one that is not the receiver)
+            issuerCuitMatch = tx._cuits.find((c: string) => c !== receptorCuitMatch) || tx._cuits[0];
+          }
+
+          // Determine Billing Profile from Issuer CUIT
+          let derivedBillingProfile = matchedClient?.defaultBillingProfile || 'NO_FISCAL';
+          if (issuerCuitMatch === '20316100660') {
+            derivedBillingProfile = 'FEDE_RI';
+          } // We could add Juanma's CUIT mapping here if we knew it
+
           if (!matchedClient && tx._denominacion && tx._denominacion.length > 3) {
             matchedClient = clientes.find(c => 
               c.name.toLowerCase().includes(tx._denominacion.toLowerCase().substring(0, 8))
             );
           }
+          
           return {
             ...tx,
+            _cuit: receptorCuitMatch, // for display
             clientId: matchedClient?.id || null,
             clientNameMatch: matchedClient?.name || null,
-            billingProfile: matchedClient?.defaultBillingProfile || 'NO_FISCAL',
+            billingProfile: derivedBillingProfile,
             collaboratorName: matchedClient?.assignedCollaborator || null,
             collaboratorAmount: null
           };
