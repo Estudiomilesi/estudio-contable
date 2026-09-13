@@ -15,15 +15,17 @@ export default async function EvolucionPage() {
 
   const whereClient = isJuanma ? { professionalLabel: { in: ['FJ', 'JF'] as any } } : {};
 
-  // 1. Facturación (CHARGE)
+  // 1. Facturación (CHARGE and NCs)
   const facturacion = await prisma.accountTransaction.findMany({
     where: {
-      type: 'CHARGE',
       date: { gte: startDate, lte: endDate },
       client: whereClient,
-      NOT: [{ description: { contains: 'Migración' } }]
+      OR: [
+        { type: 'CHARGE', NOT: [{ description: { contains: 'Migración' } }] },
+        { type: 'PAYMENT', description: { startsWith: 'NC' } }
+      ]
     },
-    select: { date: true, netAmount: true, amount: true }
+    select: { date: true, netAmount: true, amount: true, description: true }
   });
 
   // 2. Cobranza (PAYMENT)
@@ -86,7 +88,11 @@ export default async function EvolucionPage() {
   facturacion.forEach(f => {
     const monthKey = f.date.toISOString().substring(0, 7);
     if (monthlyData[monthKey]) {
-      monthlyData[monthKey].facturacion += (f.netAmount || f.amount);
+      let amt = f.netAmount || f.amount;
+      if (f.description && f.description.startsWith('NC')) {
+        amt = -Math.abs(amt);
+      }
+      monthlyData[monthKey].facturacion += amt;
     }
   });
 

@@ -60,12 +60,14 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
     // 3. Facturación Mes en Curso
     prisma.accountTransaction.findMany({
       where: {
-        type: 'CHARGE',
         date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
-        NOT: [{ description: { contains: 'Migración' } }],
+        OR: [
+          { type: 'CHARGE', NOT: [{ description: { contains: 'Migración' } }] },
+          { type: 'PAYMENT', description: { startsWith: 'NC' } }
+        ],
         ...txWhere
       },
-      select: { netAmount: true, amount: true }
+      select: { netAmount: true, amount: true, description: true }
     }),
     
     // 4. Cobrado Mes en Curso
@@ -120,7 +122,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   ]);
 
   const facturacionEstimada = facturacionEstimadaAggr._sum.currentFee || 0;
-  const facturacionMesTotal = facturacionMesData.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
+  const facturacionMesTotal = facturacionMesData.reduce((sum, t) => {
+    let amt = t.netAmount || t.amount;
+    if (t.description && t.description.startsWith('NC')) {
+      amt = -Math.abs(amt);
+    }
+    return sum + amt;
+  }, 0);
   const cobradoMesTotal = cobradoMesData.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
   const tesoreriaTotal = tesoreriaTxsAggr._sum.amount || 0;
 

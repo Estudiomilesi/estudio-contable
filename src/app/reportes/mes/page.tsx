@@ -27,26 +27,39 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
   const whereClause: any = {
-    type: isFacturado ? 'CHARGE' : 'PAYMENT',
     date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
     ...txWhere
   };
 
-  if (!isFacturado) {
+  if (isFacturado) {
+    whereClause.OR = [
+      { type: 'CHARGE', NOT: { description: { contains: 'Migración' } } },
+      { type: 'PAYMENT', description: { startsWith: 'NC' } }
+    ];
+  } else {
+    whereClause.type = 'PAYMENT';
     whereClause.NOT = [
       { description: { startsWith: 'NC' } },
       { description: { contains: 'aldo a favor' } }
     ];
-  } else {
-    whereClause.NOT = [
-      { description: { contains: 'Migración' } }
-    ];
   }
 
-  const transacciones = await prisma.accountTransaction.findMany({
+  const rawTransacciones = await prisma.accountTransaction.findMany({
     where: whereClause,
     include: { client: true },
     orderBy: { date: 'desc' }
+  });
+
+  const transacciones = rawTransacciones.map(t => {
+    if (isFacturado && t.description && t.description.startsWith('NC')) {
+      return { 
+        ...t, 
+        amount: -Math.abs(t.amount), 
+        netAmount: -Math.abs(t.netAmount || t.amount), 
+        ivaAmount: -Math.abs(t.ivaAmount || 0) 
+      };
+    }
+    return t;
   });
 
   const totalAmount = transacciones.reduce((sum, t) => sum + t.amount, 0);

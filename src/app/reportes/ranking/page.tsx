@@ -42,8 +42,13 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
       professionalLabel: true,
       accountTransactions: {
         where: {
-          type: typeFilter,
           date: { gte: startDate },
+          OR: isFacturado ? [
+            { type: 'CHARGE', NOT: [{ description: { contains: 'Migración' } }] },
+            { type: 'PAYMENT', description: { startsWith: 'NC' } }
+          ] : [
+            { type: 'PAYMENT' }
+          ],
           NOT: isFacturado ? [] : [
             { description: { startsWith: 'NC' } },
             { description: { contains: 'aldo a favor' } }
@@ -52,7 +57,8 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
         select: {
           date: true,
           amount: true,
-          netAmount: true
+          netAmount: true,
+          description: true
         }
       }
     }
@@ -74,7 +80,10 @@ export default async function RankingPage({ searchParams }: { searchParams: Prom
     c.accountTransactions.forEach(tx => {
       const txMonth = tx.date.toISOString().substring(0, 7);
       if (row[txMonth] !== undefined) {
-        const amt = tx.netAmount || tx.amount;
+        let amt = tx.netAmount || tx.amount;
+        if (isFacturado && tx.description && tx.description.startsWith('NC')) {
+          amt = -Math.abs(amt);
+        }
         row[txMonth] += amt;
         row.total += amt;
       }
