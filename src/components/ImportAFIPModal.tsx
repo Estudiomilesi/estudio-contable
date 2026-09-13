@@ -50,10 +50,58 @@ export default function ImportAFIPModal({
     return new Date(val); // fallback
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setError('');
-    const selected = e.target.files?.[0];
-    if (!selected) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    // Check if they are PDFs
+    const isPdf = files.every(f => f.name.toLowerCase().endsWith('.pdf'));
+
+    if (isPdf) {
+      setIsLoading(true);
+      try {
+        const formData = new FormData();
+        files.forEach(f => formData.append('files', f));
+
+        const res = await fetch('/api/comprobantes/importar/pdf', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al procesar PDFs');
+
+        // Match clients
+        const parsed = data.parsed.map((tx: any, index: number) => {
+          let matchedClient = clientes.find(c => c.cuit && c.cuit.replace(/-/g, '') === tx._cuit);
+          if (!matchedClient && tx._denominacion && tx._denominacion.length > 3) {
+            matchedClient = clientes.find(c => 
+              c.name.toLowerCase().includes(tx._denominacion.toLowerCase().substring(0, 8))
+            );
+          }
+          return {
+            ...tx,
+            clientId: matchedClient?.id || null,
+            clientNameMatch: matchedClient?.name || null,
+            billingProfile: matchedClient?.defaultBillingProfile || 'NO_FISCAL',
+            collaboratorName: matchedClient?.assignedCollaborator || null,
+            collaboratorAmount: null
+          };
+        });
+        
+        // Append to existing parsed data or replace
+        setParsedData(prev => [...prev, ...parsed]);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || 'Error al procesar PDFs');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Excel processing (only handles first file)
+    const selected = files[0];
     setFile(selected);
 
     const reader = new FileReader();
@@ -138,7 +186,7 @@ export default function ImportAFIPModal({
           };
         });
 
-        setParsedData(parsed);
+        setParsedData(prev => [...prev, ...parsed]);
       } catch (err) {
         console.error(err);
         setError('Error al procesar el archivo. Verificá que sea un Excel válido.');
@@ -194,16 +242,16 @@ export default function ImportAFIPModal({
           <div className="bg-blue-50 p-4 rounded-md">
             <h3 className="text-sm font-medium text-blue-800">Instrucciones:</h3>
             <ul className="mt-2 text-sm text-blue-700 list-disc list-inside">
-              <li>Ingresá a AFIP &gt; Mis Comprobantes &gt; Emitidos.</li>
-              <li>Exportá el resultado a Excel (botón Excel).</li>
-              <li>Subí ese archivo acá abajo.</li>
+              <li>Podés seleccionar los <b>PDFs originales</b> de las Facturas/Notas de Crédito descargadas de AFIP (podés seleccionar varios a la vez).</li>
+              <li>O también, exportar desde "Mis Comprobantes &gt; Emitidos" a <b>Excel</b> y subir ese único archivo.</li>
             </ul>
           </div>
 
           <div>
             <input 
               type="file" 
-              accept=".xls,.xlsx,.csv" 
+              multiple
+              accept=".pdf,.xls,.xlsx,.csv" 
               ref={fileInputRef}
               onChange={handleFileChange}
               className="block w-full text-sm text-gray-500
