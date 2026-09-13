@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-const pdfParse = require('pdf-parse');
-
 export async function POST(request: Request) {
   try {
+    const pdfParse = require('pdf-parse');
     const formData = await request.formData();
     const files = formData.getAll('files') as File[];
 
