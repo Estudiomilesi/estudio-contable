@@ -107,7 +107,9 @@ export default function ImportAFIPModal({
           let derivedBillingProfile = matchedClient?.defaultBillingProfile || 'NO_FISCAL';
           if (issuerCuitMatch === '20316100660') {
             derivedBillingProfile = 'FEDE_RI';
-          } // We could add Juanma's CUIT mapping here if we knew it
+          } else if (issuerCuitMatch === '20301731958') {
+            derivedBillingProfile = 'JUANMA_MONO';
+          }
 
           if (!matchedClient && tx._denominacion && tx._denominacion.length > 3) {
             matchedClient = clientes.find(c => 
