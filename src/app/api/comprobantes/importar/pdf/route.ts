@@ -47,35 +47,31 @@ export async function POST(request: Request) {
       }
       
       // 2. Receipt Number
-      // "Punto de Venta: 00001 Comp. Nro: 00000123"
-      const pvMatch = text.match(/Punto de Venta:\s*(\d{4,5})/i);
-      const nroMatch = text.match(/Comp\. Nro:\s*(\d{8})/i);
-      const pv = pvMatch ? pvMatch[1] : '0000';
+      const pvMatch = text.match(/Punto\s+de\s+Venta[^\d]*(\d{4,5})/i);
+      const nroMatch = text.match(/Comp[^\d]*Nro[^\d]*(\d{8})/i);
+      const pv = pvMatch ? pvMatch[1].padStart(4, '0') : '0000';
       const nro = nroMatch ? nroMatch[1] : '00000000';
       
       // 3. Date
-      // "Fecha de Emisión: 15/09/2026"
-      const dateMatch = text.match(/Fecha de Emisi[o\u00F3]n:\s*(\d{2}\/\d{2}\/\d{4})/i);
+      const dateMatch = text.match(/Fecha\s+de\s+Emisi[\s\S]{1,300}?(\d{2}\/\d{2}\/\d{4})/i);
       let dateIso = new Date().toISOString();
       if (dateMatch) {
         const parts = dateMatch[1].split('/');
         dateIso = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).toISOString();
       }
 
-      // 4. CUIT/DNI Receptor
-      // "CUIT / CUIL / DNI: 30-70000000-1" or "CUIT: 30700000001"
-      // We look for the SECOND CUIT usually, because the first is the issuer.
-      // Or we specifically look for the receptor label.
-      const receptorBlockMatch = text.match(/(?:CUIT\s*\/\s*CUIL\s*\/\s*DNI|CUIT\s*\/\s*CUIL\s*\/\s*CDI)\s*[:]\s*(\d{2}-?\d{8}-?\d{1}|\d{7,11})/i);
+      // 4. CUIT Receptor
+      // Get all valid CUIT-like 11 digit numbers (ignoring Fede's specific formatting requirements)
+      const allCuits = [...text.matchAll(/\b(20|23|24|27|30|33|34)-?(\d{8})-?(\d{1})\b/g)];
+      // Unique CUITs stripped of dashes
+      const uniqueCuits = Array.from(new Set(allCuits.map(m => (m[1] + m[2] + m[3]))));
+      
       let receptorCuit = '';
-      if (receptorBlockMatch) {
-        receptorCuit = receptorBlockMatch[1].replace(/-/g, '');
-      } else {
-        // Fallback: get all CUITs and take the last one (assuming issuer is at the top)
-        const allCuits = [...text.matchAll(/\b(\d{2}-\d{8}-\d{1})\b/g)];
-        if (allCuits.length >= 2) {
-          receptorCuit = allCuits[allCuits.length - 1][1].replace(/-/g, '');
-        }
+      if (uniqueCuits.length > 1) {
+        // Typically the first CUIT is the issuer, the second is the receiver.
+        receptorCuit = uniqueCuits[1];
+      } else if (uniqueCuits.length === 1) {
+        receptorCuit = uniqueCuits[0];
       }
 
       // 5. Total Amounts
