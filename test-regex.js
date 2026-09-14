@@ -30,7 +30,4 @@ COD. 01
 
 console.log('PV:', text.match(/Punto\s+de\s+Venta[^\d]*(\d{4,5})/i)?.[1]);
 console.log('NRO:', text.match(/Comp[^\d]*Nro[^\d]*(\d{8})/i)?.[1]);
-console.log('DATE:', text.match(/Fecha\s+de\s+Emisi[oó]n[^\d]*(\d{2}\/\d{2}\/\d{4})/i)?.[1]);
-const allCuits = [...text.matchAll(/\b(20|23|24|27|30|33|34)-?(\d{8})-?(\d{1})\b/g)];
-const uniqueCuits = Array.from(new Set(allCuits.map(m => m[0].replace(/-/g, ''))));
-console.log('DATE2:', text.match(/Fecha\s+de\s+Emisi[oó]n[\s\S]{1,300}?(\d{2}\/\d{2}\/\d{4})/i)?.[1]);
+console.log([...text.matchAll(/(?<=^|\D)(20|23|24|27|30|33|34)[\s-]*(\d{8})[\s-]*(\d{1})(?=\D|$)/g)].map(m => m[1]+m[2]+m[3]));

@@ -47,11 +47,19 @@ export async function POST(request: Request) {
       }
       
       // 2. Receipt Number
-      const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
-      // Sometimes "Comp Nro" is mangled, so we just look for the first 8-digit number after Punto de Venta
-      const nroMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,150}?(\d{8})/i);
-      const pv = pvMatch ? pvMatch[1].padStart(4, '0') : '0000';
-      const nro = nroMatch ? nroMatch[1] : '00000000';
+      let pv = '0000';
+      let nro = '00000000';
+      
+      const fileNameMatch = file.name.match(/^(\d{11})_\d{2,3}_(\d{4,5})_(\d{8})\.pdf$/i);
+      if (fileNameMatch) {
+        pv = fileNameMatch[2];
+        nro = fileNameMatch[3];
+      } else {
+        const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
+        const nroMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,150}?(\d{8})/i);
+        pv = pvMatch ? pvMatch[1].padStart(4, '0') : '0000';
+        nro = nroMatch ? nroMatch[1] : '00000000';
+      }
       
       // 3. Date
       const dateMatch = text.match(/Fecha\s+de\s+Emisi[\s\S]{1,300}?(\d{2}\/\d{2}\/\d{4})/i);
@@ -63,10 +71,18 @@ export async function POST(request: Request) {
       }
 
       // 4. CUITs
-      // Get all valid CUIT-like 11 digit numbers (handle dashes and spaces)
-      const allCuits = [...text.matchAll(/\b(20|23|24|27|30|33|34)[\s-]*(\d{8})[\s-]*(\d{1})\b/g)];
+      // Get all valid CUIT-like 11 digit numbers (handle dashes and spaces, using lookarounds to avoid consuming boundaries)
+      const allCuits = [...text.matchAll(/(?<=^|\D)(20|23|24|27|30|33|34)[\s-]*(\d{8})[\s-]*(\d{1})(?=\D|$)/g)];
       // Unique CUITs stripped of dashes/spaces
       const uniqueCuits = Array.from(new Set(allCuits.map(m => (m[1] + m[2] + m[3]))));
+      
+      // Inject CUIT from filename if we found it, to guarantee the issuer is at least present
+      if (fileNameMatch) {
+        const fileCuit = fileNameMatch[1];
+        if (!uniqueCuits.includes(fileCuit)) {
+          uniqueCuits.unshift(fileCuit);
+        }
+      }
 
       // 5. Total Amounts
       // "Importe Total: $ 15.000,00"
