@@ -7,12 +7,13 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'super-sec
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const isLoginPage = request.nextUrl.pathname.startsWith('/login');
+  const isPublicPage = request.nextUrl.pathname.startsWith('/publico');
   
   // Exclude static files, API auth routes, and Next internals
   if (
     request.nextUrl.pathname.startsWith('/_next') ||
     request.nextUrl.pathname.startsWith('/api/auth') ||
-    request.nextUrl.pathname.includes('.')
+    request.nextUrl.pathname.includes('.') || isPublicPage
   ) {
     return NextResponse.next();
   }
