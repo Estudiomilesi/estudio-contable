@@ -82,30 +82,14 @@ export default function ClientDirectory({ clients }: { clients: ClientData[] }) 
   }, [clients]);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-xl flex flex-col h-[85vh] overflow-hidden border border-gray-200">
+    <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
+      <div className="w-full mx-auto">
+        <div className="bg-white rounded-xl shadow-xl flex flex-col h-[calc(100vh-2rem)] sm:h-[calc(100vh-3rem)] overflow-hidden border border-gray-200">
           <div className="bg-indigo-600 px-6 py-4 shrink-0 shadow-md z-20">
             <h1 className="text-2xl font-bold text-white">Directorio de Asignaciones</h1>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-2 gap-4">
-              <p className="text-indigo-100 text-sm">
-                Listado de clientes activos y sus colaboradores asignados.
-              </p>
-              <div className="flex items-center gap-2 bg-indigo-700/50 p-2 rounded-lg border border-indigo-500/50">
-                <label className="text-indigo-100 text-xs font-semibold uppercase tracking-wider">Filtrar por Colaborador:</label>
-                <select
-                  value={filterCollaborator}
-                  onChange={(e) => setFilterCollaborator(e.target.value)}
-                  className="rounded bg-white border-0 text-sm py-1 pl-2 pr-8 focus:ring-2 focus:ring-white text-indigo-900 font-bold shadow-sm"
-                >
-                  <option value="ALL">Todos los colaboradores</option>
-                  <option value="Sin asignar">Sin asignar</option>
-                  {uniqueCollaborators.map(c => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            <p className="text-indigo-100 text-sm mt-1">
+              Listado de clientes activos y sus colaboradores asignados.
+            </p>
           </div>
           
           <div className="overflow-auto flex-1 relative bg-gray-50">
@@ -134,12 +118,28 @@ export default function ClientDirectory({ clients }: { clients: ClientData[] }) 
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 select-none transition-colors"
-                    onClick={() => requestSort('assignedCollaborator')}
+                    className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider border-gray-200/50"
                   >
-                    <div className="flex items-center justify-between">
-                      Colaborador Asignado
-                      {sortConfig?.key === 'assignedCollaborator' && (<span className="text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>)}
+                    <div className="flex items-center justify-between gap-4">
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer hover:text-indigo-600 select-none transition-colors flex-1"
+                        onClick={() => requestSort('assignedCollaborator')}
+                      >
+                        Colaborador Asignado
+                        {sortConfig?.key === 'assignedCollaborator' && (<span className="text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>)}
+                      </div>
+                      <select
+                        value={filterCollaborator}
+                        onChange={(e) => setFilterCollaborator(e.target.value)}
+                        className="rounded bg-white border border-gray-300 text-[11px] py-1 pl-2 pr-6 focus:ring-2 focus:ring-indigo-500 text-gray-800 font-bold shadow-sm cursor-pointer"
+                        title="Filtrar por Colaborador"
+                      >
+                        <option value="ALL">Todos los colaboradores</option>
+                        <option value="Sin asignar">Sin asignar</option>
+                        {uniqueCollaborators.map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
                     </div>
                   </th>
                 </tr>
