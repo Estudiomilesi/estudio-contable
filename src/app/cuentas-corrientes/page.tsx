@@ -298,45 +298,77 @@ export default function CuentasCorrientesPage() {
   const exportClientExcel = () => {
     if (!selectedClient) return;
     
-    const data = selectedClient.transactions.map(tx => ({
-      Fecha: new Date(tx.date).toLocaleDateString('es-AR'),
-      Vencimiento: tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
-      Concepto: tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago'),
-      Debe: tx.type === 'CHARGE' ? tx.amount : 0,
-      Haber: tx.type === 'PAYMENT' ? tx.amount : 0,
-      Saldo: tx.runningBalance
-    }));
+    const displayedTransactions = selectedClient.transactions.filter(tx => {
+      if (viewMode === 'ALL') return true;
+      const applied = getAppliedAmount(tx);
+      return applied < tx.amount;
+    });
+
+    const data = displayedTransactions.map(tx => {
+      const applied = getAppliedAmount(tx);
+      const isCharge = tx.type === 'CHARGE';
+      const isPayment = tx.type === 'PAYMENT';
+      const debe = isCharge ? (viewMode === 'PENDING' ? tx.amount - applied : tx.amount) : 0;
+      const haber = isPayment ? (viewMode === 'PENDING' ? tx.amount - applied : tx.amount) : 0;
+      
+      return {
+        Fecha: new Date(tx.date).toLocaleDateString('es-AR'),
+        Vencimiento: tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
+        Concepto: tx.description || (isCharge ? 'Cargo' : 'Pago'),
+        Debe: debe,
+        Haber: haber,
+        Saldo: viewMode === 'PENDING' ? '-' : tx.runningBalance
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Cuenta Corriente");
-    XLSX.writeFile(wb, `CtaCte_${selectedClient.name.replace(/\s+/g, '_')}.xlsx`);
+    const sheetName = viewMode === 'PENDING' ? "Composicion Saldos" : "Cuenta Corriente";
+    XLSX.utils.book_append_sheet(wb, ws, sheetName.substring(0, 31));
+    XLSX.writeFile(wb, `${sheetName.replace(/\s+/g, '_')}_${selectedClient.name.replace(/\s+/g, '_')}.xlsx`);
   };
 
   const exportClientPDF = () => {
     if (!selectedClient) return;
     const doc = new jsPDF();
     doc.setFontSize(16);
-    doc.text(`Cuenta Corriente: ${selectedClient.name}`, 14, 20);
+    
+    const title = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Cuenta Corriente';
+    doc.text(`${title}: ${selectedClient.name}`, 14, 20);
     doc.setFontSize(11);
     doc.text(`Saldo Total: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 14, 28);
     
+    const displayedTransactions = selectedClient.transactions.filter(tx => {
+      if (viewMode === 'ALL') return true;
+      const applied = getAppliedAmount(tx);
+      return applied < tx.amount;
+    });
+
     const tableColumn = ["Fecha", "Vto.", "Concepto", "Debe", "Haber", "Saldo"];
-    const tableRows = selectedClient.transactions.map(tx => [
-      new Date(tx.date).toLocaleDateString('es-AR'),
-      tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
-      tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago'),
-      tx.type === 'CHARGE' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-',
-      tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-',
-      `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
-    ]);
+    const tableRows = displayedTransactions.map(tx => {
+      const applied = getAppliedAmount(tx);
+      const isCharge = tx.type === 'CHARGE';
+      const isPayment = tx.type === 'PAYMENT';
+      const debeStr = isCharge ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
+      const haberStr = isPayment ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
+      const saldoStr = viewMode === 'PENDING' ? '-' : `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      
+      return [
+        new Date(tx.date).toLocaleDateString('es-AR'),
+        tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
+        tx.description || (isCharge ? 'Cargo' : 'Pago'),
+        debeStr,
+        haberStr,
+        saldoStr
+      ];
+    });
     
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 35,
     });
-    doc.save(`CtaCte_${selectedClient.name.replace(/\s+/g, '_')}.pdf`);
+    doc.save(`${title.replace(/\s+/g, '_')}_${selectedClient.name.replace(/\s+/g, '_')}.pdf`);
   };
 
   const exportGlobalExcel = () => {
@@ -590,13 +622,13 @@ export default function CuentasCorrientesPage() {
                             {tx.description}
                           </td>
                           <td className="px-3 py-3 text-right tabular-nums text-sm font-semibold text-red-700 whitespace-nowrap">
-                            {isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : ''}
+                            {isCharge ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : ''}
                           </td>
                           <td className="px-3 py-3 text-right tabular-nums text-sm font-semibold text-green-700 whitespace-nowrap">
-                            {tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : ''}
+                            {tx.type === 'PAYMENT' ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : ''}
                           </td>
                           <td className={`px-3 py-3 text-right tabular-nums text-sm font-bold whitespace-nowrap ${tx.runningBalance > 0 ? 'text-red-700' : tx.runningBalance < 0 ? 'text-green-700' : 'text-gray-700'}`}>
-                            ${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            {viewMode === 'PENDING' ? '-' : `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`}
                           </td>
                           <td className="px-3 py-3 text-center text-sm whitespace-nowrap space-y-1">
                             {isCharge ? (
@@ -611,9 +643,11 @@ export default function CuentasCorrientesPage() {
                                 })()
                               ) : (
                                 <div className="flex flex-col items-center gap-1">
-                                  <span className="inline-flex rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold text-red-800">
-                                    Debe ${ (tx.amount - applied).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }
-                                  </span>
+                                  {viewMode === 'ALL' && (
+                                    <span className="inline-flex rounded-full bg-red-100 px-2 py-1 text-[10px] font-bold text-red-800">
+                                      Debe ${ (tx.amount - applied).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }
+                                    </span>
+                                  )}
                                   <button 
                                     onClick={() => handleOpenQuickCollect(tx.id)}
                                     title="Cobrar Ahora"
