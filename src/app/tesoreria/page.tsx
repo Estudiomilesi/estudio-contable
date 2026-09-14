@@ -142,15 +142,20 @@ export default function TesoreriaPage() {
     if (newSet.has(id)) newSet.delete(id);
     else newSet.add(id);
     setSelectedChargeIds(newSet);
-    
-    // Opcional: auto-sumar el importe
+    // Auto-sumar el importe SOLO si el campo está vacío o es 0
     let total = 0;
     newSet.forEach(chargeId => {
       const charge = pendingCharges.find(c => c.id === chargeId);
       if (charge) total += charge.debt;
     });
     if (total > 0 && formData.account !== 'CHEQUES') {
-      setFormData(prev => ({ ...prev, amount: total.toString() }));
+      setFormData(prev => {
+        const currentAmount = parseFloat(prev.amount || '0');
+        if (currentAmount === 0 || isNaN(currentAmount)) {
+          return { ...prev, amount: total.toString() };
+        }
+        return prev;
+      });
     }
   };
 
@@ -574,14 +579,24 @@ export default function TesoreriaPage() {
                             )
                           })}
                         </div>
-                        <div className="pt-2 border-t border-indigo-200 flex justify-between items-center">
-                          <span className="text-xs font-medium text-indigo-800">Total Seleccionado:</span>
-                          <span className="text-sm font-bold text-indigo-900">
-                            ${Array.from(selectedChargeIds).reduce((acc, id) => {
-                              const ch = pendingCharges.find(p => p.id === id);
-                              return acc + (ch ? ch.debt : 0);
-                            }, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                          </span>
+                        <div className="pt-2 border-t border-indigo-200 flex flex-col">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-medium text-indigo-800">Deuda Total Seleccionada:</span>
+                            <span className="text-sm font-bold text-indigo-900">
+                              ${Array.from(selectedChargeIds).reduce((acc, id) => {
+                                const ch = pendingCharges.find(p => p.id === id);
+                                return acc + (ch ? ch.debt : 0);
+                              }, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </span>
+                          </div>
+                          {(() => {
+                            const totalDebt = Array.from(selectedChargeIds).reduce((acc, id) => acc + (pendingCharges.find(p => p.id === id)?.debt || 0), 0);
+                            const currentInputAmount = parseFloat(formData.amount || '0');
+                            if (totalDebt > currentInputAmount && currentInputAmount > 0) {
+                              return <p className="text-[10px] text-blue-700 mt-1 italic text-right">Se aplicará un pago parcial por ${currentInputAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}. El resto quedará impago.</p>
+                            }
+                            return null;
+                          })()}
                         </div>
                       </>
                     )}
