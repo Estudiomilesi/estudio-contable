@@ -48,7 +48,8 @@ export async function POST(request: Request) {
       
       // 2. Receipt Number
       const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
-      const nroMatch = text.match(/Comp[\s\S]{0,20}?Nro[\s\S]{0,50}?(\d{8})/i);
+      // Sometimes "Comp Nro" is mangled, so we just look for the first 8-digit number after Punto de Venta
+      const nroMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,150}?(\d{8})/i);
       const pv = pvMatch ? pvMatch[1].padStart(4, '0') : '0000';
       const nro = nroMatch ? nroMatch[1] : '00000000';
       
@@ -62,9 +63,9 @@ export async function POST(request: Request) {
       }
 
       // 4. CUITs
-      // Get all valid CUIT-like 11 digit numbers (ignoring Fede's specific formatting requirements)
-      const allCuits = [...text.matchAll(/\b(20|23|24|27|30|33|34)-?(\d{8})-?(\d{1})\b/g)];
-      // Unique CUITs stripped of dashes
+      // Get all valid CUIT-like 11 digit numbers (handle dashes and spaces)
+      const allCuits = [...text.matchAll(/\b(20|23|24|27|30|33|34)[\s-]*(\d{8})[\s-]*(\d{1})\b/g)];
+      // Unique CUITs stripped of dashes/spaces
       const uniqueCuits = Array.from(new Set(allCuits.map(m => (m[1] + m[2] + m[3]))));
 
       // 5. Total Amounts

@@ -97,11 +97,16 @@ export default function ImportAFIPModal({
               }
             }
             
-            // If no match in DB, fallback: assume last CUIT is receiver, first is issuer
-            if (!matchedClient && tx._cuits.length > 1) {
-              receptorCuitMatch = tx._cuits[tx._cuits.length - 1];
-            } else if (!matchedClient) {
-              receptorCuitMatch = tx._cuits[0];
+            // If no match in DB, fallback: try to pick an unknown CUIT (which must be the receiver)
+            if (!matchedClient) {
+              const unknownCuits = tx._cuits.filter((c: string) => !knownIssuers.includes(c));
+              if (unknownCuits.length > 0) {
+                // The receiver is the first unknown CUIT found
+                receptorCuitMatch = unknownCuits[0];
+              } else {
+                // Desperate fallback if we only found known issuers (e.g. Fede billed himself)
+                receptorCuitMatch = tx._cuits[tx._cuits.length - 1];
+              }
             }
 
             // Identify issuer CUIT (the one that is not the receiver)
