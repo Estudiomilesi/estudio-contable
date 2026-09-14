@@ -105,6 +105,7 @@ model AccountTransaction {
   // AFIP Fiscal Data
   cae               String?
   caeDueDate        DateTime?
+  afipTipoCmp       Int?
 
   // Participación de Colaboradores (solo para CHARGE manuales)
   collaboratorName String?

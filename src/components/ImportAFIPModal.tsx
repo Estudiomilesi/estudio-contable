@@ -136,7 +136,8 @@ export default function ImportAFIPModal({
             collaboratorName: matchedClient?.assignedCollaborator || null,
             collaboratorAmount: null,
             cae: tx.cae,
-            caeDueDate: tx.caeDueDate
+            caeDueDate: tx.caeDueDate,
+            afipTipoCmp: tx.afipTipoCmp
           };
         });
         

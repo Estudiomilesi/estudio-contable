@@ -26,7 +26,8 @@ export async function POST(request: Request) {
             collaboratorName: tx.collaboratorName || null,
             collaboratorAmount: tx.collaboratorAmount || null,
             cae: tx.cae || null,
-            caeDueDate: tx.caeDueDate ? new Date(tx.caeDueDate) : null
+            caeDueDate: tx.caeDueDate ? new Date(tx.caeDueDate) : null,
+            afipTipoCmp: tx.afipTipoCmp || null
           }
         });
       })

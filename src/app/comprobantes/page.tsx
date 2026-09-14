@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Trash2, FileText, Download, Plus, X } from 'lucide-react';
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import { LOGO_BASE64 } from '@/lib/logo';
 import dynamic from 'next/dynamic';
 
@@ -37,6 +38,7 @@ type Comprobante = {
   collaboratorAmount?: number;
   cae?: string;
   caeDueDate?: string;
+  afipTipoCmp?: number;
   client: Client;
   items: any[];
 };
@@ -207,7 +209,7 @@ export default function ComprobantesPage() {
         
         if (sendEmail && createdComp.billingProfile === 'NO_FISCAL' && createdComp.client?.email) {
           try {
-            const doc = generatePdfDoc(createdComp);
+            const doc = await generatePdfDoc(createdComp);
             const pdfBase64 = doc.output('datauristring');
             await fetch('/api/comprobantes/enviar', {
               method: 'POST',
@@ -267,7 +269,7 @@ export default function ComprobantesPage() {
     }
   };
 
-  const generatePdfDoc = (c: Comprobante) => {
+  const generatePdfDoc = async (c: Comprobante) => {
     const doc = new jsPDF({ compress: true });
     
     // LOGO
@@ -420,6 +422,45 @@ export default function ComprobantesPage() {
         nextY += 6;
         doc.text(`Vencimiento CAE: ${vto}`, 15, nextY);
       }
+      
+      // QR Code Generation
+      try {
+        const ptoVta = parseInt(c.receiptNumber.split('-')[0]) || 0;
+        const nroCmp = parseInt(c.receiptNumber.split('-')[1]) || 0;
+        let cuitEmisor = 0;
+        if (c.billingProfile === 'FEDE_RI') cuitEmisor = 20316100660;
+        else if (c.billingProfile === 'JUANMA_MONO') cuitEmisor = 20301731958;
+        
+        let cuitReceptor = 0;
+        if (c.client.cuit) {
+          cuitReceptor = parseInt(c.client.cuit.replace(/\D/g, '')) || 0;
+        }
+
+        const afipQr = {
+          ver: 1,
+          fecha: c.date.split('T')[0],
+          cuit: cuitEmisor,
+          ptoVta: ptoVta,
+          tipoCmp: c.afipTipoCmp || 11, // default to Factura C (11) if unknown
+          nroCmp: nroCmp,
+          importe: c.amount,
+          moneda: "PES",
+          ctz: 1,
+          tipoDocRec: cuitReceptor ? 80 : 99,
+          nroDocRec: cuitReceptor,
+          tipoCodAut: "E",
+          codAut: parseInt(c.cae)
+        };
+        
+        const qrJson = JSON.stringify(afipQr);
+        const qrBase64 = btoa(qrJson);
+        const qrUrl = `https://www.afip.gob.ar/fe/qr/?p=${qrBase64}`;
+        
+        const qrDataUrl = await QRCode.toDataURL(qrUrl, { margin: 1, width: 80 });
+        doc.addImage(qrDataUrl, 'PNG', 150, nextY - 15, 30, 30);
+      } catch(e) {
+        console.error("Error generando QR", e);
+      }
     }
     
     // FOOTER
@@ -442,14 +483,14 @@ export default function ComprobantesPage() {
     return doc;
   };
 
-  const handleDownload = (c: Comprobante) => {
+  const handleDownload = async (c: Comprobante) => {
     if (c.billingProfile !== 'NO_FISCAL' && c.receiptFileBase64) {
       const a = document.createElement("a");
       a.href = c.receiptFileBase64;
       a.download = `Comprobante_${c.receiptNumber || 'AFIP'}.pdf`;
       a.click();
     } else {
-      const doc = generatePdfDoc(c);
+      const doc = await generatePdfDoc(c);
       doc.save(`Comprobante_${c.receiptNumber || 'Interno'}.pdf`);
     }
   };
