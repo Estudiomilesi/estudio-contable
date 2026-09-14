@@ -80,10 +80,15 @@ export default function ImportAFIPModal({
           if (tx._cuits && tx._cuits.length > 0) {
             // Fede's CUIT
             const fedeCuit = '20316100660';
-            // Juanma's CUIT (Example, we don't know it exactly so we rely on client match)
+            // Juanma's CUIT
+            const juanmaCuit = '20301731958';
+            const knownIssuers = [fedeCuit, juanmaCuit];
             
             // First, find the receiver by checking which CUIT belongs to a client in the DB
+            // (Excluding the known issuers so Fede doesn't match himself)
             for (const cuit of tx._cuits) {
+              if (knownIssuers.includes(cuit)) continue;
+              
               const c = clientes.find(c => c.cuit && c.cuit.replace(/-/g, '') === cuit);
               if (c) {
                 matchedClient = c;

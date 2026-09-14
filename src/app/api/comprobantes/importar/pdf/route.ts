@@ -47,8 +47,8 @@ export async function POST(request: Request) {
       }
       
       // 2. Receipt Number
-      const pvMatch = text.match(/Punto\s+de\s+Venta[^\d]*(\d{4,5})/i);
-      const nroMatch = text.match(/Comp[^\d]*Nro[^\d]*(\d{8})/i);
+      const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
+      const nroMatch = text.match(/Comp[\s\S]{0,20}?Nro[\s\S]{0,50}?(\d{8})/i);
       const pv = pvMatch ? pvMatch[1].padStart(4, '0') : '0000';
       const nro = nroMatch ? nroMatch[1] : '00000000';
       
@@ -57,7 +57,8 @@ export async function POST(request: Request) {
       let dateIso = new Date().toISOString();
       if (dateMatch) {
         const parts = dateMatch[1].split('/');
-        dateIso = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0])).toISOString();
+        // YYYY-MM-DDT12:00:00.000Z to avoid timezone offsets changing the day
+        dateIso = `${parts[2]}-${parts[1]}-${parts[0]}T12:00:00.000Z`;
       }
 
       // 4. CUITs
