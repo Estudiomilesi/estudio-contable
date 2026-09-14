@@ -134,7 +134,9 @@ export default function ImportAFIPModal({
             clientNameMatch: matchedClient?.name || null,
             billingProfile: derivedBillingProfile,
             collaboratorName: matchedClient?.assignedCollaborator || null,
-            collaboratorAmount: null
+            collaboratorAmount: null,
+            cae: tx.cae,
+            caeDueDate: tx.caeDueDate
           };
         });
         

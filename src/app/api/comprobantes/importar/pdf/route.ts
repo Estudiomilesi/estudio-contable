@@ -104,6 +104,16 @@ export async function POST(request: Request) {
 
       if (!neto) neto = total - iva;
 
+      // 6. CAE & Vto CAE
+      const caeMatch = text.match(/CAE[^\d]*(\d{14})/i);
+      const caeVtoMatch = text.match(/Vto[\s\S]{0,30}?CAE[^\d]*(\d{2}\/\d{2}\/\d{4})/i);
+      const cae = caeMatch ? caeMatch[1] : null;
+      let caeVtoIso = null;
+      if (caeVtoMatch) {
+        const parts = caeVtoMatch[1].split('/');
+        caeVtoIso = `${parts[2]}-${parts[1]}-${parts[0]}T12:00:00.000Z`;
+      }
+
       results.push({
         fileName: file.name,
         _cuits: uniqueCuits,
@@ -115,6 +125,8 @@ export async function POST(request: Request) {
         amount: total,
         netAmount: neto,
         ivaAmount: iva,
+        cae: cae,
+        caeDueDate: caeVtoIso,
       });
     }
 

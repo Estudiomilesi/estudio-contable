@@ -101,6 +101,10 @@ model AccountTransaction {
   dueDate     DateTime?
   receiptNumber     String?
   receiptFileBase64 String?
+  
+  // AFIP Fiscal Data
+  cae               String?
+  caeDueDate        DateTime?
 
   // Participación de Colaboradores (solo para CHARGE manuales)
   collaboratorName String?

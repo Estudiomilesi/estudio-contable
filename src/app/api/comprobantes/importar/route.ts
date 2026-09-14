@@ -22,9 +22,11 @@ export async function POST(request: Request) {
             ivaAmount: tx.ivaAmount,
             amount: tx.amount,
             description: tx.description,
-            receiptNumber: tx.receiptNumber,
+            receiptNumber: tx.receiptNumber || null,
             collaboratorName: tx.collaboratorName || null,
-            collaboratorAmount: tx.collaboratorAmount || null
+            collaboratorAmount: tx.collaboratorAmount || null,
+            cae: tx.cae || null,
+            caeDueDate: tx.caeDueDate ? new Date(tx.caeDueDate) : null
           }
         });
       })

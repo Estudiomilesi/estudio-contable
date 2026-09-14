@@ -28,13 +28,17 @@ type Comprobante = {
   netAmount: number;
   ivaAmount: number;
   description: string;
-  receiptNumber: string | null;
-  receiptFileBase64: string | null;
+  receiptNumber: string;
+  receiptFileBase64?: string;
   billingProfile: string;
   isEmailed: boolean;
   createdAt: string;
-  client: { name: string, professionalLabel: string, defaultBankAccountId: string | null };
-  items: { concept: string, amount: number }[];
+  collaboratorName?: string;
+  collaboratorAmount?: number;
+  cae?: string;
+  caeDueDate?: string;
+  client: Client;
+  items: any[];
 };
 
 type Concept = {
@@ -397,6 +401,25 @@ export default function ComprobantesPage() {
       if (bank.cuit) { nextY += 6; doc.text(`CUIT: ${bank.cuit}`, 15, nextY); }
       if (bank.cbu || bank.cvu) { nextY += 6; doc.text(`CBU / CVU: ${bank.cbu || bank.cvu}`, 15, nextY); }
       if (bank.alias) { nextY += 6; doc.text(`Alias: ${bank.alias}`, 15, nextY); }
+    }
+    
+    // FISCAL DATA (CAE)
+    if (c.cae) {
+      nextY += 10;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(50);
+      doc.text("DATOS FISCALES AFIP:", 15, nextY);
+      
+      doc.setFont("helvetica", "normal");
+      nextY += 6;
+      doc.text(`CAE N°: ${c.cae}`, 15, nextY);
+      if (c.caeDueDate) {
+        // Format date string from YYYY-MM-DD to DD/MM/YYYY
+        const vto = new Date(c.caeDueDate).toLocaleDateString('es-AR');
+        nextY += 6;
+        doc.text(`Vencimiento CAE: ${vto}`, 15, nextY);
+      }
     }
     
     // FOOTER
