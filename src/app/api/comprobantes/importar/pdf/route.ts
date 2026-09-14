@@ -57,12 +57,21 @@ export async function POST(request: Request) {
       } else {
         const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
         const nroMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,150}?(\d{8})/i);
-        pv = pvMatch ? pvMatch[1].padStart(4, '0') : '0000';
-        nro = nroMatch ? nroMatch[1] : '00000000';
+        
+        if (pvMatch && nroMatch) {
+          pv = pvMatch[1].padStart(4, '0');
+          nro = nroMatch[1];
+        } else {
+          const directNroMatch = text.match(/Nro[.\s:]*(\d{4,5})[-_](\d{8})/i);
+          if (directNroMatch) {
+            pv = directNroMatch[1].padStart(4, '0');
+            nro = directNroMatch[2];
+          }
+        }
       }
       
       // 3. Date
-      const dateMatch = text.match(/Fecha\s+de\s+Emisi[\s\S]{1,300}?(\d{2}\/\d{2}\/\d{4})/i);
+      const dateMatch = text.match(/(?:Fecha\s+de\s+Emisi[\s\S]{1,300}?|Fecha[.\s:]*)(\d{2}\/\d{2}\/\d{4})/i);
       let dateIso = new Date().toISOString();
       if (dateMatch) {
         const parts = dateMatch[1].split('/');
@@ -90,9 +99,9 @@ export async function POST(request: Request) {
         return parseFloat(str.replace(/\./g, '').replace(/,/g, '.'));
       };
 
-      const totalMatch = text.match(/Importe Total:?\s*\$\s*([\d\.,]+)/i);
-      const netoMatch = text.match(/Importe Neto Gravado:?\s*\$\s*([\d\.,]+)/i);
-      const ivaMatch = text.match(/IVA \d+%:?\s*\$\s*([\d\.,]+)/i);
+      const totalMatch = text.match(/Importe Total[^\d]*?([\d\.,]+)/i);
+      const netoMatch = text.match(/Importe Neto Gravado[^\d]*?([\d\.,]+)/i);
+      const ivaMatch = text.match(/IVA \d+%[^\d]*?([\d\.,]+)/i);
 
       let total = 0;
       let neto = 0;
@@ -106,7 +115,7 @@ export async function POST(request: Request) {
 
       // 6. CAE & Vto CAE & TipoCmp
       const caeMatch = text.match(/CAE[^\d]*(\d{14})/i);
-      const caeVtoMatch = text.match(/Vto[\s\S]{0,30}?CAE[^\d]*(\d{2}\/\d{2}\/\d{4})/i);
+      const caeVtoMatch = text.match(/(?:Vto|vencimiento)[\s\S]{0,30}?CAE[^\d]*(\d{2}\/\d{2}\/\d{4})/i);
       const tipoCmpMatch = text.match(/COD[^\d]*(\d{2,3})/i);
       const cae = caeMatch ? caeMatch[1] : null;
       let caeVtoIso = null;
