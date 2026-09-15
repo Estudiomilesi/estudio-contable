@@ -2,7 +2,6 @@ name: Daily Database Backup
 
 on:
   schedule:
-    # Ejecutar todos los días a las 3:00 AM UTC (12:00 AM Argentina)
     - cron: '0 3 * * *'
   workflow_dispatch:
 
@@ -10,11 +9,6 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
       - name: Backup Database
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
@@ -27,8 +21,8 @@ jobs:
           DATE=$(date +'%Y-%m-%d')
           FILENAME="backup-estudio-$DATE.sql"
           
-          echo "Iniciando backup de la base de datos..."
-          pg_dump "$DIRECT_URL" -F c -f "$FILENAME"
+          echo "Iniciando backup..."
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace postgres:17 pg_dump "$DIRECT_URL" -F c -f "$FILENAME"
           echo "Backup completado: $FILENAME"
 
       - name: Upload Backup as Artifact
@@ -36,5 +30,4 @@ jobs:
         with:
           name: db-backup-${{ github.run_id }}
           path: backup-estudio-*.sql
-          # Esto le dice a GitHub que borre todo lo que tenga más de 7 días
           retention-days: 7
