@@ -88,6 +88,8 @@ export async function POST(request: Request) {
         // Determinar firma en base a la etiqueta profesional
         const firma = cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J';
         const colorPrincipal = cliente.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; // Cyan oscuro para F, Índigo para F&J
+        const colorFondoEtiqueta = cliente.professionalLabel === 'F' ? '#e0f2fe' : '#e0e7ff'; // Fondo pastel
+        const colorTextoEtiqueta = cliente.professionalLabel === 'F' ? '#0369a1' : '#4338ca'; // Texto oscuro
 
         const htmlEmail = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
@@ -106,12 +108,16 @@ export async function POST(request: Request) {
 
               <p style="color: #334155; font-size: 16px;">Hola <strong>${cliente.name}</strong>,</p>
               <p style="color: #334155; font-size: 16px;">Esperamos que te encuentres muy bien.</p>
-              <p style="color: #334155; font-size: 16px;">Te enviamos el detalle de los honorarios correspondientes al período <strong>${periodoStr}</strong>.</p>
+              <p style="color: #334155; font-size: 16px; margin-bottom: 25px;">Te enviamos el detalle de los honorarios correspondientes al período <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 12px; border-radius: 16px; font-weight: bold; font-size: 15px; display: inline-block; border: 1px solid ${colorPrincipal};">${periodoStr}</span>.</p>
               
               <!-- Recuadro llamativo del importe -->
               <div style="background-color: #f8fafc; border-left: 5px solid ${colorPrincipal}; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-                <p style="margin: 0 0 8px 0; color: #475569; font-size: 14px;"><strong>Comprobante interno:</strong> ${receiptNumber}</p>
-                <p style="margin: 0 0 12px 0; color: #475569; font-size: 14px;"><strong>Concepto:</strong> Honorarios Contables - Abono Mensual</p>
+                <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px;"><strong>Comprobante interno:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569;">${receiptNumber}</span></p>
+                <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 2;">
+                  <strong>Concepto:</strong> 
+                  <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block;">Honorarios Contables</span> 
+                  <span style="background-color: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 13px; border: 1px solid #e2e8f0; display: inline-block; margin-left: 4px;">Abono Mensual</span>
+                </p>
                 <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>Total a pagar: $${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
               </div>
               
