@@ -7,9 +7,8 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     const description = data.description || 'Abono Mensual';
-    const host = request.headers.get('host') || 'estudiomilesi.com';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const logoUrl = `${protocol}://${host}/logo-dark.png`;
+    // Usar la URL cruda de GitHub garantiza que el logo siempre cargue en Gmail y otros clientes
+    const logoUrl = 'https://raw.githubusercontent.com/Estudiomilesi/estudio-contable/main/public/logo-dark.png';
 
     const billingDate = parseToUtcNoon(data.billingDate);
     const clientIds = data.clientIds || [];
