@@ -9,7 +9,7 @@ export async function POST(request: Request) {
     const description = data.description || 'Abono Mensual';
     const host = request.headers.get('host') || 'estudiomilesi.com';
     const protocol = host.includes('localhost') ? 'http' : 'https';
-    const logoUrl = `${protocol}://${host}/logo-light.png`;
+    const logoUrl = `${protocol}://${host}/logo-dark.png`;
 
     const billingDate = parseToUtcNoon(data.billingDate);
     const clientIds = data.clientIds || [];
@@ -93,13 +93,18 @@ export async function POST(request: Request) {
         const htmlEmail = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             
-            <!-- Encabezado con color dinámico -->
-            <div style="background-color: ${colorPrincipal}; padding: 25px 20px; text-align: center;">
-              <img src="${logoUrl}" alt="${firma}" style="max-height: 60px; filter: brightness(0) invert(1);" />
-            </div>
-            
             <div style="padding: 30px;">
-              <h2 style="color: #1e293b; margin-top: 0; font-size: 22px;">Aviso de Honorarios</h2>
+              <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 25px;">
+                <tr>
+                  <td align="left" valign="middle">
+                    <h2 style="color: #1e293b; margin: 0; font-size: 22px; border-bottom: 3px solid ${colorPrincipal}; padding-bottom: 5px; display: inline-block;">Aviso de Honorarios</h2>
+                  </td>
+                  <td align="right" valign="middle">
+                    <img src="${logoUrl}" alt="${firma}" style="max-height: 65px; opacity: 0.9;" />
+                  </td>
+                </tr>
+              </table>
+
               <p style="color: #334155; font-size: 16px;">Hola <strong>${cliente.name}</strong>,</p>
               <p style="color: #334155; font-size: 16px;">Esperamos que te encuentres muy bien.</p>
               <p style="color: #334155; font-size: 16px;">Te enviamos el detalle de los honorarios correspondientes al período <strong>${periodoStr}</strong>.</p>
@@ -123,7 +128,7 @@ export async function POST(request: Request) {
               
               <p style="color: #334155; font-size: 15px; line-height: 1.5;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
               
-              <p style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 25px;">¡Muchas gracias por elegirnos y confiar en nuestro equipo!</p>
+              <p style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 25px;">¡Gracias por elegirnos y confiar en nuestro equipo!</p>
               
               <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
               
