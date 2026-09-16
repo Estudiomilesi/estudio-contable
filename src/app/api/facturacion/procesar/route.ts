@@ -7,11 +7,9 @@ export async function POST(request: Request) {
   try {
     const data = await request.json();
     const description = data.description || 'Abono Mensual';
-    const parseDate = (dString: string) => {
-      if (!dString) return new Date();
-      if (dString.includes('T')) return new Date(dString);
-      return new Date(`${dString}T12:00:00`);
-    };
+    const host = request.headers.get('host') || 'estudiomilesi.com';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const logoUrl = `${protocol}://${host}/logo-light.png`;
 
     const billingDate = parseToUtcNoon(data.billingDate);
     const clientIds = data.clientIds || [];
@@ -22,14 +20,31 @@ export async function POST(request: Request) {
     const anoActual = billingDate.getFullYear();
     const periodoStr = `${mesActual} ${anoActual}`;
 
-    // Obtener los clientes (todos los activos, o solo los seleccionados)
+    // Obtener los clientes (incluyendo datos bancarios para el mail)
     const clientes = await prisma.client.findMany({
       where: { 
         isActive: true,
         currentFee: { gt: 0 },
         ...(clientIds.length > 0 ? { id: { in: clientIds } } : {})
+      },
+      include: {
+        defaultBankAccount: true
       }
     });
+
+    // Obtener el último número de comprobante ABON- para seguir la secuencia
+    const lastAbono = await prisma.accountTransaction.findFirst({
+      where: { receiptNumber: { startsWith: 'ABON-' } },
+      orderBy: { receiptNumber: 'desc' }
+    });
+    
+    let nextAbonoNum = 1;
+    if (lastAbono && lastAbono.receiptNumber) {
+      const match = lastAbono.receiptNumber.match(/ABON-(\d+)/);
+      if (match) {
+        nextAbonoNum = parseInt(match[1], 10) + 1;
+      }
+    }
 
     let emailsEnviados = 0;
     const transacciones = [];
@@ -47,6 +62,10 @@ export async function POST(request: Request) {
       }
 
       const totalAmount = netAmount + ivaAmount;
+      
+      // Generar el número de comprobante consecutivo ABON-0000000X
+      const receiptNumber = `ABON-${String(nextAbonoNum).padStart(7, '0')}`;
+      nextAbonoNum++;
 
       const transaccion = await prisma.accountTransaction.create({
         data: {
@@ -57,39 +76,67 @@ export async function POST(request: Request) {
           netAmount,
           ivaAmount,
           billingProfile: profile,
-          description: `${description} - ${periodoStr}`
+          description: `${description} - ${periodoStr}`,
+          receiptNumber: receiptNumber
         }
       });
       transacciones.push(transaccion);
 
-      // Enviar email si tiene un email válido (asumimos que tienen email)
+      // Enviar email si tiene un email válido
       if (cliente.email && cliente.email !== 'falta@email.com') {
         const correosDestino = cliente.email.split(',').map(e => e.trim()).join(', ');
         
+        // Determinar firma en base a la etiqueta profesional
+        const firma = cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J';
+        const colorPrincipal = cliente.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; // Cyan oscuro para F, Índigo para F&J
+
         const htmlEmail = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-            <h2 style="color: #333;">Comprobante de Abono Mensual</h2>
-            <p>Estimado/a <strong>${cliente.name}</strong>,</p>
-            <p>Le enviamos el detalle del abono correspondiente al mes en curso.</p>
+          <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
             
-            <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <p style="margin: 0 0 10px 0;"><strong>Período:</strong> ${periodoStr}</p>
-              <p style="margin: 0 0 10px 0;"><strong>Concepto:</strong> Honorarios Contables - Abono Mensual</p>
-              <p style="margin: 0; font-size: 18px;"><strong>Importe a abonar:</strong> $${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+            <!-- Encabezado con color dinámico -->
+            <div style="background-color: ${colorPrincipal}; padding: 25px 20px; text-align: center;">
+              <img src="${logoUrl}" alt="${firma}" style="max-height: 60px; filter: brightness(0) invert(1);" />
             </div>
             
-            <p>Por favor, recuerde enviar el comprobante de transferencia o pago una vez realizado.</p>
-            <p>Ante cualquier duda, estamos a su disposición.</p>
-            
-            <br/>
-            <p style="color: #666; font-size: 14px;">Atentamente,<br/><strong>Estudio Milesi</strong></p>
+            <div style="padding: 30px;">
+              <h2 style="color: #1e293b; margin-top: 0; font-size: 22px;">Aviso de Honorarios</h2>
+              <p style="color: #334155; font-size: 16px;">Hola <strong>${cliente.name}</strong>,</p>
+              <p style="color: #334155; font-size: 16px;">Esperamos que te encuentres muy bien.</p>
+              <p style="color: #334155; font-size: 16px;">Te enviamos el detalle de los honorarios correspondientes al período <strong>${periodoStr}</strong>.</p>
+              
+              <!-- Recuadro llamativo del importe -->
+              <div style="background-color: #f8fafc; border-left: 5px solid ${colorPrincipal}; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
+                <p style="margin: 0 0 8px 0; color: #475569; font-size: 14px;"><strong>Comprobante interno:</strong> ${receiptNumber}</p>
+                <p style="margin: 0 0 12px 0; color: #475569; font-size: 14px;"><strong>Concepto:</strong> Honorarios Contables - Abono Mensual</p>
+                <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>Total a pagar: $${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
+              </div>
+              
+              <!-- Datos bancarios -->
+              ${cliente.defaultBankAccount ? `
+              <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                <h3 style="margin: 0 0 12px 0; color: #166534; font-size: 16px;">🏛️ Datos para transferencia</h3>
+                <p style="margin: 0 0 6px 0; color: #15803d; font-size: 15px;"><strong>Banco:</strong> ${cliente.defaultBankAccount.name}</p>
+                ${cliente.defaultBankAccount.cbu ? `<p style="margin: 0 0 6px 0; color: #15803d; font-size: 15px;"><strong>CBU/CVU:</strong> ${cliente.defaultBankAccount.cbu}</p>` : ''}
+                ${cliente.defaultBankAccount.alias ? `<p style="margin: 0; color: #15803d; font-size: 15px;"><strong>Alias:</strong> ${cliente.defaultBankAccount.alias}</p>` : ''}
+              </div>
+              ` : ''}
+              
+              <p style="color: #334155; font-size: 15px; line-height: 1.5;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
+              
+              <p style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 25px;">¡Muchas gracias por elegirnos y confiar en nuestro equipo!</p>
+              
+              <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
+              
+              <p style="color: #64748b; font-size: 14px; margin: 0;">Atentamente,</p>
+              <p style="color: #0f172a; font-size: 18px; font-weight: bold; margin: 5px 0 0 0;">${firma}</p>
+            </div>
           </div>
         `;
 
         try {
           await sendEmail(
             correosDestino, 
-            `Abono Mensual Estudio Milesi - ${periodoStr} - ${cliente.name}`, 
+            `Aviso de Honorarios - ${periodoStr} - ${firma}`, 
             htmlEmail
           );
           emailsEnviados++;
