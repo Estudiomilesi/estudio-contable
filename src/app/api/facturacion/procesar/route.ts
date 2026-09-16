@@ -108,15 +108,14 @@ export async function POST(request: Request) {
 
               <p style="color: #334155; font-size: 16px;">Hola <strong>${cliente.name}</strong>,</p>
               <p style="color: #334155; font-size: 16px;">Esperamos que te encuentres muy bien.</p>
-              <p style="color: #334155; font-size: 16px; margin-bottom: 25px;">Te enviamos el detalle de los honorarios correspondientes al período <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 12px; border-radius: 16px; font-weight: bold; font-size: 15px; display: inline-block; border: 1px solid ${colorPrincipal};">${periodoStr}</span>.</p>
+              <p style="color: #334155; font-size: 16px; margin-bottom: 25px; line-height: 1.6;">Te enviamos el detalle de los honorarios correspondientes al período <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 12px; border-radius: 16px; font-weight: bold; font-size: 15px; display: inline-block; border: 1px solid ${colorPrincipal}; margin-top: 4px; white-space: nowrap;">${periodoStr}</span>.</p>
               
               <!-- Recuadro llamativo del importe -->
               <div style="background-color: #f8fafc; border-left: 5px solid ${colorPrincipal}; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-                <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px;"><strong>Comprobante interno:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569;">${receiptNumber}</span></p>
-                <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 2;">
+                <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px; line-height: 1.6;"><strong>Comprobante interno:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569; white-space: nowrap;">${receiptNumber}</span></p>
+                <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 1.8;">
                   <strong>Concepto:</strong> 
-                  <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block;">Honorarios Contables</span> 
-                  <span style="background-color: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 6px; font-weight: 600; font-size: 13px; border: 1px solid #e2e8f0; display: inline-block; margin-left: 4px;">Abono Mensual</span>
+                  <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">Honorarios Contables - Abono Mensual</span>
                 </p>
                 <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>Total a pagar: $${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
               </div>
