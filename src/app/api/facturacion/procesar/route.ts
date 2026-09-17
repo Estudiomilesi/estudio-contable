@@ -66,6 +66,9 @@ export async function POST(request: Request) {
       const receiptNumber = `ABON-${String(nextAbonoNum).padStart(7, '0')}`;
       nextAbonoNum++;
 
+      // Enviar email si tiene perfil NO_FISCAL y un email válido
+      const debeEnviarEmailInmediato = profile === 'NO_FISCAL';
+
       const transaccion = await prisma.accountTransaction.create({
         data: {
           clientId: cliente.id,
@@ -76,13 +79,13 @@ export async function POST(request: Request) {
           ivaAmount,
           billingProfile: profile,
           description: `${description} - ${periodoStr}`,
-          receiptNumber: receiptNumber
+          receiptNumber: receiptNumber,
+          isEmailed: debeEnviarEmailInmediato // Si es fiscal queda en false (pendiente de envío)
         }
       });
       transacciones.push(transaccion);
 
-      // Enviar email si tiene un email válido
-      if (cliente.email && cliente.email !== 'falta@email.com') {
+      if (debeEnviarEmailInmediato && cliente.email && cliente.email !== 'falta@email.com') {
         const correosDestino = cliente.email.split(',').map(e => e.trim()).join(', ');
         
         // Determinar firma en base a la etiqueta profesional

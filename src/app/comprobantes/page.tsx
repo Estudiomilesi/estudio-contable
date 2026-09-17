@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { Trash2, FileText, Download, Plus, X } from 'lucide-react';
+import { Trash2, FileText, Download, Plus, X, Mail } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { LOGO_BASE64 } from '@/lib/logo';
@@ -17,7 +17,7 @@ type Client = {
   professionalLabel: string;
   defaultBankAccountId: string | null;
   cuit: string | null;
-  assignedCollaborator: string | null;
+  assignedCollaborator: string | null; email?: string | null;
 };
 
 type Comprobante = {
@@ -483,6 +483,27 @@ export default function ComprobantesPage() {
     return doc;
   };
 
+  const handleSendHtmlEmail = async (c: Comprobante) => {
+    if (confirm(`¿Enviar aviso de honorarios por email a ${c.client?.name}?`)) {
+      try {
+        const res = await fetch('/api/comprobantes/enviar-html', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: c.id })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Email enviado con éxito');
+          fetchData(); // Refresh para que se vaya el badge
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error enviando email');
+      }
+    }
+  };
+
   const handleDownload = async (c: Comprobante) => {
     if (c.billingProfile !== 'NO_FISCAL' && c.receiptFileBase64) {
       const a = document.createElement("a");
@@ -888,8 +909,13 @@ export default function ComprobantesPage() {
                     <td className="px-2 py-2 text-xs font-medium text-gray-900 truncate max-w-[100px]" title={c.client?.name}>
                       {c.client?.name}
                     </td>
-                    <td className="px-2 py-2 whitespace-nowrap text-[10px] font-mono text-gray-500">
-                      {c.receiptNumber || '-'}
+                    <td className="px-2 py-2 whitespace-nowrap text-[10px] text-gray-500">
+                      <span className="font-mono">{c.receiptNumber || '-'}</span>
+                      {!c.isEmailed && c.type === 'CHARGE' && (
+                        <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-800" title="Pendiente de envío al cliente">
+                          Pendiente Envío
+                        </span>
+                      )}
                     </td>
                     <td className="px-2 py-2 text-xs text-gray-600 truncate max-w-[120px]" title={c.description}>
                       {c.description}
@@ -898,6 +924,11 @@ export default function ComprobantesPage() {
                       {c.type === 'PAYMENT' ? '-' : ''}${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                     <td className="px-2 py-2 whitespace-nowrap text-right text-xs font-medium">
+                      {!c.isEmailed && c.type === 'CHARGE' && c.client?.email && (
+                        <button onClick={() => handleSendHtmlEmail(c)} className="text-gray-400 hover:text-amber-600 mr-2" title="Enviar email al cliente">
+                          <Mail size={14} />
+                        </button>
+                      )}
                       <button onClick={() => handleDownload(c)} className="text-gray-400 hover:text-indigo-600 mr-2" title="Descargar PDF">
                         <Download size={14} />
                       </button>
