@@ -313,6 +313,37 @@ export async function POST(request: Request) {
       }
     }
 
+    // 6. Automatización: Si es un pago de Sueldos con Empleado, impactar en la planilla (Salary)
+    if (data.type === 'EXPENSE' && data.category === 'Sueldos' && data.employeeId) {
+      const txDate = parseToUtcNoon(data.date);
+      const yyyy = txDate.getFullYear();
+      const mm = String(txDate.getMonth() + 1).padStart(2, '0');
+      const monthStr = `${yyyy}-${mm}`;
+
+      await prisma.salary.upsert({
+        where: {
+          employeeId_month: {
+            employeeId: data.employeeId,
+            month: monthStr
+          }
+        },
+        update: {
+          treasuryTxs: {
+            connect: { id: nuevaTransaccion.id }
+          }
+        },
+        create: {
+          employeeId: data.employeeId,
+          month: monthStr,
+          amount: 0, // Nace en 0 porque aún no se "liquidó" el devengado, solo se registró el pago
+          isPaid: false,
+          treasuryTxs: {
+            connect: { id: nuevaTransaccion.id }
+          }
+        }
+      });
+    }
+
     return NextResponse.json(nuevaTransaccion, { status: 201 });
   } catch (error) {
     console.error(error);
