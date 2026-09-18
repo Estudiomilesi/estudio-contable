@@ -328,6 +328,32 @@ export default function CuentasCorrientesPage() {
     XLSX.writeFile(wb, `${sheetName.replace(/\s+/g, '_')}_${selectedClient.name.replace(/\s+/g, '_')}.xlsx`);
   };
 
+  const handleSendEmail = async () => {
+    if (!selectedClient) return;
+    if (!confirm(`¿Estás seguro de que deseas enviar este reporte de cuenta corriente a ${selectedClient.name}?`)) return;
+
+    try {
+      // Usamos toast o un alert simple
+      const res = await fetch('/api/cuentas-corrientes/enviar-reporte', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: selectedClient.id,
+          viewMode: viewMode // 'ALL' o 'PENDING'
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        alert('Reporte enviado correctamente por email.');
+      } else {
+        alert('Error al enviar el reporte: ' + data.error);
+      }
+    } catch (error) {
+      alert('Error de conexión al enviar el reporte.');
+    }
+  };
+
   const exportClientPDF = () => {
     if (!selectedClient) return;
     const doc = new jsPDF();
@@ -546,7 +572,7 @@ export default function CuentasCorrientesPage() {
                 <div className="flex justify-end gap-3 mb-3 text-gray-500">
                   <button onClick={exportClientExcel} title="Descargar en Excel" className="hover:text-green-600 transition-colors"><FileSpreadsheet size={20} /></button>
                   <button onClick={exportClientPDF} title="Descargar en PDF" className="hover:text-red-600 transition-colors"><FileText size={20} /></button>
-                  <button title="Enviar por Email (Próximamente)" className="hover:text-indigo-600 transition-colors opacity-50 cursor-not-allowed"><Send size={20} /></button>
+                  <button onClick={handleSendEmail} title="Enviar por Email" className="hover:text-indigo-600 transition-colors text-indigo-500"><Send size={20} /></button>
                 </div>
                 <div className="inline-flex bg-gray-200 p-1 rounded-md">
                   <button 
