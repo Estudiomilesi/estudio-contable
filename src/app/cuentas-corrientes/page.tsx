@@ -357,12 +357,47 @@ export default function CuentasCorrientesPage() {
   const exportClientPDF = () => {
     if (!selectedClient) return;
     const doc = new jsPDF();
-    doc.setFontSize(16);
     
-    const title = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Cuenta Corriente';
-    doc.text(`${title}: ${selectedClient.name}`, 14, 20);
+    // Configuración de tema
+    const isMilesi = selectedClient.professionalLabel === 'F';
+    const primaryColor: [number, number, number] = isMilesi ? [2, 132, 199] : [79, 70, 229]; // sky-600 o indigo-600
+    const firma = isMilesi ? 'Estudio Milesi' : 'Estudio Contable F&J';
+    
+    // Título principal
+    const title = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Estado de Cuenta Corriente';
+    doc.setFontSize(18);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text(title, 14, 20);
+    
+    // Firma a la derecha
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(firma, 196, 20, { align: 'right' });
+    
+    // Línea separadora
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(0.5);
+    doc.line(14, 24, 196, 24);
+    
+    // Datos del cliente
     doc.setFontSize(11);
-    doc.text(`Saldo Total: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 14, 28);
+    doc.setTextColor(51, 65, 85); // slate-700
+    doc.text(`Cliente: ${selectedClient.name}`, 14, 32);
+    
+    // Saldo
+    const isDebt = selectedClient.balance > 0;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    if (isDebt) {
+      doc.setTextColor(220, 38, 38); // red-600
+      doc.text(`Saldo a pagar: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 40);
+    } else {
+      doc.setTextColor(22, 163, 74); // green-600
+      doc.text(`Saldo a favor: $${Math.abs(selectedClient.balance).toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 40);
+    }
+    
+    // Restaurar fuente normal
+    doc.setFont('helvetica', 'normal');
     
     const displayedTransactions = selectedClient.transactions.filter(tx => {
       if (viewMode === 'ALL') return true;
@@ -370,18 +405,17 @@ export default function CuentasCorrientesPage() {
       return applied < tx.amount;
     });
 
-    const tableColumn = ["Fecha", "Vto.", "Concepto", "Debe", "Haber", "Saldo"];
+    const tableColumn = ["Fecha", "Concepto", "Debe", "Haber", "Saldo"];
     const tableRows = displayedTransactions.map(tx => {
       const applied = getAppliedAmount(tx);
       const isCharge = tx.type === 'CHARGE';
       const isPayment = tx.type === 'PAYMENT';
-      const debeStr = isCharge ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
-      const haberStr = isPayment ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
-      const saldoStr = viewMode === 'PENDING' ? '-' : `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      const debeStr = isCharge ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
+      const haberStr = isPayment ? `$${(viewMode === 'PENDING' ? tx.amount - applied : tx.amount).toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
+      const saldoStr = viewMode === 'PENDING' ? '-' : `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
       
       return [
-        new Date(tx.date).toLocaleDateString('es-AR'),
-        tx.dueDate ? new Date(tx.dueDate).toLocaleDateString('es-AR') : '',
+        new Date(tx.date).toLocaleDateString('es-AR', {day: '2-digit', month: '2-digit', year: 'numeric'}),
         tx.description || (isCharge ? 'Cargo' : 'Pago'),
         debeStr,
         haberStr,
@@ -392,8 +426,31 @@ export default function CuentasCorrientesPage() {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 35,
+      startY: 48,
+      theme: 'grid',
+      headStyles: { 
+        fillColor: primaryColor, 
+        textColor: [255, 255, 255], 
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      alternateRowStyles: { 
+        fillColor: [248, 250, 252] // slate-50
+      },
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 4,
+        textColor: [51, 65, 85]
+      },
+      columnStyles: { 
+        0: { halign: 'center', cellWidth: 25 },
+        1: { cellWidth: 'auto' },
+        2: { halign: 'right', textColor: [220, 38, 38], fontStyle: 'bold', cellWidth: 30 },
+        3: { halign: 'right', textColor: [22, 163, 74], fontStyle: 'bold', cellWidth: 30 },
+        4: { halign: 'right', fontStyle: 'bold', cellWidth: 30 }
+      }
     });
+    
     doc.save(`${title.replace(/\s+/g, '_')}_${selectedClient.name.replace(/\s+/g, '_')}.pdf`);
   };
 
