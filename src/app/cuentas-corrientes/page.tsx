@@ -60,7 +60,6 @@ export default function CuentasCorrientesPage() {
 
   // Application Modal state
   const [applyingPayment, setApplyingPayment] = useState<Transaction | null>(null);
-  const [targetChargeId, setTargetChargeId] = useState<string>('');
   const [applyAmount, setApplyAmount] = useState<string>('');
 
   // Quick Collect state
@@ -181,8 +180,6 @@ export default function CuentasCorrientesPage() {
     let chargeIdsToApply: string[] = [];
     if (selectedChargeIds.size > 0) {
       chargeIdsToApply = Array.from(selectedChargeIds);
-    } else if (targetChargeId) {
-      chargeIdsToApply = [targetChargeId];
     }
 
     if (chargeIdsToApply.length === 0) {
@@ -202,7 +199,6 @@ export default function CuentasCorrientesPage() {
 
       if (res.ok) {
         setApplyingPayment(null);
-        setTargetChargeId('');
         setApplyAmount('');
         setSelectedChargeIds(new Set());
         fetchClientes(); // refresh data
@@ -780,34 +776,39 @@ export default function CuentasCorrientesPage() {
               </p>
               
               <form onSubmit={handleApplySubmit} className="space-y-4">
-                {selectedChargeIds.size > 0 ? (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-blue-800 font-semibold mb-1">Aplicación en lote</p>
-                    <p className="text-sm text-blue-900">
-                      El saldo disponible se aplicará secuencialmente a los <strong>{selectedChargeIds.size}</strong> comprobantes seleccionados (hasta cubrir el saldo o la deuda total).
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Seleccionar Comprobantes a Cancelar</label>
+                  <div className="max-h-56 overflow-y-auto border border-gray-300 rounded-md p-2 space-y-1 bg-gray-50">
+                    {selectedClient?.transactions
+                      .filter(t => t.type === 'CHARGE' && getAppliedAmount(t) < t.amount)
+                      .map(t => (
+                        <label key={t.id} className={`flex items-start gap-3 p-2 rounded cursor-pointer border transition-colors ${selectedChargeIds.has(t.id) ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-transparent hover:border-gray-200'}`}>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedChargeIds.has(t.id)}
+                            onChange={() => toggleChargeSelection(t.id)}
+                            className="mt-1 w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                          />
+                          <div className="text-sm flex-1">
+                            <div className="flex justify-between items-center">
+                              <span className="font-bold text-gray-900">{new Date(t.date).toLocaleDateString('es-AR')}</span>
+                              <span className="text-red-600 font-bold">Debe: ${(t.amount - getAppliedAmount(t)).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+                            </div>
+                            <div className="text-gray-500 text-xs mt-0.5">{t.description || 'Cargo'}</div>
+                          </div>
+                        </label>
+                      ))
+                    }
+                    {selectedClient?.transactions.filter(t => t.type === 'CHARGE' && getAppliedAmount(t) < t.amount).length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">No hay comprobantes adeudados.</p>
+                    )}
+                  </div>
+                  {selectedChargeIds.size > 0 && (
+                    <p className="text-sm text-indigo-700 bg-indigo-50 p-2 rounded border border-indigo-100 font-medium mt-2">
+                      Se aplicará el saldo secuencialmente a los {selectedChargeIds.size} comprobantes seleccionados (hasta cubrir el saldo disponible).
                     </p>
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Seleccionar Comprobante a Cancelar</label>
-                    <select 
-                      required 
-                      value={targetChargeId} 
-                      onChange={e => setTargetChargeId(e.target.value)}
-                      className="w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 border text-sm"
-                    >
-                      <option value="">-- Elegir comprobante adeudado --</option>
-                      {selectedClient?.transactions
-                        .filter(t => t.type === 'CHARGE' && getAppliedAmount(t) < t.amount)
-                        .map(t => (
-                          <option key={t.id} value={t.id}>
-                            {new Date(t.date).toLocaleDateString('es-AR')} - Debe: ${(t.amount - getAppliedAmount(t)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                          </option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                )}
+                  )}
+                </div>
                 
                 <div className="flex justify-end gap-3 mt-6">
                   <button 
