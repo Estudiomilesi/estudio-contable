@@ -98,11 +98,11 @@ export async function POST(request: Request) {
       <table width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left;">
         <thead>
           <tr style="background-color: ${colorPrincipal}; color: white;">
-            <th style="padding: 10px; border-radius: 6px 0 0 0;">Fecha</th>
-            <th style="padding: 10px;">Concepto</th>
-            <th style="padding: 10px; text-align: right;">Debe</th>
-            <th style="padding: 10px; text-align: right;">Haber</th>
-            <th style="padding: 10px; text-align: right; border-radius: 0 6px 0 0;">Saldo</th>
+            <th style="padding: 10px; border-radius: 6px 0 0 0; white-space: nowrap; width: 12%;">Fecha</th>
+            <th style="padding: 10px; width: 49%;">Concepto</th>
+            <th style="padding: 10px; text-align: right; white-space: nowrap; width: 13%;">Debe</th>
+            <th style="padding: 10px; text-align: right; white-space: nowrap; width: 13%;">Haber</th>
+            <th style="padding: 10px; text-align: right; border-radius: 0 6px 0 0; white-space: nowrap; width: 13%;">Saldo</th>
           </tr>
         </thead>
         <tbody>
@@ -131,11 +131,11 @@ export async function POST(request: Request) {
 
         tableHtml += `
           <tr style="background-color: ${rowBg}; border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px; color: #334155;">${dateStr}</td>
+            <td style="padding: 10px; color: #334155; white-space: nowrap;">${dateStr}</td>
             <td style="padding: 10px; color: #334155; font-weight: 500;">${tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago')}</td>
-            <td style="padding: 10px; text-align: right; color: #dc2626; font-weight: 500;">${debeStr}</td>
-            <td style="padding: 10px; text-align: right; color: #16a34a; font-weight: 500;">${haberStr}</td>
-            <td style="padding: 10px; text-align: right; color: #0f172a; font-weight: bold;">${saldoStr}</td>
+            <td style="padding: 10px; text-align: right; color: #dc2626; font-weight: 500; white-space: nowrap;">${debeStr}</td>
+            <td style="padding: 10px; text-align: right; color: #16a34a; font-weight: 500; white-space: nowrap;">${haberStr}</td>
+            <td style="padding: 10px; text-align: right; color: #0f172a; font-weight: bold; white-space: nowrap;">${saldoStr}</td>
           </tr>
         `;
       });
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     }
 
     const htmlEmail = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 650px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 850px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
         <div style="padding: 30px;">
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 25px;">
             <tr>
