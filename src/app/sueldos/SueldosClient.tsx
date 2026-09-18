@@ -209,17 +209,26 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                     
                     return (
                       <td key={emp} className={`px-4 py-2 whitespace-nowrap text-right tabular-nums transition-colors ${isSelected ? 'bg-indigo-50 border-indigo-200 border ring-1 ring-inset ring-indigo-500 rounded' : ''}`}>
-                        {s.isPaid ? (
+                        {s.amount === 0 && s.paidAmount > 0 ? (
+                          <div className="flex flex-col items-end justify-center h-full">
+                            <span className="font-bold text-blue-600">${s.paidAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                            <span className="text-[10px] text-blue-500 mt-0.5">Adelanto / A cuenta</span>
+                          </div>
+                        ) : s.isPaid ? (
                           <div className="flex flex-col items-end justify-center h-full">
                             <span className="font-medium text-gray-900">${s.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                            {s.paidAt && <span className="text-[10px] text-gray-400 mt-0.5"><Check size={10} className="inline mr-0.5"/>Pagado</span>}
+                            {s.paidAt ? (
+                              <span className="text-[10px] text-gray-400 mt-0.5"><Check size={10} className="inline mr-0.5"/>Pagado</span>
+                            ) : s.paidAmount > 0 ? (
+                              <span className="text-[10px] text-green-600 mt-0.5"><Check size={10} className="inline mr-0.5"/>Pagado</span>
+                            ) : null}
                           </div>
                         ) : (
                           <div className="flex flex-col items-end gap-1">
                             <label className="flex items-center gap-2 cursor-pointer bg-yellow-50 hover:bg-yellow-100 px-2 py-1 rounded border border-yellow-200 shadow-sm w-full justify-end">
                               <div className="flex flex-col items-end text-right">
                                 <span className="font-bold text-red-600">${(s.pendingAmount !== undefined ? s.pendingAmount : s.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
-                                {s.paidAmount > 0 && <span className="text-[10px] text-gray-500 font-normal mt-0.5">resta de ${(s.amount).toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>}
+                                {s.paidAmount > 0 && <span className="text-[10px] text-gray-500 font-normal mt-0.5">Pagado: ${(s.paidAmount).toLocaleString('es-AR', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</span>}
                               </div>
                               <input 
                                 type="checkbox" 
