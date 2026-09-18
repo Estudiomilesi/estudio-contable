@@ -314,58 +314,30 @@ export async function POST(request: Request) {
     }
 
     // 6. Automatización: Si es un pago de Sueldos con Empleado, impactar en la planilla (Salary)
-    if (data.type === 'EXPENSE' && data.category === 'Sueldos' && data.employeeId) {
-      // 1. Intentar hacer match por importe exacto (muy común en sueldos)
-      const exactMatch = await prisma.salary.findFirst({
+    if (data.type === 'EXPENSE' && data.category === 'Sueldos' && data.employeeId && data.salaryMonth) {
+      // Usar exactamente el mes que eligió el usuario en la interfaz
+      await prisma.salary.upsert({
         where: {
+          employeeId_month: {
+            employeeId: data.employeeId,
+            month: data.salaryMonth
+          }
+        },
+        update: {
+          treasuryTxs: {
+            connect: { id: nuevaTransaccion.id }
+          }
+        },
+        create: {
           employeeId: data.employeeId,
-          amount: { gte: Math.abs(txAmount) - 1, lte: Math.abs(txAmount) + 1 }
+          month: data.salaryMonth,
+          amount: 0,
+          isPaid: false,
+          treasuryTxs: {
+            connect: { id: nuevaTransaccion.id }
+          }
         }
       });
-
-      if (exactMatch) {
-        await prisma.salary.update({
-          where: { id: exactMatch.id },
-          data: {
-            treasuryTxs: { connect: { id: nuevaTransaccion.id } }
-          }
-        });
-      } else {
-        // 2. Si no hay match exacto, usamos heurística de fechas
-        // Si se pagó entre el 1 y el 15, suele ser del mes anterior
-        const txDate = parseToUtcNoon(data.date);
-        let targetMonthDate = new Date(txDate);
-        if (txDate.getDate() <= 15) {
-          targetMonthDate.setMonth(targetMonthDate.getMonth() - 1);
-        }
-        
-        const yyyy = targetMonthDate.getFullYear();
-        const mm = String(targetMonthDate.getMonth() + 1).padStart(2, '0');
-        const monthStr = `${yyyy}-${mm}`;
-
-        await prisma.salary.upsert({
-          where: {
-            employeeId_month: {
-              employeeId: data.employeeId,
-              month: monthStr
-            }
-          },
-          update: {
-            treasuryTxs: {
-              connect: { id: nuevaTransaccion.id }
-            }
-          },
-          create: {
-            employeeId: data.employeeId,
-            month: monthStr,
-            amount: 0,
-            isPaid: false,
-            treasuryTxs: {
-              connect: { id: nuevaTransaccion.id }
-            }
-          }
-        });
-      }
     }
 
     return NextResponse.json(nuevaTransaccion, { status: 201 });

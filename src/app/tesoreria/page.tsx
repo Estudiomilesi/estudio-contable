@@ -77,7 +77,8 @@ export default function TesoreriaPage() {
     amount: '',
     description: '',
     clientId: '',
-    employeeId: ''
+    employeeId: '',
+    salaryMonth: ''
   });
 
   const [treasuryConcepts, setTreasuryConcepts] = useState<{id: string, name: string, type: string}[]>([]);
@@ -526,14 +527,23 @@ export default function TesoreriaPage() {
             </div>
 
             {(formData.category === 'Sueldos' || formData.category?.includes('Participacion') || formData.category?.includes('Participación')) && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Colaborador (Oculto p/ rest. usuarios)</label>
-                <select value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                  <option value="">-- Seleccionar Colaborador --</option>
-                  {empleados.map(e => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
-                  ))}
-                </select>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Colaborador (Oculto p/ rest. usuarios)</label>
+                  <select value={formData.employeeId || ''} onChange={e => setFormData({...formData, employeeId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                    <option value="">-- Seleccionar Colaborador --</option>
+                    {empleados.map(e => (
+                      <option key={e.id} value={e.id}>{e.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {formData.category === 'Sueldos' && formData.type === 'EXPENSE' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Mes a imputar el Sueldo</label>
+                    <input type="month" value={formData.salaryMonth || ''} onChange={e => setFormData({...formData, salaryMonth: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+                    <p className="text-xs text-gray-500 mt-1">Seleccioná el mes exacto de la planilla que estás pagando.</p>
+                  </div>
+                )}
               </div>
             )}
 
