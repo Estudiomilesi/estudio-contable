@@ -148,12 +148,8 @@ export async function POST(request: Request) {
               <span style="font-size: 13px; color: #64748b; font-weight: 600;">${dateStr}</span>
               <span style="font-size: 13px; font-weight: 700; color: ${isCharge ? '#dc2626' : '#16a34a'};">${isCharge ? 'Cargo' : 'Pago'}: ${amountStr}</span>
             </div>
-            <div style="font-size: 14px; color: #334155; font-weight: 500; margin-bottom: 10px; line-height: 1.4;">
+            <div style="font-size: 14px; color: #334155; font-weight: 500; line-height: 1.4;">
               ${descriptionStr}
-            </div>
-            <div style="border-top: 1px border #e2e8f0; border-top-style: dashed; padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 12px; color: #64748b;">Saldo resultante:</span>
-              <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${saldoStr}</span>
             </div>
           </div>
         `;
