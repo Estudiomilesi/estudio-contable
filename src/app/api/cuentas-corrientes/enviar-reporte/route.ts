@@ -94,56 +94,83 @@ export async function POST(request: Request) {
     const isDebt = balance > 0;
     const reportTitle = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Estado de Cuenta Corriente';
 
-    let tableHtml = `
-      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px;">
-        <table class="responsive-table" width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse; font-size: 14px; text-align: left; min-width: 600px;">
-          <thead>
-            <tr style="background-color: ${colorPrincipal}; color: white;">
-              <th style="padding: 10px 12px; white-space: nowrap; width: 15%;">Fecha</th>
-              <th style="padding: 10px 12px; width: 40%;">Concepto</th>
-              <th style="padding: 10px 12px; text-align: right; white-space: nowrap; width: 15%;">Debe</th>
-              <th style="padding: 10px 12px; text-align: right; white-space: nowrap; width: 15%;">Haber</th>
-              <th style="padding: 10px 12px; text-align: right; white-space: nowrap; width: 15%;">Saldo</th>
-            </tr>
-          </thead>
-          <tbody>
+    let desktopTableHtml = `
+      <table class="desktop-only" width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left;">
+        <thead>
+          <tr style="background-color: ${colorPrincipal}; color: white;">
+            <th style="padding: 10px; border-radius: 6px 0 0 0; white-space: nowrap; width: 12%;">Fecha</th>
+            <th style="padding: 10px; width: 49%;">Concepto</th>
+            <th style="padding: 10px; text-align: right; white-space: nowrap; width: 13%;">Debe</th>
+            <th style="padding: 10px; text-align: right; white-space: nowrap; width: 13%;">Haber</th>
+            <th style="padding: 10px; text-align: right; border-radius: 0 6px 0 0; white-space: nowrap; width: 13%;">Saldo</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    let mobileCardsHtml = `
+      <div class="mobile-only" style="display: none; max-height: 0; overflow: hidden; margin-top: 15px;">
     `;
 
     if (finalTransactions.length === 0) {
-      tableHtml += `
+      desktopTableHtml += `
         <tr>
           <td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No hay movimientos para mostrar.</td>
         </tr>
       `;
+      mobileCardsHtml += `<div style="padding: 15px; text-align: center; color: #64748b; border: 1px solid #e2e8f0; border-radius: 8px;">No hay movimientos para mostrar.</div>`;
     } else {
       finalTransactions.forEach((tx, i) => {
         const rowBg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
         const dateStr = new Date(tx.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const debeStr = tx.type === 'CHARGE' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
-        const haberStr = tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
-        
+        const isCharge = tx.type === 'CHARGE';
+        const debeStr = isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
+        const haberStr = !isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
+        const amountStr = `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
         const saldoStr = `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+        const descriptionStr = tx.description || (isCharge ? 'Cargo' : 'Pago');
 
-        tableHtml += `
+        // Desktop Row
+        desktopTableHtml += `
           <tr style="background-color: ${rowBg}; border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 12px; color: #334155; white-space: nowrap;">${dateStr}</td>
-            <td style="padding: 12px; color: #334155; font-weight: 500;">${tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago')}</td>
-            <td style="padding: 12px; text-align: right; color: #dc2626; font-weight: 500; white-space: nowrap;">${debeStr}</td>
-            <td style="padding: 12px; text-align: right; color: #16a34a; font-weight: 500; white-space: nowrap;">${haberStr}</td>
-            <td style="padding: 12px; text-align: right; color: #0f172a; font-weight: bold; white-space: nowrap;">${saldoStr}</td>
+            <td style="padding: 12px 10px; color: #334155; white-space: nowrap;">${dateStr}</td>
+            <td style="padding: 12px 10px; color: #334155; font-weight: 500;">${descriptionStr}</td>
+            <td style="padding: 12px 10px; text-align: right; color: #dc2626; font-weight: 500; white-space: nowrap;">${debeStr}</td>
+            <td style="padding: 12px 10px; text-align: right; color: #16a34a; font-weight: 500; white-space: nowrap;">${haberStr}</td>
+            <td style="padding: 12px 10px; text-align: right; color: #0f172a; font-weight: bold; white-space: nowrap;">${saldoStr}</td>
           </tr>
+        `;
+
+        // Mobile Card
+        mobileCardsHtml += `
+          <div style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-size: 13px; color: #64748b; font-weight: 600;">${dateStr}</span>
+              <span style="font-size: 13px; font-weight: 700; color: ${isCharge ? '#dc2626' : '#16a34a'};">${isCharge ? 'Cargo' : 'Pago'}: ${amountStr}</span>
+            </div>
+            <div style="font-size: 14px; color: #334155; font-weight: 500; margin-bottom: 10px; line-height: 1.4;">
+              ${descriptionStr}
+            </div>
+            <div style="border-top: 1px border #e2e8f0; border-top-style: dashed; padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 12px; color: #64748b;">Saldo resultante:</span>
+              <span style="font-size: 15px; font-weight: 700; color: #0f172a;">${saldoStr}</span>
+            </div>
+          </div>
         `;
       });
     }
 
-    tableHtml += `
-          </tbody>
-        </table>
-      </div>
+    desktopTableHtml += `
+        </tbody>
+      </table>
     `;
+    
+    mobileCardsHtml += `</div>`;
+    
+    let combinedHtml = desktopTableHtml + mobileCardsHtml;
 
     if (viewMode === 'ALL' && displayedTransactions.length > 50) {
-      tableHtml += `<p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 10px;">(Se muestran los últimos 50 movimientos. Consulte al estudio por el detalle histórico completo).</p>`;
+      combinedHtml += `<p style="font-size: 12px; color: #64748b; text-align: center; margin-top: 10px;">(Se muestran los últimos 50 movimientos. Consulte al estudio por el detalle histórico completo).</p>`;
     }
 
     const htmlEmail = `
@@ -161,6 +188,9 @@ export async function POST(request: Request) {
       .text-content { font-size: 15px !important; }
       .status-box { padding: 15px !important; }
       .status-amount { font-size: 22px !important; }
+      
+      .desktop-only { display: none !important; max-height: 0 !important; overflow: hidden !important; }
+      .mobile-only { display: block !important; max-height: none !important; overflow: visible !important; }
     }
   </style>
 </head>
@@ -190,7 +220,7 @@ export async function POST(request: Request) {
           </p>
         </div>
 
-        ${tableHtml}
+        ${combinedHtml}
         
         ${(isDebt && client.defaultBankAccount) ? `
         <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 25px 0;">
