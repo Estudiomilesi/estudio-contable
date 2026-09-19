@@ -484,7 +484,11 @@ export default function ComprobantesPage() {
   };
 
   const handleSendHtmlEmail = async (c: Comprobante) => {
-    if (confirm(`¿Enviar aviso de honorarios por email a ${c.client?.name}?`)) {
+    if (!c.client?.email) {
+      alert(`El cliente ${c.client?.name} no tiene una dirección de email configurada.`);
+      return;
+    }
+    if (confirm(`¿Enviar aviso de honorarios por email a ${c.client?.name} (${c.client?.email})?`)) {
       try {
         const res = await fetch('/api/comprobantes/enviar-html', {
           method: 'POST',
@@ -496,10 +500,11 @@ export default function ComprobantesPage() {
           alert('Email enviado con éxito');
           fetchData(); // Refresh para que se vaya el badge
         } else {
-          alert('Error: ' + data.error);
+          alert('Error al enviar el email: ' + (data.error || ''));
         }
-      } catch (err) {
-        alert('Error enviando email');
+      } catch (error) {
+        console.error(error);
+        alert('Error de red al enviar el email.');
       }
     }
   };
@@ -924,7 +929,7 @@ export default function ComprobantesPage() {
                       {c.type === 'PAYMENT' ? '-' : ''}${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                     <td className="px-2 py-2 whitespace-nowrap text-right text-xs font-medium">
-                      {!c.isEmailed && c.type === 'CHARGE' && c.client?.email && (
+                      {!c.isEmailed && c.type === 'CHARGE' && (
                         <button onClick={() => handleSendHtmlEmail(c)} className="text-gray-400 hover:text-amber-600 mr-2" title="Enviar email al cliente">
                           <Mail size={14} />
                         </button>
