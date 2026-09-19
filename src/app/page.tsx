@@ -19,9 +19,10 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
   else if (currentLabel === 'JF') clientLabelFilter = 'JF';
   else if (currentLabel === 'FJ_JF') clientLabelFilter = { in: ['FJ', 'JF'] };
 
-  const clientWhere = {
+  const clientWhere: any = {
     isActive: true,
     hasAbono: true,
+    currentFee: { gt: 0 },
     ...(clientLabelFilter && { professionalLabel: clientLabelFilter })
   };
 

@@ -252,14 +252,20 @@ export default function FacturacionPage() {
   const totales = useMemo(() => {
     let F = 0, FJ = 0, JF = 0, General = 0;
     let countF = 0, countFJ = 0, countJF = 0, countGeneral = 0;
-    clientes.forEach(c => {
-      const fee = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
-      General += fee;
-      countGeneral++;
-      if (c.professionalLabel === 'F') { F += fee; countF++; }
-      if (c.professionalLabel === 'FJ') { FJ += fee; countFJ++; }
-      if (c.professionalLabel === 'JF') { JF += fee; countJF++; }
-    });
+      clientes.forEach(c => {
+        const fee = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
+        General += fee;
+        if (fee > 0) {
+          countGeneral++;
+          if (c.professionalLabel === 'F') { F += fee; countF++; }
+          if (c.professionalLabel === 'FJ') { FJ += fee; countFJ++; }
+          if (c.professionalLabel === 'JF') { JF += fee; countJF++; }
+        } else {
+          if (c.professionalLabel === 'F') { F += fee; }
+          if (c.professionalLabel === 'FJ') { FJ += fee; }
+          if (c.professionalLabel === 'JF') { JF += fee; }
+        }
+      });
     return { F, FJ, JF, General, countF, countFJ, countJF, countGeneral };
   }, [clientes, ediciones]);
 
