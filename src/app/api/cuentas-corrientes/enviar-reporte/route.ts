@@ -95,23 +95,24 @@ export async function POST(request: Request) {
     const reportTitle = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Estado de Cuenta Corriente';
 
     let tableHtml = `
-      <table width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse; margin-top: 20px; font-size: 14px; text-align: left;">
-        <thead>
-          <tr style="background-color: ${colorPrincipal}; color: white;">
-            <th style="padding: 10px; border-radius: 6px 0 0 0; white-space: nowrap; width: 12%;">Fecha</th>
-            <th style="padding: 10px; width: 49%;">Concepto</th>
-            <th style="padding: 10px; text-align: right; white-space: nowrap; width: 13%;">Debe</th>
-            <th style="padding: 10px; text-align: right; white-space: nowrap; width: 13%;">Haber</th>
-            <th style="padding: 10px; text-align: right; border-radius: 0 6px 0 0; white-space: nowrap; width: 13%;">Saldo</th>
-          </tr>
-        </thead>
-        <tbody>
+      <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; margin-top: 20px;">
+        <table class="responsive-table" width="100%" cellpadding="10" cellspacing="0" style="border-collapse: collapse; font-size: 14px; text-align: left; min-width: 600px;">
+          <thead>
+            <tr style="background-color: ${colorPrincipal}; color: white;">
+              <th style="padding: 10px 12px; white-space: nowrap; width: 15%;">Fecha</th>
+              <th style="padding: 10px 12px; width: 40%;">Concepto</th>
+              <th style="padding: 10px 12px; text-align: right; white-space: nowrap; width: 15%;">Debe</th>
+              <th style="padding: 10px 12px; text-align: right; white-space: nowrap; width: 15%;">Haber</th>
+              <th style="padding: 10px 12px; text-align: right; white-space: nowrap; width: 15%;">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
     `;
 
     if (finalTransactions.length === 0) {
       tableHtml += `
         <tr>
-          <td colspan="5" style="padding: 15px; text-align: center; color: #64748b; border-bottom: 1px solid #e2e8f0;">No hay movimientos para mostrar.</td>
+          <td colspan="5" style="padding: 15px; text-align: center; color: #64748b;">No hay movimientos para mostrar.</td>
         </tr>
       `;
     } else {
@@ -121,29 +122,24 @@ export async function POST(request: Request) {
         const debeStr = tx.type === 'CHARGE' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
         const haberStr = tx.type === 'PAYMENT' ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
         
-        // Si estamos en PENDING, mostrar el importe PENDIENTE real en lugar del original?
-        // Fede en su PDF de composicion muestra el "Debe" original pero aclara el "Aplicado"?
-        // Su frontend actual muestra el "Resta pagar" si es PENDING. Lo vamos a mantener simple mostrando el monto original de la tx o el monto pendiente.
-        // Fede's frontend: `<td>{isCharge ? '$' + formatNumber(tx.amount) : '-'}</td>` 
-        // He shows original amount in columns, but the running balance is the original tx running balance.
-
         const saldoStr = `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
 
         tableHtml += `
           <tr style="background-color: ${rowBg}; border-bottom: 1px solid #e2e8f0;">
-            <td style="padding: 10px; color: #334155; white-space: nowrap;">${dateStr}</td>
-            <td style="padding: 10px; color: #334155; font-weight: 500;">${tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago')}</td>
-            <td style="padding: 10px; text-align: right; color: #dc2626; font-weight: 500; white-space: nowrap;">${debeStr}</td>
-            <td style="padding: 10px; text-align: right; color: #16a34a; font-weight: 500; white-space: nowrap;">${haberStr}</td>
-            <td style="padding: 10px; text-align: right; color: #0f172a; font-weight: bold; white-space: nowrap;">${saldoStr}</td>
+            <td style="padding: 12px; color: #334155; white-space: nowrap;">${dateStr}</td>
+            <td style="padding: 12px; color: #334155; font-weight: 500;">${tx.description || (tx.type === 'CHARGE' ? 'Cargo' : 'Pago')}</td>
+            <td style="padding: 12px; text-align: right; color: #dc2626; font-weight: 500; white-space: nowrap;">${debeStr}</td>
+            <td style="padding: 12px; text-align: right; color: #16a34a; font-weight: 500; white-space: nowrap;">${haberStr}</td>
+            <td style="padding: 12px; text-align: right; color: #0f172a; font-weight: bold; white-space: nowrap;">${saldoStr}</td>
           </tr>
         `;
       });
     }
 
     tableHtml += `
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     `;
 
     if (viewMode === 'ALL' && displayedTransactions.length > 50) {
@@ -151,50 +147,73 @@ export async function POST(request: Request) {
     }
 
     const htmlEmail = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 850px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-        <div style="padding: 30px;">
-          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 25px;">
-            <tr>
-              <td align="left" valign="middle">
-                <h2 style="color: #1e293b; margin: 0; font-size: 22px; border-bottom: 3px solid ${colorPrincipal}; padding-bottom: 5px; display: inline-block;">${reportTitle}</h2>
-              </td>
-              <td align="right" valign="middle">
-                <img src="${logoUrl}" alt="${firma}" style="max-height: 65px; opacity: 0.9;" />
-              </td>
-            </tr>
-          </table>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-wrapper { padding: 10px !important; }
+      .email-container { padding: 15px !important; border-radius: 8px !important; }
+      .header-title { font-size: 18px !important; }
+      .header-logo { max-height: 45px !important; }
+      .text-content { font-size: 15px !important; }
+      .status-box { padding: 15px !important; }
+      .status-amount { font-size: 22px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc;">
+  <div class="email-wrapper" style="padding: 20px; background-color: #f8fafc; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;">
+    <div class="email-container" style="max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+      <div style="padding: 30px;" class="email-container">
+        
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 25px;">
+          <tr>
+            <td align="left" valign="middle">
+              <h2 class="header-title" style="color: #0f172a; margin: 0; font-size: 22px; border-bottom: 3px solid ${colorPrincipal}; padding-bottom: 5px; display: inline-block;">${reportTitle}</h2>
+            </td>
+            <td align="right" valign="middle">
+              <img src="${logoUrl}" alt="${firma}" class="header-logo" style="max-height: 60px; opacity: 0.9;" />
+            </td>
+          </tr>
+        </table>
 
-          <p style="color: #334155; font-size: 16px;">Hola <strong>${client.name}</strong>,</p>
-          <p style="color: #334155; font-size: 16px; margin-bottom: 25px; line-height: 1.6;">Te enviamos el reporte de estado de tu cuenta corriente actualizado a la fecha.</p>
-          
-          <div style="background-color: ${isDebt ? '#fef2f2' : '#f0fdf4'}; border-left: 5px solid ${isDebt ? '#ef4444' : '#22c55e'}; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-            <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px;"><strong>Estado actual:</strong></p>
-            <p style="margin: 0; font-size: 26px; color: ${isDebt ? '#b91c1c' : '#15803d'};">
-              <strong>${isDebt ? 'Saldo a pagar:' : 'Saldo a favor:'} $${Math.abs(balance).toLocaleString('es-AR', {minimumFractionDigits: 2})}</strong>
-            </p>
-          </div>
-
-          ${tableHtml}
-          
-          ${(isDebt && client.defaultBankAccount) ? `
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h3 style="margin: 0 0 12px 0; color: #334155; font-size: 15px;">🏛️ Datos para transferencia</h3>
-            <p style="margin: 0 0 6px 0; color: #475569; font-size: 14px;"><strong>Banco:</strong> ${client.defaultBankAccount.name}</p>
-            ${client.defaultBankAccount.cbu ? `<p style="margin: 0 0 6px 0; color: #475569; font-size: 14px;"><strong>CBU/CVU:</strong> ${client.defaultBankAccount.cbu}</p>` : ''}
-            ${client.defaultBankAccount.alias ? `<p style="margin: 0; color: #475569; font-size: 14px;"><strong>Alias:</strong> ${client.defaultBankAccount.alias}</p>` : ''}
-          </div>
-          ` : ''}
-          
-          <p style="color: #334155; font-size: 15px; line-height: 1.5; margin-top: 25px;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
-          
-          <p style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 20px;">¡Gracias por elegirnos y confiar en nuestro equipo!</p>
-          
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;" />
-          
-          <p style="color: #64748b; font-size: 14px; margin: 0;">Atentamente,</p>
-          <p style="color: #0f172a; font-size: 18px; font-weight: bold; margin: 5px 0 0 0;">${firma}</p>
+        <p class="text-content" style="color: #334155; font-size: 16px;">Hola <strong>${client.name}</strong>,</p>
+        <p class="text-content" style="color: #334155; font-size: 16px; margin-bottom: 25px; line-height: 1.6;">Te enviamos el reporte de estado de tu cuenta corriente actualizado a la fecha.</p>
+        
+        <div class="status-box" style="background-color: ${isDebt ? '#fef2f2' : '#f0fdf4'}; border-left: 5px solid ${isDebt ? '#ef4444' : '#22c55e'}; padding: 20px; margin: 25px 0; border-radius: 4px;">
+          <p style="margin: 0 0 8px 0; color: #475569; font-size: 14px;"><strong>Estado actual:</strong></p>
+          <p class="status-amount" style="margin: 0; font-size: 26px; color: ${isDebt ? '#b91c1c' : '#15803d'};">
+            <strong>${isDebt ? 'Saldo a pagar:' : 'Saldo a favor:'} $${Math.abs(balance).toLocaleString('es-AR', {minimumFractionDigits: 2})}</strong>
+          </p>
         </div>
+
+        ${tableHtml}
+        
+        ${(isDebt && client.defaultBankAccount) ? `
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin: 25px 0;">
+          <h3 style="margin: 0 0 12px 0; color: #334155; font-size: 15px;">🏛️ Datos para transferencia</h3>
+          <p style="margin: 0 0 6px 0; color: #475569; font-size: 14px;"><strong>Banco:</strong> ${client.defaultBankAccount.name}</p>
+          ${client.defaultBankAccount.cbu ? `<p style="margin: 0 0 6px 0; color: #475569; font-size: 14px;"><strong>CBU/CVU:</strong> ${client.defaultBankAccount.cbu}</p>` : ''}
+          ${client.defaultBankAccount.alias ? `<p style="margin: 0; color: #475569; font-size: 14px;"><strong>Alias:</strong> ${client.defaultBankAccount.alias}</p>` : ''}
+        </div>
+        ` : ''}
+        
+        <p class="text-content" style="color: #334155; font-size: 15px; line-height: 1.5; margin-top: 25px;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
+        
+        <p class="text-content" style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 20px;">¡Gracias por elegirnos y confiar en nuestro equipo!</p>
+        
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+        
+        <p style="color: #64748b; font-size: 14px; margin: 0;">Atentamente,</p>
+        <p style="color: #0f172a; font-size: 18px; font-weight: bold; margin: 5px 0 0 0;">${firma}</p>
       </div>
+    </div>
+  </div>
+</body>
+</html>
     `;
 
     if (!process.env.SMTP_USER) {
