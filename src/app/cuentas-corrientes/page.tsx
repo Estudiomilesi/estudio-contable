@@ -490,10 +490,10 @@ export default function CuentasCorrientesPage() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-100px)] gap-6">
+    <div className="flex flex-col lg:flex-row h-auto lg:h-[calc(100vh-100px)] gap-6">
       {/* Columna Izquierda: Lista de clientes */}
-      <div className="w-1/3 flex flex-col border rounded-xl bg-white shadow-sm overflow-hidden">
-        <div className="overflow-y-auto flex-1 p-0">
+      <div className="w-full lg:w-1/3 flex flex-col border rounded-xl bg-white shadow-sm overflow-hidden min-h-[400px] lg:min-h-0">
+        <div className="overflow-auto flex-1 p-0">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-100 sticky top-0 z-10 shadow-sm">
               <tr>
@@ -606,8 +606,8 @@ export default function CuentasCorrientesPage() {
         </div>
       </div>
 
-      {/* Columna Derecha: Detalle del cliente y movimientos */}
-      <div className="w-2/3 flex flex-col border rounded-xl bg-white shadow-sm overflow-hidden relative">
+      {/* Columna Derecha: Detalle de la cuenta corriente */}
+      <div className="w-full lg:w-2/3 flex flex-col border rounded-xl bg-white shadow-sm overflow-hidden relative min-h-[500px] lg:min-h-0">
         {selectedClient ? (
           <>
             <div className="p-6 border-b bg-gray-50 flex justify-between items-start">
@@ -644,7 +644,7 @@ export default function CuentasCorrientesPage() {
               </div>
             </div>
 
-            <div className="overflow-y-auto flex-1 p-0">
+            <div className="overflow-auto flex-1 p-0">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-100 sticky top-0 z-10">
                   <tr>

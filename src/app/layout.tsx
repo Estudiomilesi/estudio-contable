@@ -47,9 +47,9 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify({ isJuanma }) }}
         />
       </head>
-      <body className={`${inter.className} flex h-screen bg-gray-50 text-gray-900`}>
+      <body className={`${inter.className} flex flex-col md:flex-row h-screen bg-gray-50 text-gray-900 overflow-hidden`}>
         <Sidebar userRole={userRole} />
-        <main className="flex-1 overflow-y-auto p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {children}
         </main>
       </body>

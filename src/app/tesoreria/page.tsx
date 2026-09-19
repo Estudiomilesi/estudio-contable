@@ -631,7 +631,7 @@ export default function TesoreriaPage() {
           <div className="p-4 border-b bg-gray-50 font-semibold text-gray-700">
             Últimos Movimientos
           </div>
-          <div className="overflow-y-auto flex-1 p-0">
+          <div className="overflow-auto flex-1 p-0">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
@@ -725,7 +725,7 @@ export default function TesoreriaPage() {
             Ver Historial
           </Link>
         </div>
-        <div className="overflow-y-auto flex-1 p-0">
+        <div className="overflow-auto flex-1 p-0">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
