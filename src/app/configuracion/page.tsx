@@ -13,17 +13,21 @@ type Concept = {
 export default function ConfiguracionPage() {
   const [conceptos, setConceptos] = useState<Concept[]>([]);
   const [bancos, setBancos] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'BILLING' | 'TREASURY' | 'BANKS'>('BILLING');
+  const [paymentConditions, setPaymentConditions] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'BILLING' | 'TREASURY' | 'BANKS' | 'PAYMENT_CONDITIONS'>('BILLING');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBankModalOpen, setIsBankModalOpen] = useState(false);
+  const [isPaymentConditionModalOpen, setIsPaymentConditionModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', type: 'BILLING' });
   const [bankForm, setBankForm] = useState({ name: '', cbu: '', cvu: '', alias: '', owner: '', cuit: '', isFedeRIDefault: false, isJuanmaMonoDefault: false, isActive: true });
+  const [paymentConditionForm, setPaymentConditionForm] = useState({ name: '', isDefault: false });
 
   useEffect(() => {
     fetchConceptos();
     fetchBancos();
+    fetchPaymentConditions();
   }, []);
 
   const fetchConceptos = async () => {
@@ -39,6 +43,14 @@ export default function ConfiguracionPage() {
     if (res.ok) {
       const data = await res.json();
       setBancos(data);
+    }
+  };
+
+  const fetchPaymentConditions = async () => {
+    const res = await fetch('/api/configuracion/payment-conditions');
+    if (res.ok) {
+      const data = await res.json();
+      setPaymentConditions(data);
     }
   };
 
@@ -143,6 +155,46 @@ export default function ConfiguracionPage() {
     setIsBankModalOpen(true);
   };
 
+  const handleSavePaymentCondition = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingId) {
+      await fetch(`/api/configuracion/payment-conditions/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentConditionForm)
+      });
+    } else {
+      await fetch('/api/configuracion/payment-conditions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentConditionForm)
+      });
+    }
+    setIsPaymentConditionModalOpen(false);
+    fetchPaymentConditions();
+  };
+
+  const handleDeletePaymentCondition = async (id: string) => {
+    if (confirm('¿Eliminar esta forma de pago?')) {
+      await fetch(`/api/configuracion/payment-conditions/${id}`, {
+        method: 'DELETE',
+      });
+      fetchPaymentConditions();
+    }
+  };
+
+  const openNewPaymentCondition = () => {
+    setEditingId(null);
+    setPaymentConditionForm({ name: '', isDefault: false });
+    setIsPaymentConditionModalOpen(true);
+  };
+
+  const openEditPaymentCondition = (pc: any) => {
+    setEditingId(pc.id);
+    setPaymentConditionForm({ name: pc.name, isDefault: pc.isDefault });
+    setIsPaymentConditionModalOpen(true);
+  };
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
@@ -169,19 +221,54 @@ export default function ConfiguracionPage() {
         >
           Cuentas Bancarias (CBU)
         </button>
+        <button
+          onClick={() => setActiveTab('PAYMENT_CONDITIONS')}
+          className={`py-3 px-6 font-medium text-sm border-b-2 transition-colors ${activeTab === 'PAYMENT_CONDITIONS' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+        >
+          Formas de Pago
+        </button>
       </div>
 
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-gray-800">
-          {activeTab === 'BILLING' ? 'Conceptos para Comprobantes' : activeTab === 'TREASURY' ? 'Conceptos para Tesorería' : 'Cuentas Bancarias Registradas'}
+          {activeTab === 'BILLING' ? 'Conceptos para Comprobantes' : activeTab === 'TREASURY' ? 'Conceptos para Tesorería' : activeTab === 'BANKS' ? 'Cuentas Bancarias Registradas' : 'Formas de Pago'}
         </h2>
-        <button onClick={activeTab === 'BANKS' ? openNewBank : openNew} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center gap-2">
-          <Plus size={16} /> {activeTab === 'BANKS' ? 'Nueva Cuenta' : 'Nuevo Concepto'}
+        <button onClick={activeTab === 'BANKS' ? openNewBank : activeTab === 'PAYMENT_CONDITIONS' ? openNewPaymentCondition : openNew} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center gap-2">
+          <Plus size={16} /> {activeTab === 'BANKS' ? 'Nueva Cuenta' : activeTab === 'PAYMENT_CONDITIONS' ? 'Nueva Forma de Pago' : 'Nuevo Concepto'}
         </button>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        {activeTab === 'BANKS' ? (
+        {activeTab === 'PAYMENT_CONDITIONS' ? (
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">Nombre</th>
+                <th className="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">Predeterminado</th>
+                <th className="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {paymentConditions.map(pc => (
+                <tr key={pc.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{pc.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                    {pc.isDefault ? <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Predeterminado</span> : <span className="text-gray-400">-</span>}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onClick={() => openEditPaymentCondition(pc)} className="text-indigo-600 hover:text-indigo-900 mr-4"><Edit2 size={16} /></button>
+                    <button onClick={() => handleDeletePaymentCondition(pc.id)} className="text-red-600 hover:text-red-900"><Trash2 size={16} /></button>
+                  </td>
+                </tr>
+              ))}
+              {paymentConditions.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="px-6 py-8 text-center text-gray-500">No hay formas de pago creadas.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        ) : activeTab === 'BANKS' ? (
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -369,6 +456,51 @@ export default function ConfiguracionPage() {
               <div className="mt-6 flex justify-end gap-3">
                 <button type="button" onClick={() => setIsBankModalOpen(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
                 <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Guardar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isPaymentConditionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="mb-4 text-xl font-bold text-gray-900">
+              {editingId ? 'Editar Forma de Pago' : 'Nueva Forma de Pago'}
+            </h3>
+            <form onSubmit={handleSavePaymentCondition} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={paymentConditionForm.name}
+                  onChange={e => setPaymentConditionForm({...paymentConditionForm, name: e.target.value})}
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="space-y-2 pt-2 border-t mt-4">
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={paymentConditionForm.isDefault} onChange={e => setPaymentConditionForm({...paymentConditionForm, isDefault: e.target.checked})} className="rounded text-indigo-600 focus:ring-indigo-500" />
+                  <span className="text-sm font-medium text-gray-700">Predeterminado</span>
+                </label>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPaymentConditionModalOpen(false)}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                >
+                  Guardar
+                </button>
               </div>
             </form>
           </div>

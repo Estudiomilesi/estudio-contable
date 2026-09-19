@@ -69,6 +69,7 @@ export default function ComprobantesPage() {
   const [billingConcepts, setBillingConcepts] = useState<Concept[]>([]);
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([]);
   const [bancos, setBancos] = useState<any[]>([]);
+  const [paymentConditions, setPaymentConditions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Autocomplete state
@@ -91,7 +92,8 @@ export default function ComprobantesPage() {
     hasCollaborator: false,
     collaboratorName: '',
     collabCalcType: 'MONTO' as 'MONTO' | 'PORCENTAJE',
-    collaboratorValue: '' // Can be amount or percentage
+    collaboratorValue: '', // Can be amount or percentage
+    paymentConditionId: ''
   });
   
   const [items, setItems] = useState<{concept: string, amount: string}[]>([{ concept: '', amount: '' }]);
@@ -114,20 +116,27 @@ export default function ComprobantesPage() {
 
   const fetchData = async () => {
     try {
-      const [resCli, resComp, resConcepts, resBancos] = await Promise.all([
+      const [resCli, resComp, resConcepts, resBancos, resPC] = await Promise.all([
         fetch('/api/clientes'),
         fetch('/api/comprobantes'),
         fetch('/api/conceptos'),
-        fetch('/api/bancos')
+        fetch('/api/bancos'),
+        fetch('/api/configuracion/payment-conditions')
       ]);
       const dataCli = await resCli.json();
       const dataComp = await resComp.json();
       const dataConcepts = await resConcepts.json();
       const dataBancos = await resBancos.json();
+      const dataPC = await resPC.json();
       setClientes(dataCli);
       setComprobantes(dataComp);
       setBillingConcepts(dataConcepts.filter((c: any) => c.type === 'BILLING' && c.isActive));
       setBancos(dataBancos);
+      setPaymentConditions(dataPC.filter((p: any) => p.isActive));
+      const defaultPC = dataPC.find((p: any) => p.isDefault && p.isActive);
+      if (defaultPC) {
+        setForm(prev => ({ ...prev, paymentConditionId: defaultPC.id }));
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -236,7 +245,8 @@ export default function ComprobantesPage() {
           hasCollaborator: false,
           collaboratorName: '',
           collabCalcType: 'MONTO',
-          collaboratorValue: ''
+          collaboratorValue: '',
+          paymentConditionId: paymentConditions.find((p: any) => p.isDefault)?.id || ''
         });
         setClientSearch('');
         setItems([{ concept: '', amount: '' }]);
@@ -391,6 +401,17 @@ export default function ComprobantesPage() {
 
     let nextY = y + 25;
     
+    const paymentConditionName = (c as any).paymentCondition?.name;
+    if (paymentConditionName && !isNC) {
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(50);
+      doc.text("CONDICIÓN DE PAGO:", 15, nextY);
+      doc.setFont("helvetica", "normal");
+      doc.text(paymentConditionName, 60, nextY);
+      nextY += 10;
+    }
+
     if (bank && !isNC) {
       doc.setFontSize(10);
       doc.setFont("helvetica", "bold");
@@ -488,7 +509,9 @@ export default function ComprobantesPage() {
       alert(`El cliente ${c.client?.name} no tiene una dirección de email configurada.`);
       return;
     }
-    if (confirm(`¿Enviar aviso de honorarios por email a ${c.client?.name} (${c.client?.email})?`)) {
+    const isNC = c.type === 'PAYMENT';
+    const msg = isNC ? 'Nota de Crédito' : 'aviso de honorarios';
+    if (confirm(`¿Enviar ${msg} por email a ${c.client?.name} (${c.client?.email})?`)) {
       try {
         const res = await fetch('/api/comprobantes/enviar-html', {
           method: 'POST',
@@ -629,6 +652,22 @@ export default function ComprobantesPage() {
                 <option value="NOTA_CREDITO">Nota de Crédito (A Favor)</option>
               </select>
             </div>
+
+            {form.comprobanteType === 'FACTURA' && paymentConditions.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pago</label>
+                <select 
+                  value={form.paymentConditionId}
+                  onChange={e => setForm({...form, paymentConditionId: e.target.value})}
+                  className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                >
+                  <option value="">Ninguna</option>
+                  {paymentConditions.map(pc => (
+                    <option key={pc.id} value={pc.id}>{pc.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             
             <div className="relative" ref={dropdownRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
@@ -916,7 +955,7 @@ export default function ComprobantesPage() {
                     </td>
                     <td className="px-2 py-2 whitespace-nowrap text-[10px] text-gray-500">
                       <span className="font-mono">{c.receiptNumber || '-'}</span>
-                      {!c.isEmailed && c.type === 'CHARGE' && (
+                      {!c.isEmailed && (
                         <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-amber-100 text-amber-800" title="Pendiente de envío al cliente">
                           Pendiente Envío
                         </span>
@@ -929,7 +968,7 @@ export default function ComprobantesPage() {
                       {c.type === 'PAYMENT' ? '-' : ''}${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                     </td>
                     <td className="px-2 py-2 whitespace-nowrap text-right text-xs font-medium">
-                      {!c.isEmailed && c.type === 'CHARGE' && (
+                      {!c.isEmailed && (
                         <button onClick={() => handleSendHtmlEmail(c)} className="text-gray-400 hover:text-amber-600 mr-2" title="Enviar email al cliente">
                           <Mail size={14} />
                         </button>

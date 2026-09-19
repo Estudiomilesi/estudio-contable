@@ -39,7 +39,7 @@ export async function GET(request: Request) {
 
     const comprobantes = await prisma.accountTransaction.findMany({
       where: whereClause,
-      include: { client: { select: { name: true, professionalLabel: true, defaultBankAccountId: true, email: true } }, items: true },
+      include: { client: { select: { name: true, professionalLabel: true, defaultBankAccountId: true, email: true } }, items: true, paymentCondition: true },
       orderBy: { createdAt: 'desc' },
       take: 100
     });
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     const { 
       clientId, date, dueDate, description, amount, netAmount, ivaAmount,
       comprobanteType, billingProfile, receiptFileBase64, manualReceiptNumber, 
-      collaboratorName, collaboratorAmount, items 
+      collaboratorName, collaboratorAmount, items, paymentConditionId 
     } = body;
 
     if (!clientId || !date || !amount || !comprobanteType || !items || !items.length) {
@@ -112,6 +112,7 @@ export async function POST(request: Request) {
         receiptFileBase64: fileToSave,
         collaboratorName: collaboratorName || null,
         collaboratorAmount: collaboratorAmount ? parseFloat(collaboratorAmount) : null,
+        paymentConditionId: paymentConditionId || null,
         items: {
           create: items.map((i: any) => ({
             concept: i.concept,

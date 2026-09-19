@@ -26,7 +26,8 @@ export async function POST(request: Request) {
       include: { 
         client: {
           include: { defaultBankAccount: true }
-        }
+        },
+        paymentCondition: true
       }
     });
 
@@ -61,6 +62,13 @@ export async function POST(request: Request) {
     let conceptoPrincipal = 'Honorarios Contables';
     let conceptoSecundario = 'Abono Mensual';
     
+    const isNC = tx.type === 'PAYMENT';
+    const titulo = isNC ? 'Aviso de Nota de Crédito' : 'Aviso de Honorarios';
+    const textoPeriodo = isNC 
+      ? `Te enviamos el detalle de la nota de crédito correspondiente al período` 
+      : `Te enviamos el detalle de los honorarios correspondientes al período`;
+    const labelTotal = isNC ? 'Total a favor' : 'Total a pagar';
+    
     // Generar el HTML (mismo template que procesar)
     const htmlEmail = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
@@ -69,7 +77,7 @@ export async function POST(request: Request) {
           <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 25px;">
             <tr>
               <td align="left" valign="middle">
-                <h2 style="color: #1e293b; margin: 0; font-size: 22px; border-bottom: 3px solid ${colorPrincipal}; padding-bottom: 5px; display: inline-block;">Aviso de Honorarios</h2>
+                <h2 style="color: #1e293b; margin: 0; font-size: 22px; border-bottom: 3px solid ${colorPrincipal}; padding-bottom: 5px; display: inline-block;">${titulo}</h2>
               </td>
               <td align="right" valign="middle">
                 <img src="${logoUrl}" alt="${firma}" style="max-height: 65px; opacity: 0.9;" />
@@ -79,7 +87,7 @@ export async function POST(request: Request) {
 
           <p style="color: #334155; font-size: 16px;">Hola <strong>${cliente.name}</strong>,</p>
           <p style="color: #334155; font-size: 16px;">Esperamos que te encuentres muy bien.</p>
-          <p style="color: #334155; font-size: 16px; margin-bottom: 25px; line-height: 1.6;">Te enviamos el detalle de los honorarios correspondientes al período <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 12px; border-radius: 16px; font-weight: bold; font-size: 15px; display: inline-block; border: 1px solid ${colorPrincipal}; margin-top: 4px; white-space: nowrap;">${periodoStr}</span>.</p>
+          <p style="color: #334155; font-size: 16px; margin-bottom: 25px; line-height: 1.6;">${textoPeriodo} <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 12px; border-radius: 16px; font-weight: bold; font-size: 15px; display: inline-block; border: 1px solid ${colorPrincipal}; margin-top: 4px; white-space: nowrap;">${periodoStr}</span>.</p>
           
           <!-- Recuadro llamativo del importe -->
           <div style="background-color: #f8fafc; border-left: 5px solid ${colorPrincipal}; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
@@ -88,20 +96,28 @@ export async function POST(request: Request) {
               <strong>Concepto:</strong> 
               <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">${conceptoPrincipal} - ${conceptoSecundario}</span>
             </p>
-            <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>Total a pagar: $${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
+            <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>${labelTotal}: $${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
           </div>
           
-          <!-- Datos bancarios -->
-          ${cliente.defaultBankAccount ? `
-          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 25px 0;">
-            <h3 style="margin: 0 0 12px 0; color: #166534; font-size: 16px;">🏛️ Datos para transferencia</h3>
-            <p style="margin: 0 0 6px 0; color: #15803d; font-size: 15px;"><strong>Banco:</strong> ${cliente.defaultBankAccount.name}</p>
-            ${cliente.defaultBankAccount.cbu ? `<p style="margin: 0 0 6px 0; color: #15803d; font-size: 15px;"><strong>CBU/CVU:</strong> ${cliente.defaultBankAccount.cbu}</p>` : ''}
-            ${cliente.defaultBankAccount.alias ? `<p style="margin: 0; color: #15803d; font-size: 15px;"><strong>Alias:</strong> ${cliente.defaultBankAccount.alias}</p>` : ''}
-          </div>
-          ` : ''}
-          
-          <p style="color: #334155; font-size: 15px; line-height: 1.5;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
+          ${!isNC ? `
+            <!-- Datos bancarios -->
+            ${cliente.defaultBankAccount ? `
+            <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; padding: 20px; border-radius: 8px; margin: 25px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #166534; font-size: 16px;">🏛️ Datos para transferencia</h3>
+              <p style="margin: 0 0 6px 0; color: #15803d; font-size: 15px;"><strong>Banco:</strong> ${cliente.defaultBankAccount.name}</p>
+              ${cliente.defaultBankAccount.cbu ? `<p style="margin: 0 0 6px 0; color: #15803d; font-size: 15px;"><strong>CBU/CVU:</strong> ${cliente.defaultBankAccount.cbu}</p>` : ''}
+              ${cliente.defaultBankAccount.alias ? `<p style="margin: 0; color: #15803d; font-size: 15px;"><strong>Alias:</strong> ${cliente.defaultBankAccount.alias}</p>` : ''}
+            </div>
+            ` : ''}
+
+            ${(tx as any).paymentCondition ? `
+            <p style="color: #334155; font-size: 15px; line-height: 1.5;"><strong>Condición de pago:</strong> ${(tx as any).paymentCondition.name}</p>
+            ` : ''}
+            
+            <p style="color: #334155; font-size: 15px; line-height: 1.5;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
+          ` : `
+            <p style="color: #334155; font-size: 15px; line-height: 1.5;">Este comprobante generó un saldo a tu favor que se aplicará automáticamente a tus próximos cargos.</p>
+          `}
           
           <p style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 25px;">¡Gracias por elegirnos y confiar en nuestro equipo!</p>
           
@@ -119,7 +135,7 @@ export async function POST(request: Request) {
       await transporter.sendMail({
         from: `"${firma}" <${process.env.SMTP_USER}>`,
         to: correosDestino,
-        subject: `Aviso de Honorarios - ${periodoStr} - ${firma}`,
+        subject: `${titulo} - ${periodoStr} - ${firma}`,
         html: htmlEmail
       });
     }

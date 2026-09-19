@@ -118,9 +118,23 @@ model AccountTransaction {
   // Conceptos (items)
   items             AccountTransactionItem[]
 
+  // Forma de Pago
+  paymentConditionId String?
+  paymentCondition   PaymentCondition? @relation(fields: [paymentConditionId], references: [id])
+
   // Relaciones para composición de saldos
   paymentsApplied PaymentApplication[] @relation("ChargeApplications")
   chargesCovered  PaymentApplication[] @relation("PaymentApplications")
+}
+
+model PaymentCondition {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  transactions AccountTransaction[]
 }
 
 model AccountTransactionItem {

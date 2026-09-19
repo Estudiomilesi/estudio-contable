@@ -31,6 +31,11 @@ export async function POST(request: Request) {
       }
     });
 
+    // Obtener condición de pago predeterminada
+    const defaultCondition = await prisma.paymentCondition.findFirst({
+      where: { isDefault: true, isActive: true }
+    });
+    
     // Obtener el último número de comprobante ABON- para seguir la secuencia
     const lastAbono = await prisma.accountTransaction.findFirst({
       where: { receiptNumber: { startsWith: 'ABON-' } },
@@ -80,7 +85,8 @@ export async function POST(request: Request) {
           billingProfile: profile,
           description: `${description} - ${periodoStr}`,
           receiptNumber: receiptNumber,
-          isEmailed: debeEnviarEmailInmediato // Si es fiscal queda en false (pendiente de envío)
+          isEmailed: debeEnviarEmailInmediato, // Si es fiscal queda en false (pendiente de envío)
+          paymentConditionId: defaultCondition ? defaultCondition.id : null
         }
       });
       transacciones.push(transaccion);
@@ -131,6 +137,10 @@ export async function POST(request: Request) {
                 ${cliente.defaultBankAccount.cbu ? `<p style="margin: 0 0 6px 0; color: #15803d; font-size: 15px;"><strong>CBU/CVU:</strong> ${cliente.defaultBankAccount.cbu}</p>` : ''}
                 ${cliente.defaultBankAccount.alias ? `<p style="margin: 0; color: #15803d; font-size: 15px;"><strong>Alias:</strong> ${cliente.defaultBankAccount.alias}</p>` : ''}
               </div>
+              ` : ''}
+
+              ${defaultCondition ? `
+              <p style="color: #334155; font-size: 15px; line-height: 1.5;"><strong>Condición de pago:</strong> ${defaultCondition.name}</p>
               ` : ''}
               
               <p style="color: #334155; font-size: 15px; line-height: 1.5;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
