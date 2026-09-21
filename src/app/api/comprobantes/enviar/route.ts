@@ -45,7 +45,9 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(base64Data, 'base64');
     
     // We send from the generic SMTP_USER, but we can set Reply-To and Sender Name
-    const senderName = isJuanma ? "Juan Martin Brigi" : "Federico Milesi";
+    const IS_CORI = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI';
+    const senderName = IS_CORI ? "Corina Cicconi" : (isJuanma ? "Juan Martin Brigi" : "Federico Milesi");
+    const studioTitle = IS_CORI ? "Estudio Jurídico" : "Estudio Contable";
     const senderEmail = userEmail || process.env.SMTP_USER;
     
     await transporter.sendMail({
@@ -55,11 +57,10 @@ export async function POST(request: Request) {
       subject: `Comprobante de Honorarios - ${senderName}`,
       html: `
         <p>Hola ${tx.client.name},</p>
-        <p>Adjuntamos el comprobante de honorarios correspondiente.</p>
-        <p>Quedamos a disposición por cualquier consulta.</p>
+        <p>Adjunto a este correo encontrarás tu comprobante de honorarios.</p>
         <br>
         <p>Saludos cordiales,</p>
-        <p><strong>${senderName}</strong><br>Estudio Contable</p>
+        <p><strong>${senderName}</strong><br>${studioTitle}</p>
       `,
       attachments: [
         {

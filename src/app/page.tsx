@@ -219,7 +219,9 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard General</h1>
-          <p className="text-gray-600 mt-2">Bienvenido al sistema de gestión del Estudio Contable.</p>
+          <p className="text-gray-600 mt-2">
+            Bienvenido al sistema de gestión del {process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? 'Estudio Jurídico Cicconi' : 'Estudio Contable'}.
+          </p>
         </div>
         {!IS_SINGLE_USER && !isJuanma && <DashboardFilter currentLabel={currentLabel} />}
       </div>

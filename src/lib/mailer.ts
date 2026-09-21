@@ -16,8 +16,9 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     return;
   }
   
+  const senderName = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? 'Estudio Jurídico Cicconi' : 'Estudio Contable';
   await transporter.sendMail({
-    from: process.env.SMTP_FROM || `"Estudio Contable" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`,
     to,
     subject,
     html,
