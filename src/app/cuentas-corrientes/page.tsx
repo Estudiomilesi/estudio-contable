@@ -879,11 +879,17 @@ export default function CuentasCorrientesPage() {
                     onChange={e => setQcAccount(e.target.value)}
                     className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                   >
-                    <option value="CAJA">Caja Efectivo</option>
-                    <option value="CAJA IVA">Caja IVA</option>
-                    <option value="BANCOS FEDE">Banco Fede</option>
-                    <option value="BANCOS JUANMA">Banco JuanMa</option>
-                    <option value="CHEQUES">Cheques de Terceros</option>
+                      <option value="CAJA">Caja Efectivo</option>
+                      {process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? (
+                        <option value="BANCO CORI">Banco Cori</option>
+                      ) : (
+                        <>
+                          <option value="CAJA IVA">Caja IVA</option>
+                          <option value="BANCOS FEDE">Banco Fede</option>
+                          <option value="BANCOS JUANMA">Banco JuanMa</option>
+                        </>
+                      )}
+                      <option value="CHEQUES">Cheques de Terceros</option>
                   </select>
                 </div>
 

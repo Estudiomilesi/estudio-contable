@@ -286,8 +286,14 @@ export default function SueldosClient({ initialSalaries, availableChecks }: { in
                       className="flex-1 rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
                     >
                       <option value="CAJA">Caja</option>
-                      <option value="BANCOS FEDE">Bancos Fede</option>
-                      <option value="BANCOS JUANMA">Bancos Juanma</option>
+                      {process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? (
+                        <option value="BANCO CORI">Banco Cori</option>
+                      ) : (
+                        <>
+                          <option value="BANCOS FEDE">Bancos Fede</option>
+                          <option value="BANCOS JUANMA">Bancos Juanma</option>
+                        </>
+                      )}
                       <option value="CHEQUES">Cheques de Terceros</option>
                     </select>
                     

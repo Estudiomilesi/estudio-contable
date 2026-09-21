@@ -31,7 +31,11 @@ type Check = {
   client?: { name: string };
 };
 
+const IS_CORI = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI';
+const TREASURY_ACCOUNTS = IS_CORI ? ['CAJA', 'BANCO CORI', 'CHEQUES'] : ['CAJA', 'BANCOS FEDE', 'BANCOS JUANMA', 'CHEQUES'];
+
 const ACCOUNT_COLORS: Record<string, { bg: string, text: string, border: string, ring: string, badgeBg: string }> = {
+  'BANCO CORI': { bg: 'bg-indigo-100', text: 'text-indigo-900', border: 'border-indigo-600', ring: 'ring-indigo-600', badgeBg: 'bg-indigo-100 text-indigo-800' },
   'BANCOS FEDE': { bg: 'bg-green-100', text: 'text-green-900', border: 'border-green-600', ring: 'ring-green-600', badgeBg: 'bg-green-100 text-green-800' },
   'BANCOS JUANMA': { bg: 'bg-blue-100', text: 'text-blue-900', border: 'border-blue-600', ring: 'ring-blue-600', badgeBg: 'bg-blue-100 text-blue-800' },
   'CAJA': { bg: 'bg-stone-100', text: 'text-stone-900', border: 'border-stone-600', ring: 'ring-stone-600', badgeBg: 'bg-stone-100 text-stone-800' },
@@ -43,7 +47,7 @@ const ACCOUNT_COLORS: Record<string, { bg: string, text: string, border: string,
 export default function TesoreriaPage() {
   const [transacciones, setTransacciones] = useState<TreasuryTransaction[]>([]);
   const [saldos, setSaldos] = useState<Record<string, number>>({ 
-    'CAJA': 0, 'CAJA IVA': 0, 'BANCOS FEDE': 0, 'BANCOS JUANMA': 0, 'CHEQUES': 0 
+    'CAJA': 0, 'CAJA IVA': 0, 'BANCOS FEDE': 0, 'BANCOS JUANMA': 0, 'CHEQUES': 0, 'BANCO CORI': 0 
   });
   const [clientes, setClientes] = useState<{id: string, name: string}[]>([]);
   const [cartera, setCartera] = useState<Check[]>([]);
@@ -72,7 +76,7 @@ export default function TesoreriaPage() {
     date: new Date().toISOString().split('T')[0],
     type: 'INCOME',
     account: 'CAJA',
-    toAccount: 'BANCOS FEDE',
+    toAccount: IS_CORI ? 'BANCO CORI' : 'BANCOS FEDE',
     category: 'Honorarios',
     amount: '',
     description: '',
@@ -279,7 +283,7 @@ export default function TesoreriaPage() {
           <p className="mt-2 text-2xl font-bold text-gray-900">${saldoTotal.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
         </div>
         
-        {['CAJA', 'BANCOS FEDE', 'BANCOS JUANMA', 'CHEQUES'].map((acc) => {
+        {TREASURY_ACCOUNTS.map((acc) => {
           const colors = ACCOUNT_COLORS[acc] || ACCOUNT_COLORS['DEFAULT'];
           const isSelected = selectedFilterAccount === acc;
           return (
@@ -295,13 +299,15 @@ export default function TesoreriaPage() {
         })}
         
         {/* Separated CAJA IVA */}
-        <div 
-          onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CAJA IVA' ? null : 'CAJA IVA')}
-          className={`rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm cursor-pointer transition-all hover:shadow-md opacity-70 hover:opacity-100 ${selectedFilterAccount === 'CAJA IVA' ? 'border-orange-600 border-2 ring-1 ring-inset ring-orange-600' : ''}`}
-        >
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-orange-900">CAJA IVA (No Disp.)</h3>
-          <p className="mt-1 text-lg font-bold text-orange-900">${(saldos['CAJA IVA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
-        </div>
+        {!IS_CORI && (
+          <div 
+            onClick={() => setSelectedFilterAccount(selectedFilterAccount === 'CAJA IVA' ? null : 'CAJA IVA')}
+            className={`rounded-xl border border-orange-200 bg-orange-50 p-4 shadow-sm cursor-pointer transition-all hover:shadow-md opacity-70 hover:opacity-100 ${selectedFilterAccount === 'CAJA IVA' ? 'border-orange-600 border-2 ring-1 ring-inset ring-orange-600' : ''}`}
+          >
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-orange-900">CAJA IVA (No Disp.)</h3>
+            <p className="mt-1 text-lg font-bold text-orange-900">${(saldos['CAJA IVA'] || 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
@@ -342,11 +348,17 @@ export default function TesoreriaPage() {
                   setFormData({...formData, account: e.target.value});
                   setSelectedCheckIds([]);
                 }} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                  <option value="CAJA">Caja</option>
-                  <option value="CAJA IVA">Caja IVA</option>
-                  <option value="BANCOS FEDE">Bancos Fede</option>
-                  <option value="BANCOS JUANMA">Bancos Juanma</option>
-                  <option value="CHEQUES">Cheques</option>
+                    <option value="CAJA">Caja</option>
+                    {!IS_CORI && <option value="CAJA IVA">Caja IVA</option>}
+                    {IS_CORI ? (
+                      <option value="BANCO CORI">Banco Cori</option>
+                    ) : (
+                      <>
+                        <option value="BANCOS FEDE">Bancos Fede</option>
+                        <option value="BANCOS JUANMA">Bancos Juanma</option>
+                      </>
+                    )}
+                    <option value="CHEQUES">Cheques</option>
                 </select>
               </div>
               
@@ -357,9 +369,15 @@ export default function TesoreriaPage() {
                     setFormData({...formData, toAccount: e.target.value});
                   }} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="CAJA">Caja</option>
-                    <option value="CAJA IVA">Caja IVA</option>
-                    <option value="BANCOS FEDE">Bancos Fede</option>
-                    <option value="BANCOS JUANMA">Bancos Juanma</option>
+                    {!IS_CORI && <option value="CAJA IVA">Caja IVA</option>}
+                    {IS_CORI ? (
+                      <option value="BANCO CORI">Banco Cori</option>
+                    ) : (
+                      <>
+                        <option value="BANCOS FEDE">Bancos Fede</option>
+                        <option value="BANCOS JUANMA">Bancos Juanma</option>
+                      </>
+                    )}
                     <option value="CHEQUES">Cheques</option>
                   </select>
                 </div>
