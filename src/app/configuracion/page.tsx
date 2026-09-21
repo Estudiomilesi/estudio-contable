@@ -60,21 +60,33 @@ export default function ConfiguracionPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingId) {
-      await fetch('/api/conceptos', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingId, name: form.name, isActive: true }) // simplify
-      });
-    } else {
-      await fetch('/api/conceptos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form)
-      });
+    try {
+      let res;
+      if (editingId) {
+        res = await fetch('/api/conceptos', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editingId, name: form.name, isActive: true }) // simplify
+        });
+      } else {
+        res = await fetch('/api/conceptos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form)
+        });
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(`Error al guardar: ${errorData.error || 'Error desconocido'}`);
+        return;
+      }
+
+      setIsModalOpen(false);
+      fetchConceptos();
+    } catch (err) {
+      alert('Error de conexión al guardar el concepto.');
     }
-    setIsModalOpen(false);
-    fetchConceptos();
   };
 
   const handleToggleActive = async (c: Concept) => {
