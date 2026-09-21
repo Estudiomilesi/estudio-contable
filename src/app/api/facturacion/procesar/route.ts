@@ -95,7 +95,9 @@ export async function POST(request: Request) {
         const correosDestino = cliente.email.split(',').map(e => e.trim()).join(', ');
         
         // Determinar firma en base a la etiqueta profesional
-        const firma = cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J';
+        const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
+          ? 'Estudio Jurídico Cicconi' 
+          : (cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J');
         const colorPrincipal = cliente.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; // Cyan oscuro para F, Índigo para F&J
         const colorFondoEtiqueta = cliente.professionalLabel === 'F' ? '#e0f2fe' : '#e0e7ff'; // Fondo pastel
         const colorTextoEtiqueta = cliente.professionalLabel === 'F' ? '#0369a1' : '#4338ca'; // Texto oscuro
@@ -124,7 +126,7 @@ export async function POST(request: Request) {
                 <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px; line-height: 1.6;"><strong>Comprobante interno:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569; white-space: nowrap;">${receiptNumber}</span></p>
                 <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 1.8;">
                   <strong>Concepto:</strong> 
-                  <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">Honorarios Contables - Abono Mensual</span>
+                  <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">${process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? 'Honorarios Jurídicos' : 'Honorarios Contables'} - Abono Mensual</span>
                 </p>
                 <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>Total a pagar: $${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
               </div>

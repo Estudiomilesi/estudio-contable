@@ -42,7 +42,9 @@ export async function POST(request: Request) {
     // Preparar variables para el template
     const cliente = tx.client;
     const correosDestino = cliente.email.split(',').map(e => e.trim()).join(', ');
-    const firma = cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J';
+    const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
+      ? 'Estudio Jurídico Cicconi' 
+      : (cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J');
     const colorPrincipal = cliente.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; 
     const colorFondoEtiqueta = cliente.professionalLabel === 'F' ? '#e0f2fe' : '#e0e7ff';
     const colorTextoEtiqueta = cliente.professionalLabel === 'F' ? '#0369a1' : '#4338ca';

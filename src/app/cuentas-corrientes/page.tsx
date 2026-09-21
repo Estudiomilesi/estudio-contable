@@ -357,7 +357,9 @@ export default function CuentasCorrientesPage() {
     // Configuración de tema
     const isMilesi = selectedClient.professionalLabel === 'F';
     const primaryColor: [number, number, number] = isMilesi ? [2, 132, 199] : [79, 70, 229]; // sky-600 o indigo-600
-    const firma = isMilesi ? 'Estudio Milesi' : 'Estudio Contable F&J';
+    const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
+      ? 'Estudio Jurídico Cicconi' 
+      : (isMilesi ? 'Estudio Milesi' : 'Estudio Contable F&J');
     
     // Título principal
     const title = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Estado de Cuenta Corriente';

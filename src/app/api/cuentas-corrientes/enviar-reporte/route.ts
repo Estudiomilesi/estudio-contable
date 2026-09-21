@@ -87,7 +87,9 @@ export async function POST(request: Request) {
 
     // Preparar variables de estilo
     const correosDestino = client.email.split(',').map(e => e.trim()).join(', ');
-    const firma = client.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J';
+    const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
+      ? 'Estudio Jurídico Cicconi' 
+      : (client.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J');
     const colorPrincipal = client.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; 
     const colorSecundario = client.professionalLabel === 'F' ? '#bae6fd' : '#c7d2fe'; 
     const logoUrl = 'https://raw.githubusercontent.com/Estudiomilesi/estudio-contable/main/public/logo-dark.png';

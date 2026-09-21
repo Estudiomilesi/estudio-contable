@@ -279,6 +279,7 @@ export default function ComprobantesPage() {
     }
   };
 
+  const IS_CORI = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI';
   const generatePdfDoc = async (c: Comprobante) => {
     const doc = new jsPDF({ compress: true });
     
@@ -288,13 +289,13 @@ export default function ComprobantesPage() {
     // HEADER TEXT
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    const studioName = c.client.professionalLabel === 'F' ? "Estudio Milesi" : "Estudio Contable F & J";
+    const studioName = IS_CORI ? "Estudio Jurídico Cicconi" : (c.client.professionalLabel === 'F' ? "Estudio Milesi" : "Estudio Contable F & J");
     doc.text(studioName, 15, 42);
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(100);
-    doc.text("Servicios Contables e Impositivos", 15, 48);
+    doc.text(IS_CORI ? "Servicios Jurídicos" : "Servicios Contables e Impositivos", 15, 48);
     
     // TIPO DE COMPROBANTE BOX
     doc.setDrawColor(200);
@@ -351,7 +352,7 @@ export default function ComprobantesPage() {
       });
     } else {
       // Fallback for old comprobantes without items
-      doc.text('Honorarios Contables', 20, y);
+      doc.text(IS_CORI ? 'Honorarios Jurídicos' : 'Honorarios Contables', 20, y);
       doc.text(`$${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`, 185, y, { align: 'right' });
       y += 8;
     }
@@ -483,7 +484,7 @@ export default function ComprobantesPage() {
         console.error("Error generando QR", e);
       }
     }
-    
+
     // FOOTER
     doc.setFontSize(10);
     doc.setFont("helvetica", "italic");
@@ -494,7 +495,9 @@ export default function ComprobantesPage() {
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150);
     
-    if (c.client.professionalLabel === 'F') {
+    if (IS_CORI) {
+      doc.text("Dra. Corina Cicconi", 105, 285, { align: 'center' });
+    } else if (c.client.professionalLabel === 'F') {
       doc.text("CP. Federico Milesi", 105, 285, { align: 'center' });
     } else {
       doc.text("CP. Federico Milesi", 105, 280, { align: 'center' });
