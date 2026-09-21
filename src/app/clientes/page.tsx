@@ -45,14 +45,15 @@ const getCollabColor = (name: string) => {
   const explicitColors: Record<string, string> = {
     'Sin asignar': 'bg-gray-100 text-gray-500 border-gray-200',
     'Fede': 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    'Juanma': 'bg-amber-100 text-amber-800 border-amber-200',
+    'Juanma': 'bg-amber-100 text-amber-800 border-amber-200', // yellow-orange
+    'Luichi': 'bg-emerald-100 text-emerald-800 border-emerald-200', // distinct green from Juanma
     'Alma': 'bg-rose-100 text-rose-800 border-rose-200',
     'Lucho': 'bg-lime-100 text-lime-800 border-lime-200',
-    'Juli': 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200',
-    'Noe': 'bg-purple-100 text-purple-800 border-purple-200', // distinct from fuchsia
+    'Juli': 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200', // pink-purple
+    'Noe': 'bg-blue-100 text-blue-800 border-blue-200', // distinct blue from Juli's fuchsia
     'Melisa': 'bg-pink-100 text-pink-800 border-pink-200',
-    'Belén': 'bg-teal-100 text-teal-800 border-teal-200',
-    'Pauli': 'bg-orange-100 text-orange-800 border-orange-200', // distinct from lime
+    'Belen': 'bg-teal-100 text-teal-800 border-teal-200',
+    'Pauli': 'bg-orange-100 text-orange-800 border-orange-200',
   };
   
   if (!name) return explicitColors['Sin asignar'];
@@ -573,27 +574,31 @@ export default function ClientesPage() {
                   className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${filterCollaborator === 'ALL' ? 'ring-2 ring-indigo-500 bg-indigo-50 text-indigo-900 border-indigo-200' : 'bg-white border-gray-200 text-gray-700'}`}
                 >
                   <span className="text-xs font-medium opacity-80">Todos</span>
-                  <span className="text-lg font-bold">{summaryData.length} <span className="text-xs font-normal opacity-80">clientes</span></span>
+                  <span className="text-lg font-bold">{summaryData.length} <span className="text-[10px] font-normal opacity-80">clientes</span></span>
+                  <span className="text-xs font-semibold text-gray-600">${summaryData.reduce((sum, c) => sum + (c.currentFee || 0), 0).toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                 </div>
                 
                 {Object.entries(
-                  summaryData.reduce((acc: Record<string, number>, c: Client) => {
+                  summaryData.reduce((acc: Record<string, {count: number, total: number}>, c: Client) => {
                     const col = c.assignedCollaborator || 'Sin asignar';
-                    acc[col] = (acc[col] || 0) + 1;
+                    if (!acc[col]) acc[col] = { count: 0, total: 0 };
+                    acc[col].count += 1;
+                    acc[col].total += c.currentFee || 0;
                     return acc;
                   }, {})
                 )
-                .sort((a, b) => b[1] - a[1])
-                .map(([colaborador, count]) => {
+                .sort((a, b) => b[1].count - a[1].count)
+                .map(([colaborador, data]) => {
                   const isActive = filterCollaborator === colaborador;
                   return (
                   <div 
                     key={colaborador} 
                     onClick={() => setFilterCollaborator(colaborador)}
-                    className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${isActive ? 'ring-2 ring-indigo-500 shadow-md ' : 'opacity-80 hover:opacity-100 '} ${getCollabColor(colaborador)}`}
+                    className={`border rounded-lg px-3 py-1.5 flex flex-col shadow-sm min-w-max flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow ${getCollabColor(colaborador)} ${isActive ? 'ring-2 ring-indigo-500 shadow-md' : 'opacity-90'}`}
                   >
-                    <span className="text-xs font-medium opacity-80">{colaborador}</span>
-                    <span className="text-lg font-bold">{count} <span className="text-xs font-normal opacity-80">clientes</span></span>
+                    <span className="text-xs font-medium">{colaborador}</span>
+                    <span className="text-lg font-bold">{data.count} <span className="text-[10px] font-normal opacity-80">clientes</span></span>
+                    <span className="text-xs font-semibold opacity-90">${data.total.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</span>
                   </div>
                 )})}
               </div>
