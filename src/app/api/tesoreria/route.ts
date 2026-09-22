@@ -93,6 +93,27 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'Cuenta destino inválida' }, { status: 400 });
       }
 
+      // Validar cheques si el origen es CHEQUES
+      if (data.account === 'CHEQUES') {
+        if (!data.selectedCheckIds || data.selectedCheckIds.length === 0) {
+          return NextResponse.json({ error: 'Debe seleccionar al menos un cheque para transferir' }, { status: 400 });
+        }
+        const checksToPay = await prisma.check.findMany({
+          where: { id: { in: data.selectedCheckIds }, status: 'IN_PORTFOLIO' }
+        });
+        if (checksToPay.length !== data.selectedCheckIds.length) {
+          return NextResponse.json({ error: 'Algunos cheques ya no están en cartera' }, { status: 400 });
+        }
+        const totalChecks = checksToPay.reduce((sum, c) => sum + c.amount, 0);
+        if (Math.abs(totalChecks - parsedAmount) > 0.01) {
+          return NextResponse.json({ error: 'El importe a transferir debe coincidir con el total de los cheques seleccionados' }, { status: 400 });
+        }
+      }
+
+      if (data.toAccount === 'CHEQUES') {
+        return NextResponse.json({ error: 'No se puede transferir hacia CHEQUES mediante Pase de Caja. Registre un Ingreso.' }, { status: 400 });
+      }
+
       const txOut = await prisma.treasuryTransaction.create({
         data: {
           date: parseToUtcNoon(data.date),
@@ -114,6 +135,13 @@ export async function POST(request: Request) {
           description: data.description || `Pase desde ${data.account}`,
         }
       });
+
+      if (data.account === 'CHEQUES') {
+        await prisma.check.updateMany({
+          where: { id: { in: data.selectedCheckIds } },
+          data: { status: 'DELIVERED', outgoingTxId: txOut.id }
+        });
+      }
 
       return NextResponse.json({ success: true }, { status: 201 });
     }

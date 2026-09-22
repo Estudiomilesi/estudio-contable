@@ -235,10 +235,23 @@ export default function TesoreriaPage() {
   };
 
   const today = new Date();
-  const expiringChecks = cartera.filter(c => {
-    const diffTime = new Date(c.dueDate).getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays >= 0 && diffDays <= alertDays;
+  
+  // Un cheque vence 30 días después de su dueDate.
+  const getDaysUntilInvalid = (dueDate: string) => {
+    const validityDate = new Date(dueDate);
+    validityDate.setDate(validityDate.getDate() + 30);
+    const diffTime = validityDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  const expiringRedChecks = cartera.filter(c => {
+    const days = getDaysUntilInvalid(c.dueDate);
+    return days >= 0 && days <= 15;
+  });
+
+  const expiringYellowChecks = cartera.filter(c => {
+    const days = getDaysUntilInvalid(c.dueDate);
+    return days > 15 && days <= 30;
   });
 
   return (
@@ -247,29 +260,55 @@ export default function TesoreriaPage() {
         <h1 className="text-3xl font-bold tracking-tight">Tesorería</h1>
       </div>
 
-      {expiringChecks.length > 0 && (
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Atención: Hay {expiringChecks.length} {expiringChecks.length === 1 ? 'cheque' : 'cheques'} por vencer en los próximos 15 días.
-              </h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <ul className="list-disc pl-5 space-y-1">
-                  {expiringChecks.map(c => (
-                    <li key={c.id}>
-                      {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
-                    </li>
-                  ))}
-                </ul>
+      {(expiringYellowChecks.length > 0 || expiringRedChecks.length > 0) && (
+        <div className="space-y-3">
+          {expiringRedChecks.length > 0 && (
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    Atención: Hay {expiringRedChecks.length} {expiringRedChecks.length === 1 ? 'cheque' : 'cheques'} que pierden validez en los próximos 15 días.
+                  </h3>
+                  <div className="mt-2 text-sm text-red-700">
+                    <ul className="list-disc pl-5 space-y-1">
+                      {expiringRedChecks.map(c => (
+                        <li key={c.id}>
+                          {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+
+          {expiringYellowChecks.length > 0 && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-yellow-400" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-yellow-800">
+                    Atención: Hay {expiringYellowChecks.length} {expiringYellowChecks.length === 1 ? 'cheque' : 'cheques'} que pierden validez en los próximos 30 días.
+                  </h3>
+                  <div className="mt-2 text-sm text-yellow-700">
+                    <ul className="list-disc pl-5 space-y-1">
+                      {expiringYellowChecks.map(c => (
+                        <li key={c.id}>
+                          {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -480,7 +519,7 @@ export default function TesoreriaPage() {
             )}
 
             {/* CHECK EXPENSE FIELDS */}
-            {formData.account === 'CHEQUES' && formData.type === 'EXPENSE' && (
+            {formData.account === 'CHEQUES' && (formData.type === 'EXPENSE' || formData.type === 'TRANSFER') && (
               <div className="bg-blue-50 p-4 rounded-md border border-blue-200 space-y-3">
                 <h4 className="text-sm font-bold text-blue-800">Seleccionar Cheques para el pago</h4>
                 {cartera.length === 0 ? (
@@ -638,7 +677,7 @@ export default function TesoreriaPage() {
               <input type="text" required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Ej: Pago internet, Factura N°123..." />
             </div>
             
-            <button type="submit" disabled={formData.account === 'CHEQUES' && formData.type === 'EXPENSE' && selectedCheckIds.length === 0} className={`w-full rounded-md py-2 px-4 text-white font-medium focus:ring-2 focus:ring-offset-2 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : (formData.type === 'TRANSFER' ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'bg-red-600 hover:bg-red-700 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed')}`}>
+            <button type="submit" disabled={formData.account === 'CHEQUES' && (formData.type === 'EXPENSE' || formData.type === 'TRANSFER') && selectedCheckIds.length === 0} className={`w-full rounded-md py-2 px-4 text-white font-medium focus:ring-2 focus:ring-offset-2 ${formData.type === 'INCOME' ? 'bg-green-600 hover:bg-green-700 focus:ring-green-500' : (formData.type === 'TRANSFER' ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' : 'bg-red-600 hover:bg-red-700 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed')}`}>
               Registrar {formData.type === 'INCOME' ? 'Ingreso' : (formData.type === 'TRANSFER' ? 'Pase' : 'Egreso')}
             </button>
           </form>
@@ -762,20 +801,21 @@ export default function TesoreriaPage() {
                 <tr><td colSpan={6} className="px-4 py-4 text-center text-gray-700">La cartera de cheques está vacía.</td></tr>
               ) : (
                 cartera.map((c) => {
-                  const diffTime = new Date(c.dueDate).getTime() - today.getTime();
-                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                  const isExpiring = diffDays >= 0 && diffDays <= alertDays;
+                  const diffDays = getDaysUntilInvalid(c.dueDate);
+                  const isRed = diffDays >= 0 && diffDays <= 15;
+                  const isYellow = diffDays > 15 && diffDays <= 30;
                   const isExpired = diffDays < 0;
 
                   return (
-                    <tr key={c.id} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-50' : isExpiring ? 'bg-yellow-50' : ''}`}>
+                    <tr key={c.id} className={`hover:bg-gray-50 ${isExpired ? 'bg-red-100' : isRed ? 'bg-red-50' : isYellow ? 'bg-yellow-50' : ''}`}>
                       <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700">
                         {new Date(c.issueDate).toLocaleDateString('es-AR')}
                       </td>
                       <td className="px-4 py-2 whitespace-nowrap text-sm font-semibold flex items-center gap-2">
                         {new Date(c.dueDate).toLocaleDateString('es-AR')}
-                        {isExpiring && <span className="bg-yellow-400 text-yellow-900 text-[10px] px-1.5 py-0.5 rounded-full">Vence en {diffDays} días</span>}
-                        {isExpired && <span className="bg-red-400 text-red-900 text-[10px] px-1.5 py-0.5 rounded-full">Vencido</span>}
+                        {isYellow && <span className="bg-yellow-400 text-yellow-900 text-[10px] px-1.5 py-0.5 rounded-full">Vence en {diffDays} días</span>}
+                        {isRed && <span className="bg-red-400 text-red-900 text-[10px] px-1.5 py-0.5 rounded-full">Vence en {diffDays} días</span>}
+                        {isExpired && <span className="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">Vencido</span>}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-900">
                         {c.client ? c.client.name : 'Sin cliente'}
