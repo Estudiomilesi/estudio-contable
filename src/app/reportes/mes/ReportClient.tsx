@@ -32,18 +32,39 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
   };
 
   const processedData = useMemo(() => {
-    let result = [...transacciones];
+    let result: any[] = [];
     
-    // Si es Juanma, ya viene filtrado de backend, pero por las dudas forzamos
-    if (isJuanma) {
-      result = result.filter(t => t.client?.professionalLabel === 'FJ' || t.client?.professionalLabel === 'JF');
-    } else if (filterLabel !== 'ALL') {
-      if (filterLabel === 'FJ_JF') {
-        result = result.filter(t => t.client?.professionalLabel === 'FJ' || t.client?.professionalLabel === 'JF');
-      } else {
-        result = result.filter(t => t.client?.professionalLabel === filterLabel);
+    transacciones.forEach(t => {
+      // Filtrar por etiqueta
+      let isValid = true;
+      if (isJuanma) {
+        if (t.client?.professionalLabel !== 'FJ' && t.client?.professionalLabel !== 'JF') isValid = false;
+      } else if (filterLabel !== 'ALL') {
+        if (filterLabel === 'FJ_JF') {
+          if (t.client?.professionalLabel !== 'FJ' && t.client?.professionalLabel !== 'JF') isValid = false;
+        } else {
+          if (t.client?.professionalLabel !== filterLabel) isValid = false;
+        }
       }
-    }
+      
+      if (!isValid) return;
+
+      // Expandir items si existen (para desglosar facturas con mltiples conceptos)
+      if (isFacturado && t.items && t.items.length > 0) {
+        t.items.forEach((item: any) => {
+          result.push({
+            ...t,
+            id: item.id, // Usar el ID del item para que sea nico en la tabla
+            conceptFromItem: item.concept,
+            amount: item.amount,
+            netAmount: item.amount, // Los items manuales no tienen IVA desglosado en la DB por item an
+            ivaAmount: 0
+          });
+        });
+      } else {
+        result.push(t);
+      }
+    });
     
     if (sortConfig) {
       result.sort((a, b) => {
@@ -60,8 +81,8 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
           aVal = getCaja(a.description || '');
           bVal = getCaja(b.description || '');
         } else if (sortConfig.key === 'concept') {
-          aVal = getConcept(a.description || '');
-          bVal = getConcept(b.description || '');
+          aVal = a.conceptFromItem || getConcept(a.description || '');
+          bVal = b.conceptFromItem || getConcept(b.description || '');
         }
 
         if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -71,7 +92,7 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
     }
     
     return result;
-  }, [transacciones, sortConfig, filterLabel, isJuanma]);
+  }, [transacciones, sortConfig, filterLabel, isJuanma, isFacturado]);
 
   const requestSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -124,7 +145,7 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
   const groupedByConcept = useMemo(() => {
     const map = new Map<string, { count: number, net: number, iva: number, total: number }>();
     processedData.forEach(t => {
-      const concept = getConcept(t.description);
+      const concept = t.conceptFromItem || getConcept(t.description);
       const net = t.netAmount || t.amount;
       const iva = t.ivaAmount || 0;
       const total = t.amount;
@@ -285,7 +306,7 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
                       )}
                       {isFacturado && (
                         <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-700 font-medium">
-                          {getConcept(t.description || '')}
+                          {t.conceptFromItem || getConcept(t.description || '')}
                         </td>
                       )}
                       {!isFacturado && (

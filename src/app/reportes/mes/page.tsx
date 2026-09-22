@@ -46,7 +46,7 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
 
   const rawTransacciones = await prisma.accountTransaction.findMany({
     where: whereClause,
-    include: { client: true },
+    include: { client: true, items: true },
     orderBy: { date: 'desc' }
   });
 
