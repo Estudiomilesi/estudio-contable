@@ -20,9 +20,15 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
   const getConcept = (desc: string) => {
     if (!desc) return 'Otros';
     if (desc.startsWith('Pago ingresado')) return 'Pago';
-    if (desc.startsWith('FACTURA NO VALIDA')) return 'Honorarios (Manual)';
-    if (desc.includes(' - ')) return desc.split(' - ')[0].trim();
-    return desc.trim();
+    if (desc.startsWith('FACTURA NO VALIDA') || desc.startsWith('Factura')) return 'Honorarios (Manual)';
+    
+    let concept = desc;
+    if (concept.includes(' - ')) {
+      concept = concept.split(' - ')[0].trim();
+    }
+    concept = concept.replace(/\s*\([^)]*\)/g, '').trim();
+    
+    return concept || 'Otros';
   };
 
   const processedData = useMemo(() => {
@@ -213,7 +219,7 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
                   </th>
                   {!isFacturado && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('caja')}>Caja {renderSortIcon('caja')}</th>}
                   {isFacturado && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('concept')}>Concepto {renderSortIcon('concept')}</th>}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('description')}>Detalle {renderSortIcon('description')}</th>
+                  {!isFacturado && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('description')}>Detalle {renderSortIcon('description')}</th>}
                   <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('netAmount')}>Neto {renderSortIcon('netAmount')}</th>
                   <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('ivaAmount')}>IVA {renderSortIcon('ivaAmount')}</th>
                   <th className="px-6 py-3 text-right tabular-nums text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer group select-none" onClick={() => requestSort('amount')}>Total {renderSortIcon('amount')}</th>
@@ -282,9 +288,11 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
                           {getConcept(t.description || '')}
                         </td>
                       )}
-                      <td className="px-6 py-2 text-sm text-gray-500 max-w-xs truncate" title={t.description}>
-                        {t.description}
-                      </td>
+                      {!isFacturado && (
+                        <td className="px-6 py-2 text-sm text-gray-500 max-w-xs truncate" title={t.description}>
+                          {t.description}
+                        </td>
+                      )}
                       <td className="px-6 py-2 whitespace-nowrap text-sm text-gray-700 text-right tabular-nums">
                         ${(t.netAmount || t.amount).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>
