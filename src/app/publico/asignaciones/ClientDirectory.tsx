@@ -121,18 +121,18 @@ export default function ClientDirectory({ clients }: { clients: ClientData[] }) 
                     scope="col" 
                     className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider border-r border-gray-200/50"
                   >
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center justify-between cursor-pointer hover:bg-gray-200 select-none transition-colors" onClick={() => requestSort('name')}>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-1 cursor-pointer hover:text-indigo-600 select-none transition-colors whitespace-nowrap" onClick={() => requestSort('name')}>
                         Nombre del Cliente
                         {sortConfig?.key === 'name' && (<span className="text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>)}
                       </div>
-                      <div className="relative w-full">
+                      <div className="relative">
                         <input 
                           type="text" 
-                          placeholder="Buscar (min 3 letras)..." 
+                          placeholder="Buscar..." 
                           value={searchTerm}
                           onChange={e => setSearchTerm(e.target.value)}
-                          className="w-full text-xs font-normal border-gray-300 rounded p-1 pl-6 focus:ring-indigo-500 shadow-sm"
+                          className="w-32 sm:w-48 text-[11px] font-normal border-gray-300 rounded p-1 pl-6 focus:ring-indigo-500 shadow-sm"
                         />
                         <svg className="w-3 h-3 text-gray-400 absolute left-2 top-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
