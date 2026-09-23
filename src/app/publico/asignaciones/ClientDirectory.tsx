@@ -11,6 +11,7 @@ type ClientData = {
 
 export default function ClientDirectory({ clients }: { clients: ClientData[] }) {
   const [filterCollaborator, setFilterCollaborator] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: keyof ClientData; direction: 'asc' | 'desc' } | null>({ key: 'name', direction: 'asc' });
 
   const getCollabColor = (name: string | null) => {
@@ -50,6 +51,14 @@ export default function ClientDirectory({ clients }: { clients: ClientData[] }) 
   const filteredAndSortedClients = useMemo(() => {
     let sortableClients = [...clients];
 
+    if (searchTerm && searchTerm.length >= 3) {
+      const lowerSearch = searchTerm.toLowerCase();
+      sortableClients = sortableClients.filter(c => 
+        (c.name?.toLowerCase().includes(lowerSearch) || false) || 
+        (c.code?.toLowerCase().includes(lowerSearch) || false)
+      );
+    }
+
     if (filterCollaborator !== 'ALL') {
       if (filterCollaborator === 'Sin asignar') {
         sortableClients = sortableClients.filter((c) => !c.assignedCollaborator || c.assignedCollaborator.trim() === '');
@@ -74,7 +83,7 @@ export default function ClientDirectory({ clients }: { clients: ClientData[] }) 
     }
 
     return sortableClients;
-  }, [clients, filterCollaborator, sortConfig]);
+  }, [clients, filterCollaborator, sortConfig, searchTerm]);
 
   const uniqueCollaborators = useMemo(() => {
     const colabs = new Set(clients.map(c => c.assignedCollaborator).filter(Boolean));
@@ -85,11 +94,13 @@ export default function ClientDirectory({ clients }: { clients: ClientData[] }) 
     <div className="min-h-screen bg-gray-100 p-4 sm:p-6">
       <div className="w-full mx-auto">
         <div className="bg-white rounded-xl shadow-xl flex flex-col h-[calc(100vh-2rem)] sm:h-[calc(100vh-3rem)] overflow-hidden border border-gray-200">
-          <div className="bg-indigo-600 px-6 py-4 shrink-0 shadow-md z-20">
-            <h1 className="text-2xl font-bold text-white">Directorio de Asignaciones</h1>
-            <p className="text-indigo-100 text-sm mt-1">
-              Listado de clientes activos y sus colaboradores asignados.
-            </p>
+          <div className="bg-indigo-600 px-4 py-2 shrink-0 shadow-md z-20 flex justify-between items-center">
+            <div>
+              <h1 className="text-lg font-bold text-white">Directorio de Asignaciones</h1>
+              <p className="text-indigo-100 text-xs mt-0.5">
+                Listado de clientes activos y sus colaboradores asignados.
+              </p>
+            </div>
           </div>
           
           <div className="overflow-auto flex-1 relative bg-gray-50">
@@ -108,12 +119,25 @@ export default function ClientDirectory({ clients }: { clients: ClientData[] }) 
                   </th>
                   <th 
                     scope="col" 
-                    className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider cursor-pointer hover:bg-gray-200 select-none transition-colors border-r border-gray-200/50"
-                    onClick={() => requestSort('name')}
+                    className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider border-r border-gray-200/50"
                   >
-                    <div className="flex items-center justify-between">
-                      Nombre del Cliente
-                      {sortConfig?.key === 'name' && (<span className="text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>)}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between cursor-pointer hover:bg-gray-200 select-none transition-colors" onClick={() => requestSort('name')}>
+                        Nombre del Cliente
+                        {sortConfig?.key === 'name' && (<span className="text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>)}
+                      </div>
+                      <div className="relative w-full">
+                        <input 
+                          type="text" 
+                          placeholder="Buscar (min 3 letras)..." 
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          className="w-full text-xs font-normal border-gray-300 rounded p-1 pl-6 focus:ring-indigo-500 shadow-sm"
+                        />
+                        <svg className="w-3 h-3 text-gray-400 absolute left-2 top-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
                     </div>
                   </th>
                   <th 
