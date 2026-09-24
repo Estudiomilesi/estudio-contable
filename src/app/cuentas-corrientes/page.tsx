@@ -70,6 +70,7 @@ export default function CuentasCorrientesPage() {
   const [qcDescription, setQcDescription] = useState('');
   const [qcCheckDetails, setQcCheckDetails] = useState({ bank: '', number: '', issueDate: '', dueDate: '' });
   const [isSubmittingQC, setIsSubmittingQC] = useState(false);
+  const [isSubmittingApply, setIsSubmittingApply] = useState(false);
 
   const [sortConfig, setSortConfig] = useState<{ key: keyof ClientWithBalance, direction: 'asc' | 'desc' } | null>({ key: 'code', direction: 'asc' });
   const [filterLabel, setFilterLabel] = useState<string>('ALL');
@@ -176,6 +177,9 @@ export default function CuentasCorrientesPage() {
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!applyingPayment) return;
+    if (isSubmittingApply) return;
+
+    setIsSubmittingApply(true);
 
     let chargeIdsToApply: string[] = [];
     if (selectedChargeIds.size > 0) {
@@ -208,6 +212,8 @@ export default function CuentasCorrientesPage() {
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsSubmittingApply(false);
     }
   };
 
@@ -260,6 +266,7 @@ export default function CuentasCorrientesPage() {
   const handleQuickCollectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedChargeIds.size === 0 || !selectedClientId) return;
+    if (isSubmittingQC) return;
 
     setIsSubmittingQC(true);
     try {
@@ -824,7 +831,7 @@ export default function CuentasCorrientesPage() {
                     type="submit"
                     className="px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
                   >
-                    {selectedChargeIds.size > 0 ? 'Aplicar a Seleccionados' : 'Confirmar Aplicación'}
+                    {isSubmittingApply ? 'Procesando...' : (selectedChargeIds.size > 0 ? 'Aplicar a Seleccionados' : 'Confirmar Aplicación')}
                   </button>
                 </div>
               </form>
