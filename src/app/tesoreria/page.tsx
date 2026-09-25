@@ -14,6 +14,7 @@ type TreasuryTransaction = {
   description: string | null;
   client?: { name: string };
   employeeId?: string | null;
+  parentTransactionId?: string | null;
   employeeName?: string | null;
   runningBalance?: number;
   createdAt: string;
@@ -750,7 +751,7 @@ export default function TesoreriaPage() {
                       <td className="px-4 py-2 text-sm text-gray-900">
                         <div className="font-medium flex items-center justify-between group">
                           <div>{t.category} {t.client ? `- ${t.client.name}` : ''}</div>
-                          {t.createdAt && (new Date().getTime() - new Date(t.createdAt).getTime()) / (1000 * 3600 * 24) <= 5 && (
+                          {t.createdAt && !t.parentTransactionId && (new Date().getTime() - new Date(t.createdAt).getTime()) / (1000 * 3600 * 24) <= 5 && (
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button 
                                 onClick={() => setEditingTx(t)}

@@ -310,7 +310,8 @@ export async function POST(request: Request) {
               account: data.account,
               category: retiroSocio,
               description: `Retiro automático s/ cobro ${data.description || ''}`,
-              clientId: data.clientId || null
+              clientId: data.clientId || null,
+              parentTransactionId: nuevaTransaccion.id
             }
           });
         }
@@ -324,7 +325,8 @@ export async function POST(request: Request) {
               account: data.account,
               category: retiroSocio,
               description: `Retiro automático IVA s/ cobro ${data.description || ''}`,
-              clientId: data.clientId || null
+              clientId: data.clientId || null,
+              parentTransactionId: nuevaTransaccion.id
             }
           });
         }
@@ -339,7 +341,8 @@ export async function POST(request: Request) {
               account: data.account,
               category: retiroSocio,
               description: `Reintegro automático por pago de gasto ${data.description || ''}`,
-              clientId: data.clientId || null
+              clientId: data.clientId || null,
+              parentTransactionId: nuevaTransaccion.id
             }
           });
         }

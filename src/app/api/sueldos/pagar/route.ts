@@ -80,6 +80,7 @@ export async function POST(req: Request) {
             account: payment.account,
             category: retiroSocio,
             description: `Aporte/Reintegro automático por pago de Sueldos`,
+            parentTransactionId: nuevaTransaccion.id
           }
         });
       }
