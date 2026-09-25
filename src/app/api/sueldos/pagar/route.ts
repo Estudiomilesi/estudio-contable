@@ -69,6 +69,21 @@ export async function POST(req: Request) {
         }
       });
 
+      if (payment.account === 'BANCOS FEDE' || payment.account === 'BANCOS JUANMA') {
+        const retiroSocio = payment.account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
+        
+        await prisma.treasuryTransaction.create({
+          data: {
+            date: txDate,
+            amount: Math.abs(txAmount),
+            type: 'INCOME',
+            account: payment.account,
+            category: retiroSocio,
+            description: `Aporte/Reintegro automático por pago de Sueldos`,
+          }
+        });
+      }
+
       if (payment.account === 'CHEQUES' && payment.checkIds && payment.checkIds.length > 0) {
         for (const checkId of payment.checkIds) {
           await prisma.check.update({
