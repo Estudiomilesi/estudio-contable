@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { ArrowDown, ArrowUp, Search, Calendar, FileText, CheckCircle2, AlertCircle, Edit2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Search, Calendar, FileText, CheckCircle2, AlertCircle, Edit2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 type TreasuryTransaction = {
@@ -214,6 +214,23 @@ export default function TesoreriaPage() {
     .reduce((acc, [_, val]) => acc + val, 0);
 
   // Calcular alertas de cheques (vencen en <= 15 días)
+  const handleDeleteTx = async (tx: TreasuryTransaction) => {
+    if (!confirm('¿Estás seguro de que querés eliminar este movimiento? Esto no se puede deshacer y devolverá los cheques a cartera o anulará pagos de sueldos si correspondiese.')) return;
+    try {
+      const res = await fetch(`/api/tesoreria/${tx.id}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        alert('Error al eliminar: ' + (errorData.error || 'Desconocido'));
+      }
+    } catch (error) {
+      alert('Error de red al intentar eliminar.');
+    }
+  };
+
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTx) return;
@@ -733,14 +750,23 @@ export default function TesoreriaPage() {
                       <td className="px-4 py-2 text-sm text-gray-900">
                         <div className="font-medium flex items-center justify-between group">
                           <div>{t.category} {t.client ? `- ${t.client.name}` : ''}</div>
-                          {t.createdAt && (new Date().getTime() - new Date(t.createdAt).getTime()) / (1000 * 3600 * 24) <= 3 && (
-                            <button 
-                              onClick={() => setEditingTx(t)}
-                              className="text-gray-400 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                              title="Editar (permitido por 3 días)"
-                            >
-                              <Edit2 size={14} />
-                            </button>
+                          {t.createdAt && (new Date().getTime() - new Date(t.createdAt).getTime()) / (1000 * 3600 * 24) <= 5 && (
+                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button 
+                                onClick={() => setEditingTx(t)}
+                                className="text-gray-400 hover:text-indigo-600 p-1"
+                                title="Editar (permitido por 5 días)"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteTx(t)}
+                                className="text-gray-400 hover:text-red-600 p-1"
+                                title="Eliminar (permitido por 5 días)"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           )}
                         </div>
                         <div className="text-gray-700 text-xs truncate max-w-xs" title={t.description || ''}>{t.description}</div>
