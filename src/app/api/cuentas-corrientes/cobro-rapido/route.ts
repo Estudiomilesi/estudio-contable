@@ -77,6 +77,12 @@ export async function POST(request: Request) {
       }
     });
 
+    // 2.5 Vincular el cobro a la caja
+    await prisma.treasuryTransaction.update({
+      where: { id: treasuryTx.id },
+      data: { accountTransactionId: accountTx.id }
+    });
+
     // 3. Aplicar el pago a los cargos seleccionados secuencialmente
     // Primero traer los cargos con sus aplicaciones actuales para saber cuánto deben
     const charges = await prisma.accountTransaction.findMany({

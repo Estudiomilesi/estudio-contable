@@ -239,6 +239,11 @@ export async function POST(request: Request) {
           description: `Pago ingresado en ${data.account} - ${data.description || ''}`,
         }
       });
+      
+      await prisma.treasuryTransaction.update({
+        where: { id: nuevaTransaccion.id },
+        data: { accountTransactionId: accountTx.id }
+      });
 
       // Si nos pasaron cargos seleccionados desde Tesorería, aplicar el pago a esos cargos
       if (data.selectedChargeIds && Array.isArray(data.selectedChargeIds) && data.selectedChargeIds.length > 0) {
