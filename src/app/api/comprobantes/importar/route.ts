@@ -54,7 +54,16 @@ export async function POST(request: Request) {
             cae: tx.cae || null,
             caeDueDate: tx.caeDueDate ? new Date(tx.caeDueDate) : null,
             afipTipoCmp: tx.afipTipoCmp || null,
-            // OJO: Se mantiene isEmailed: false para que Fede pueda mandarlo manualmente luego
+            // Actualizamos los items con el nuevo concepto e importe
+            items: {
+              deleteMany: {},
+              create: [
+                {
+                  concept: tx.conceptName || 'Honorarios',
+                  amount: tx.netAmount
+                }
+              ]
+            }
           }
         });
         count++;
@@ -75,7 +84,15 @@ export async function POST(request: Request) {
             collaboratorAmount: tx.collaboratorAmount || null,
             cae: tx.cae || null,
             caeDueDate: tx.caeDueDate ? new Date(tx.caeDueDate) : null,
-            afipTipoCmp: tx.afipTipoCmp || null
+            afipTipoCmp: tx.afipTipoCmp || null,
+            items: {
+              create: [
+                {
+                  concept: tx.conceptName || 'Honorarios',
+                  amount: tx.netAmount
+                }
+              ]
+            }
           }
         });
         count++;

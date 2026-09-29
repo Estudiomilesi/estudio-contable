@@ -1000,6 +1000,7 @@ export default function ComprobantesPage() {
         isOpen={isImportModalOpen} 
         onClose={() => setIsImportModalOpen(false)} 
         clientes={clientes}
+          conceptos={billingConcepts}
         onImportComplete={() => {
           fetchData(); // Reload data after import
         }}

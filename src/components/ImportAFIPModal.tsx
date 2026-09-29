@@ -17,11 +17,13 @@ export default function ImportAFIPModal({
   isOpen, 
   onClose, 
   clientes,
+  conceptos = [],
   onImportComplete
 }: { 
   isOpen: boolean; 
   onClose: () => void; 
   clientes: Client[];
+  conceptos?: any[];
   onImportComplete: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
@@ -232,6 +234,7 @@ export default function ImportAFIPModal({
             netAmount: impNeto + impNoGrav + impExento || (impTotal - iva),
             ivaAmount: iva,
             description: `${descriptionPrefix}${tipoComp} ${ptoVta}-${nroDesde}`.trim(),
+            conceptName: conceptos.length > 0 ? conceptos[0].name : 'Honorarios',
             receiptNumber: `${ptoVta}-${nroDesde}`,
             collaboratorName: matchedClient?.assignedCollaborator || null,
             collaboratorAmount: null // We don't auto-calculate collab splits from AFIP by default to avoid mess
@@ -245,6 +248,18 @@ export default function ImportAFIPModal({
       }
     };
     reader.readAsBinaryString(selected);
+  };
+
+  
+  const handleConceptChange = (index: number, val: string) => {
+    const newData = [...parsedData];
+    newData[index].conceptName = val;
+    setParsedData(newData);
+  };
+  const handleDescChange = (index: number, val: string) => {
+    const newData = [...parsedData];
+    newData[index].description = val;
+    setParsedData(newData);
   };
 
   const handleImport = async () => {
@@ -336,6 +351,8 @@ export default function ImportAFIPModal({
                     <tr>
                       <th className="px-3 py-2 text-left font-medium text-gray-500">Fecha</th>
                       <th className="px-3 py-2 text-left font-medium text-gray-500">Comprobante</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-500">Concepto</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-500">Observación</th>
                       <th className="px-3 py-2 text-left font-medium text-gray-500">Receptor (AFIP)</th>
                       <th className="px-3 py-2 text-left font-medium text-gray-500">Cliente Matcheado</th>
                       <th className="px-3 py-2 text-right font-medium text-gray-500">Importe</th>
@@ -345,7 +362,15 @@ export default function ImportAFIPModal({
                     {parsedData.map((tx, i) => (
                       <tr key={i} className={!tx.clientId ? 'bg-red-50' : ''}>
                         <td className="px-3 py-2 whitespace-nowrap">{new Date(tx.date).toLocaleDateString('es-AR')}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">{tx.description}</td>
+                        <td className="px-3 py-2 whitespace-nowrap text-gray-500">{tx.receiptNumber}</td>
+                        <td className="px-3 py-2">
+                          <select value={tx.conceptName || ''} onChange={(e) => handleConceptChange(i, e.target.value)} className="w-full text-xs border-gray-300 rounded p-1">
+                            {conceptos.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input type="text" value={tx.description || ''} onChange={(e) => handleDescChange(i, e.target.value)} className="w-full text-xs border-gray-300 rounded p-1" />
+                        </td>
                         <td className="px-3 py-2">{tx._denominacion} {tx._cuit ? `(${tx._cuit})` : ''}</td>
                         <td className="px-3 py-2 font-medium text-indigo-700">
                           {tx.clientNameMatch || <span className="text-red-500 italic">No encontrado</span>}
