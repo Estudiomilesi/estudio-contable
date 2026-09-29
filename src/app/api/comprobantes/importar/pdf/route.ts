@@ -147,7 +147,23 @@ export async function POST(request: Request) {
         _denominacion: "Cliente extraído del PDF", // Name extraction is messy in PDF, we rely on CUIT matching
         date: dateIso,
         type: isNotaCredito ? 'PAYMENT' : 'CHARGE',
-        description: `${isNotaCredito ? 'NC' : 'Factura'} ${pv}-${nro}`,
+        description: (() => {
+          const getLetter = (code: number) => {
+            if ([1, 2, 3, 4, 5].includes(code)) return 'A';
+            if ([6, 7, 8, 9, 10].includes(code)) return 'B';
+            if ([11, 12, 13, 15].includes(code)) return 'C';
+            if ([51, 52, 53].includes(code)) return 'M';
+            return '';
+          };
+          const letter = getLetter(compCode);
+          const codeStr = compCode > 0 ? `Cod. ${compCode.toString().padStart(2, '0')}` : '';
+          const docName = isNotaCredito ? 'NC' : 'FACTURA';
+          const parts = [docName];
+          if (letter) parts.push(letter);
+          if (codeStr) parts.push(codeStr);
+          parts.push(`${pv}-${nro}`);
+          return parts.join(' ').replace(/\s+/g, ' ');
+        })(),
         receiptNumber: `${pv}-${nro}`,
         amount: total,
         netAmount: neto,
