@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 type AccountTransaction = {
   id: string;
@@ -112,6 +113,26 @@ export default function FacturacionPage() {
     }
     return result;
   }, [clientes, sortConfig, filterLabel, filterBillingProfile, searchTerm]);
+
+  
+  const handleExportarExcel = () => {
+    const data = filteredAndSortedClientes.map(c => ({
+      'Código': c.code,
+      'Cliente': c.name,
+      'Perfil Fac.': billingProfileEdiciones[c.id] || c.defaultBillingProfile,
+      'Abono Neto': ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Abonos");
+    
+    // Auto-size columns
+    const max_width = data.reduce((w, r) => Math.max(w, r['Cliente'].length), 10);
+    ws['!cols'] = [ {wch: 10}, {wch: max_width}, {wch: 20}, {wch: 15} ];
+
+    XLSX.writeFile(wb, `Planilla_Abonos_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
 
   const requestSort = (key: keyof Client) => {
     let direction: 'asc' | 'desc' = 'asc';
