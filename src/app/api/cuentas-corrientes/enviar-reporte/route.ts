@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/mailer';
 
 export async function POST(request: Request) {
   const senderEmail = request.headers.get('x-user-email') || undefined;
