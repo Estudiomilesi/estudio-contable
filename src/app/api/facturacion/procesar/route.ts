@@ -98,9 +98,9 @@ export async function POST(request: Request) {
         const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
           ? 'Estudio Jurídico Cicconi' 
           : (cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J');
-        const colorPrincipal = cliente.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; // Cyan oscuro para F, Índigo para F&J
-        const colorFondoEtiqueta = cliente.professionalLabel === 'F' ? '#e0f2fe' : '#e0e7ff'; // Fondo pastel
-        const colorTextoEtiqueta = cliente.professionalLabel === 'F' ? '#0369a1' : '#4338ca'; // Texto oscuro
+        const colorPrincipal = '#7C4751'; // Cyan oscuro para F, Índigo para F&J
+        const colorFondoEtiqueta = '#F5ECE7'; // Fondo pastel
+        const colorTextoEtiqueta = '#55434F'; // Texto oscuro
 
         const htmlEmail = `
           <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">

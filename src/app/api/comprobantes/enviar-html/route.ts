@@ -45,9 +45,9 @@ export async function POST(request: Request) {
     const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
       ? 'Estudio Jurídico Cicconi' 
       : (cliente.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J');
-    const colorPrincipal = cliente.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; 
-    const colorFondoEtiqueta = cliente.professionalLabel === 'F' ? '#e0f2fe' : '#e0e7ff';
-    const colorTextoEtiqueta = cliente.professionalLabel === 'F' ? '#0369a1' : '#4338ca';
+    const colorPrincipal = '#7C4751'; 
+    const colorFondoEtiqueta = '#F5ECE7';
+    const colorTextoEtiqueta = '#55434F';
     const logoUrl = 'https://raw.githubusercontent.com/Estudiomilesi/estudio-contable/main/public/logo-dark.png';
 
     // Extraer periodo de la descripción si existe, sino usar el mes de la fecha

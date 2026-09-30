@@ -90,8 +90,8 @@ export async function POST(request: Request) {
     const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
       ? 'Estudio Jurídico Cicconi' 
       : (client.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J');
-    const colorPrincipal = client.professionalLabel === 'F' ? '#0284c7' : '#4f46e5'; 
-    const colorSecundario = client.professionalLabel === 'F' ? '#bae6fd' : '#c7d2fe'; 
+    const colorPrincipal = '#7C4751'; 
+    const colorSecundario = '#F5ECE7'; 
     const logoUrl = 'https://raw.githubusercontent.com/Estudiomilesi/estudio-contable/main/public/logo-dark.png';
     const isDebt = balance > 0;
     const reportTitle = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Estado de Cuenta Corriente';
