@@ -304,7 +304,12 @@ export default function FacturacionPage() {
             className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
           />
           <button 
-            onClick={guardarCambiosMasivos} 
+              onClick={handleExportarExcel} 
+              className="rounded-md bg-green-600 py-1.5 px-3 text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 flex items-center gap-1"
+            >
+              <FileSpreadsheet size={16} /> Excel
+            </button>
+            <button onClick={guardarCambiosMasivos} 
             disabled={isSaving || Object.keys(ediciones).length === 0}
             className="rounded-md bg-white border border-gray-300 py-1.5 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
           >
