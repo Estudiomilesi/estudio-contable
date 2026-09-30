@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       where: whereClause,
       include: { client: { select: { name: true, professionalLabel: true, defaultBankAccountId: true, email: true } }, items: true, paymentCondition: true },
       orderBy: { createdAt: 'desc' },
-      take: 100
+      take: 400
     });
     return NextResponse.json(comprobantes);
   } catch (error) {
