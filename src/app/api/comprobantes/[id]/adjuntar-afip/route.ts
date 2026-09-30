@@ -91,12 +91,7 @@ export async function POST(
     let pv = '0000';
     let nro = '00000000';
     
-    const fileNameMatch = file.name.match(/^(\d{11})_\d{2,3}_(\d{4,5})_(\d{8})\.pdf$/i);
-    if (fileNameMatch) {
-      pv = fileNameMatch[2];
-      nro = fileNameMatch[3];
-    } else {
-      // Find all potential invoice numbers (00000-00000000)
+          // Find all potential invoice numbers (00000-00000000)
       const allMatches = [...text.matchAll(/(\d{4,5})[-_](\d{8})/g)];
       let foundPv = null;
       let foundNro = null;
@@ -131,7 +126,7 @@ export async function POST(
           nro = nroMatch[1];
         }
       }
-    }
+
 
     const letra = getLetter(tx.billingProfile, isNotaCredito);
     const cbteStr = compCode ? ` Cod. ${compCode.toString().padStart(2, '0')} ` : ' ';
