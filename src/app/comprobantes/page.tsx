@@ -638,8 +638,8 @@ export default function ComprobantesPage() {
                 className="w-full rounded-md border border-blue-200 p-2 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white"
               >
                 <option value="NO_FISCAL">No Fiscal (Gestión Interna)</option>
-                <option value="FEDE_RI">Federico - Responsable Inscripto</option>
-                <option value="JUANMA_MONO">Juan Manuel - Monotributo</option>
+                {!IS_CORI && <option value="FEDE_RI">Federico - Responsable Inscripto</option>}
+                <option value="JUANMA_MONO">{IS_CORI ? 'Monotributo' : 'Juan Manuel - Monotributo'}</option>
               </select>
             </div>
 
@@ -940,7 +940,7 @@ export default function ComprobantesPage() {
                     <td className="px-2 py-2 whitespace-nowrap text-[10px] font-medium">
                       {c.billingProfile === 'NO_FISCAL' && <span className="bg-gray-100 text-gray-800 px-1.5 py-0.5 rounded">No F.</span>}
                       {c.billingProfile === 'FEDE_RI' && <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">F RI</span>}
-                      {c.billingProfile === 'JUANMA_MONO' && <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">J Mono</span>}
+                      {c.billingProfile === 'JUANMA_MONO' && <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded">{IS_CORI ? 'Mono' : 'J Mono'}</span>}
                     </td>
                     <td className="px-2 py-2 whitespace-nowrap text-xs text-center">
                       {c.client?.professionalLabel ? (

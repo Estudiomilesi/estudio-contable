@@ -18,7 +18,7 @@ export default function Sidebar({ userRole }: { userRole?: string }) {
     { name: 'Cuentas Corrientes', path: '/cuentas-corrientes', icon: UserCheck },
     { name: 'Tesorería', path: '/tesoreria', icon: Wallet },
     ...(userRole === 'ADMIN' ? [
-      { name: 'Sueldos', path: '/sueldos', icon: Users },
+      ...(process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? [] : [{ name: 'Sueldos', path: '/sueldos', icon: Users }]),
       { name: 'Configuración', path: '/configuracion', icon: Settings }
     ] : []),
     { name: 'Reportes', path: '/reportes', icon: BarChart3 },

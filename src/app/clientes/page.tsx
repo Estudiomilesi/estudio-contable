@@ -74,6 +74,8 @@ const getCollabColor = (name: string) => {
 
 const IS_SINGLE_USER = process.env.NEXT_PUBLIC_SINGLE_USER_MODE === 'true';
 
+const IS_CORI = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI';
+
 export default function ClientesPage() {
   const [isJuanma, setIsJuanma] = useState(false);
   
@@ -394,8 +396,8 @@ export default function ClientesPage() {
                 <label className="block text-sm font-medium text-gray-700">Perfil Fac.</label>
                 <select value={formData.defaultBillingProfile} onChange={e => setFormData({...formData, defaultBillingProfile: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                   <option value="NO_FISCAL">No Fiscal</option>
-                  <option value="FEDE_RI">Fede RI (+21%)</option>
-                  <option value="JUANMA_MONO">JuanMa Mono</option>
+                  {!IS_CORI && <option value="FEDE_RI">Fede RI (+21%)</option>}
+                    <option value="JUANMA_MONO">{IS_CORI ? 'Monotributo' : 'JuanMa Mono'}</option>
                 </select>
               </div>
               <div>
@@ -507,8 +509,8 @@ export default function ClientesPage() {
                       <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('defaultBillingProfile')}>Perfil</span>
                       <select value={filterBillingProfile} onChange={e => setFilterBillingProfile(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 w-16 bg-white font-normal shadow-sm">
                         <option value="ALL">Todos</option>
-                        <option value="FEDE_RI">RI</option>
-                        <option value="JUANMA_MONO">Mono</option>
+                        {!IS_CORI && <option value="FEDE_RI">RI</option>}
+                          <option value="JUANMA_MONO">{IS_CORI ? 'Mono' : 'Mono'}</option>
                         <option value="NO_FISCAL">No F.</option>
                       </select>
                     </div>
@@ -553,7 +555,7 @@ export default function ClientesPage() {
                         </td>
                       )}
                       <td className="px-3 py-2 whitespace-nowrap text-[11px] text-gray-700">
-                        {c.defaultBillingProfile === 'FEDE_RI' ? 'Fede RI' : c.defaultBillingProfile === 'JUANMA_MONO' ? 'JuanMa Mono' : 'No Fiscal'}
+                        {c.defaultBillingProfile === 'FEDE_RI' ? 'Fede RI' : c.defaultBillingProfile === 'JUANMA_MONO' ? (IS_CORI ? 'Monotributo' : 'JuanMa Mono') : 'No Fiscal'}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700 font-medium">
                         ${c.currentFee.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}

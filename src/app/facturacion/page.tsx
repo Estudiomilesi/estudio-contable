@@ -359,8 +359,8 @@ export default function FacturacionPage() {
                       className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-5 w-20"
                     >
                       <option value="ALL">Todos</option>
-                      <option value="FEDE_RI">RI</option>
-                      <option value="JUANMA_MONO">Mono</option>
+                      {!IS_CORI && <option value="FEDE_RI">RI</option>}
+                      <option value="JUANMA_MONO">{IS_CORI ? 'Mono' : 'Mono'}</option>
                       <option value="NO_FISCAL">No F.</option>
                     </select>
                   </div>
@@ -416,8 +416,8 @@ export default function FacturacionPage() {
                           }`}
                         >
                           <option value="NO_FISCAL">No Fiscal</option>
-                          <option value="FEDE_RI">Fede RI (+21%)</option>
-                          <option value="JUANMA_MONO">JuanMa Mono</option>
+                          {!IS_CORI && <option value="FEDE_RI">Fede RI (+21%)</option>}
+                          <option value="JUANMA_MONO">{IS_CORI ? 'Monotributo' : 'JuanMa Mono'}</option>
                         </select>
                       </td>
                       <td className="px-2 py-1 whitespace-nowrap text-right tabular-nums">
