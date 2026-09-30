@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 type AccountTransaction = {
   id: string;
   date: string;
-  amount: number;
+  amount: number; netAmount?: number;
   description: string | null;
 };
 
@@ -294,10 +294,11 @@ export default function FacturacionPage() {
       historyDates.forEach(month => {
         const tx = c.accountTransactions?.find(t => t.description && t.description.startsWith('Abono Mensual') && t.date.startsWith(month));
         if (tx) {
-          history[month].General += tx.amount;
-          if (c.professionalLabel === 'F') history[month].F += tx.amount;
-          if (c.professionalLabel === 'FJ') history[month].FJ += tx.amount;
-          if (c.professionalLabel === 'JF') history[month].JF += tx.amount;
+          const amt = (tx.netAmount === 0 && tx.amount !== 0) ? tx.amount : (tx.netAmount || 0);
+          history[month].General += amt;
+          if (c.professionalLabel === 'F') history[month].F += amt;
+          if (c.professionalLabel === 'FJ') history[month].FJ += amt;
+          if (c.professionalLabel === 'JF') history[month].JF += amt;
         }
       });
     });
@@ -483,7 +484,7 @@ export default function FacturacionPage() {
                         const tx = c.accountTransactions?.find(t => t.description && t.description.startsWith('Abono Mensual') && t.date.startsWith(month));
                         return (
                           <td key={month} className="px-2 py-1 whitespace-nowrap text-right tabular-nums text-gray-800 font-semibold">
-                            {tx ? tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}
+                            {tx ? ((tx.netAmount === 0 && tx.amount !== 0) ? tx.amount : (tx.netAmount || 0)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}
                           </td>
                         );
                       })}
