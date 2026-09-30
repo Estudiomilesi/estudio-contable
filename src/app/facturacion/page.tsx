@@ -275,22 +275,35 @@ export default function FacturacionPage() {
   const totales = useMemo(() => {
     let F = 0, FJ = 0, JF = 0, General = 0;
     let countF = 0, countFJ = 0, countJF = 0, countGeneral = 0;
-      clientes.forEach(c => {
-        const fee = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
-        General += fee;
-        if (fee > 0) {
-          countGeneral++;
-          if (c.professionalLabel === 'F') { F += fee; countF++; }
-          if (c.professionalLabel === 'FJ') { FJ += fee; countFJ++; }
-          if (c.professionalLabel === 'JF') { JF += fee; countJF++; }
-        } else {
-          if (c.professionalLabel === 'F') { F += fee; }
-          if (c.professionalLabel === 'FJ') { FJ += fee; }
-          if (c.professionalLabel === 'JF') { JF += fee; }
+    const history: Record<string, { F: number, FJ: number, JF: number, General: number }> = {};
+    
+    historyDates.forEach(d => {
+      history[d] = { F: 0, FJ: 0, JF: 0, General: 0 };
+    });
+
+    clientes.forEach(c => {
+      const fee = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
+      General += fee;
+      if (fee >= 0) {
+        countGeneral++;
+        if (c.professionalLabel === 'F') { F += fee; countF++; }
+        if (c.professionalLabel === 'FJ') { FJ += fee; countFJ++; }
+        if (c.professionalLabel === 'JF') { JF += fee; countJF++; }
+      }
+
+      historyDates.forEach(month => {
+        const tx = c.accountTransactions?.find(t => t.description && t.description.startsWith('Abono Mensual') && t.date.startsWith(month));
+        if (tx) {
+          history[month].General += tx.amount;
+          if (c.professionalLabel === 'F') history[month].F += tx.amount;
+          if (c.professionalLabel === 'FJ') history[month].FJ += tx.amount;
+          if (c.professionalLabel === 'JF') history[month].JF += tx.amount;
         }
       });
-    return { F, FJ, JF, General, countF, countFJ, countJF, countGeneral };
-  }, [clientes, ediciones]);
+    });
+    
+    return { F, FJ, JF, General, countF, countFJ, countJF, countGeneral, history };
+  }, [clientes, ediciones, historyDates]);
 
   return (
     <div className="space-y-4">
@@ -488,7 +501,12 @@ export default function FacturacionPage() {
                 {!IS_CORI && <td className="px-2 py-2 text-center text-gray-700">100%</td>}
                 <td className="px-2 py-2"></td>
                 <td className="px-2 py-2 text-right tabular-nums text-indigo-900">{totales.General.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                <td colSpan={historyDates.length + 1}></td>
+                <td className="px-2 py-2 border-r border-gray-200"></td>
+                  {historyDates.map(month => (
+                    <td key={month} className="px-2 py-2 text-right tabular-nums text-gray-400 text-[11px] font-normal italic">
+                      {totales.history[month].General.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                    </td>
+                  ))}
               </tr>
               {!IS_CORI && !isJuanma && (
                 <tr>
@@ -500,7 +518,12 @@ export default function FacturacionPage() {
                   </td>
                   <td className="px-2 py-1"></td>
                   <td className="px-2 py-1 text-right tabular-nums text-green-900">{totales.F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                  <td colSpan={historyDates.length + 1}></td>
+                  <td className="px-2 py-1 border-r border-gray-200"></td>
+                    {historyDates.map(month => (
+                      <td key={month} className="px-2 py-1 text-right tabular-nums text-gray-400 text-[11px] font-normal italic">
+                        {totales.history[month].F.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </td>
+                    ))}
                 </tr>
               )}
               {!IS_CORI && (
@@ -514,7 +537,12 @@ export default function FacturacionPage() {
                     </td>
                     <td className="px-2 py-1"></td>
                     <td className="px-2 py-1 text-right tabular-nums text-orange-900">{totales.FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td colSpan={historyDates.length + 1}></td>
+                    <td className="px-2 py-1 border-r border-gray-200"></td>
+                      {historyDates.map(month => (
+                        <td key={month} className="px-2 py-1 text-right tabular-nums text-gray-400 text-[11px] font-normal italic">
+                          {totales.history[month].FJ.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </td>
+                      ))}
                   </tr>
                   <tr>
                     <td colSpan={3} className="px-2 py-1 text-right tabular-nums text-blue-800">
@@ -525,7 +553,12 @@ export default function FacturacionPage() {
                     </td>
                     <td className="px-2 py-1"></td>
                     <td className="px-2 py-1 text-right tabular-nums text-blue-900">{totales.JF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    <td colSpan={historyDates.length + 1}></td>
+                    <td className="px-2 py-1 border-r border-gray-200"></td>
+                      {historyDates.map(month => (
+                        <td key={month} className="px-2 py-1 text-right tabular-nums text-gray-400 text-[11px] font-normal italic">
+                          {totales.history[month].JF.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </td>
+                      ))}
                   </tr>
                 </>
               )}
