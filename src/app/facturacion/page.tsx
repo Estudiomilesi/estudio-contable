@@ -167,10 +167,10 @@ export default function FacturacionPage() {
   };
 
   const toggleAll = () => {
-    if (selectedIds.size === clientes.length) {
+    if (selectedIds.size === filteredAndSortedClientes.length && filteredAndSortedClientes.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(clientes.map(c => c.id)));
+      setSelectedIds(new Set(filteredAndSortedClientes.map(c => c.id)));
     }
   };
 
@@ -200,7 +200,7 @@ export default function FacturacionPage() {
   };
 
   const ejecutarProcesoMensual = async () => {
-    const targetClients = selectedIds.size > 0 ? Array.from(selectedIds) : clientes.map(c => c.id);
+    const targetClients = selectedIds.size > 0 ? Array.from(selectedIds) : filteredAndSortedClientes.map(c => c.id);
     
     if (!confirm(`¿Emitir abonos para ${targetClients.length} clientes seleccionados con fecha ${billingDate}?`)) {
       return;
@@ -352,7 +352,7 @@ export default function FacturacionPage() {
                 <th className="px-2 py-2 text-center w-10">
                   <input 
                     type="checkbox" 
-                    checked={clientes.length > 0 && selectedIds.size === clientes.length}
+                    checked={filteredAndSortedClientes.length > 0 && selectedIds.size === filteredAndSortedClientes.length}
                     onChange={toggleAll}
                     className="rounded border-gray-300 text-indigo-600"
                   />

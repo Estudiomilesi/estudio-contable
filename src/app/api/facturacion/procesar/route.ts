@@ -171,7 +171,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ 
-      message: `Se facturó a ${transacciones.length} clientes y se enviaron ${emailsEnviados} correos electrónicos automáticamente.` 
+      message: `¡Proceso completado con éxito!\n\nSe generaron ${transacciones.length} comprobantes.\nSe enviaron ${emailsEnviados} emails automáticamente.\n\nPara revisar los comprobantes y enviar los de AFIP pendientes, andá a la pestaña Comprobantes.` 
     }, { status: 200 });
 
   } catch (error: any) {
