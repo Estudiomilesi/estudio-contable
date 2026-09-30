@@ -28,6 +28,7 @@ type Check = {
   dueDate: string;
   amount: number;
   status: string;
+  isEcheq: boolean;
   clientId: string | null;
   client?: { name: string };
 };
@@ -59,7 +60,8 @@ export default function TesoreriaPage() {
     number: '',
     amount: '',
     issueDate: new Date().toISOString().split('T')[0],
-    dueDate: new Date().toISOString().split('T')[0]
+    dueDate: new Date().toISOString().split('T')[0],
+    isEcheq: false
   }]);
   const [selectedCheckIds, setSelectedCheckIds] = useState<string[]>([]);
 
@@ -198,7 +200,7 @@ export default function TesoreriaPage() {
 
       if (res.ok) {
         setFormData({ ...formData, amount: '', description: '', clientId: '' });
-        setIncomingChecks([{ number: '', bank: '', amount: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] }]);
+        setIncomingChecks([{ number: '', bank: '', amount: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], isEcheq: false }]);
         setSelectedCheckIds([]);
         fetchData();
       } else {
@@ -462,7 +464,7 @@ export default function TesoreriaPage() {
                   <h4 className="text-sm font-bold text-yellow-800">Detalles de Cheques Recibidos</h4>
                   <button 
                     type="button" 
-                    onClick={() => setIncomingChecks([...incomingChecks, { bank: '', number: '', amount: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] }])}
+                    onClick={() => setIncomingChecks([...incomingChecks, { bank: '', number: '', amount: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], isEcheq: false }])}
                     className="text-xs bg-yellow-200 text-yellow-900 px-2 py-1 rounded font-semibold hover:bg-yellow-300"
                   >
                     + Agregar otro cheque
@@ -558,7 +560,7 @@ export default function TesoreriaPage() {
                             }}
                           />
                           <div className="flex-1 text-xs">
-                            <div className="font-bold">{c.bank} N° {c.number}</div>
+                            <div className="font-bold">{c.bank} N° {c.number} {c.isEcheq && <span className="text-[10px] bg-blue-100 text-blue-800 px-1 py-0.5 rounded ml-1">Echeq</span>}</div>
                             <div className="text-gray-600">Vence: {new Date(c.dueDate).toLocaleDateString('es-AR')}</div>
                           </div>
                           <div className="text-sm font-bold text-gray-900">${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
@@ -848,8 +850,8 @@ export default function TesoreriaPage() {
                         {c.client ? c.client.name : 'Sin cliente'}
                       </td>
                       <td className="px-4 py-2 text-sm text-gray-900 font-medium">
-                        {c.bank} - N° {c.number}
-                      </td>
+{c.bank} - N° {c.number} {c.isEcheq && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded ml-2">Echeq</span>}
+</td>
                       <td className="px-4 py-2 whitespace-nowrap text-right tabular-nums text-sm font-bold text-gray-900">
                         ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>

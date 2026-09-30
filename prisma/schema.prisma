@@ -96,7 +96,7 @@ model AccountTransaction {
   billingProfile BillingProfile @default(NO_FISCAL)
   netAmount   Float           @default(0)
   ivaAmount   Float           @default(0)
-  amount      Float
+  amount       Float
   description String?
   dueDate     DateTime?
   receiptNumber     String?
@@ -194,6 +194,7 @@ model Check {
   issueDate    DateTime             @default(now())
   dueDate      DateTime
   amount       Float
+  isEcheq      Boolean              @default(false)
   status       CheckStatus          @default(IN_PORTFOLIO)
   
   clientId     String?

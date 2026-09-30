@@ -52,6 +52,7 @@ export default async function HistorialChequesPage() {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
                     {check.number}
+                    {check.isEcheq && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-800 font-bold uppercase tracking-wider">Echeq</span>}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                     {new Date(check.dueDate).toLocaleDateString('es-AR')}

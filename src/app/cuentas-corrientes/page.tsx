@@ -68,7 +68,7 @@ export default function CuentasCorrientesPage() {
   const [qcAccount, setQcAccount] = useState('CAJA');
   const [qcAmount, setQcAmount] = useState('');
   const [qcDescription, setQcDescription] = useState('');
-  const [qcCheckDetails, setQcCheckDetails] = useState({ bank: '', number: '', issueDate: '', dueDate: '' });
+  const [qcCheckDetails, setQcCheckDetails] = useState({ bank: '', number: '', issueDate: '', dueDate: '', isEcheq: false });
   const [isSubmittingQC, setIsSubmittingQC] = useState(false);
   const [isSubmittingApply, setIsSubmittingApply] = useState(false);
 
@@ -259,7 +259,7 @@ export default function CuentasCorrientesPage() {
     setQcAmount(totalToCollect.toString());
     setQcAccount('CAJA');
     setQcDescription('');
-    setQcCheckDetails({ bank: '', number: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0] });
+    setQcCheckDetails({ bank: '', number: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], isEcheq: false });
     setIsQuickCollectOpen(true);
   };
 
