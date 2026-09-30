@@ -261,7 +261,7 @@ export default function FacturacionPage() {
     const dates = new Set<string>();
     clientes.forEach(c => {
       c.accountTransactions?.forEach(t => {
-        if (t.description === 'Abono Mensual') {
+        if (t.description && t.description.startsWith('Abono Mensual')) {
           const monthYear = new Date(t.date).toISOString().slice(0, 7); // YYYY-MM
           dates.add(monthYear);
         }
@@ -467,7 +467,7 @@ export default function FacturacionPage() {
                       </td>
                       {historyDates.map(month => {
                         // Buscar si el cliente tiene un cargo de Abono Mensual en este mes
-                        const tx = c.accountTransactions?.find(t => t.description === 'Abono Mensual' && t.date.startsWith(month));
+                        const tx = c.accountTransactions?.find(t => t.description && t.description.startsWith('Abono Mensual') && t.date.startsWith(month));
                         return (
                           <td key={month} className="px-2 py-1 whitespace-nowrap text-right tabular-nums text-gray-800 font-semibold">
                             {tx ? tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}
