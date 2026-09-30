@@ -144,6 +144,11 @@ export async function POST(
     const cbteStr = compCode ? ` Cod. ${compCode.toString().padStart(2, '0')} ` : ' ';
     const afipDescription = `${typeDesc} ${letra}${cbteStr}${pv}-${nro}`;
 
+    // MECANISMO DE SEGURIDAD SOLICITADO POR FEDE
+    if (nro === '00003000' || nro === '00002000' || nro === '00000000' || nro.includes('2000') || nro.includes('3000')) {
+      throw new Error(`Freno de emergencia: El sistema intentó procesar el comprobante como ${nro}. No se envió el mail ni se modificó nada.`);
+    }
+
     // Update the transaction in DB
     const updatedTx = await prisma.accountTransaction.update({
       where: { id: transactionId },
