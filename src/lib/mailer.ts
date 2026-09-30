@@ -35,7 +35,7 @@ export const sendEmail = async (to: string, subject: string, html: string, attac
   let fromAddress = process.env.SMTP_FROM || `"${senderName}" <${process.env.SMTP_USER}>`;
 
   if (senderEmail === 'juanmartin@estudiomilesi.com' && process.env.JUANMA_SMTP_USER) {
-    senderName = 'Juan Martín Milesi';
+    senderName = 'Juan Martín Brigi';
     fromAddress = `"${senderName}" <${process.env.JUANMA_SMTP_USER}>`;
   }
   
