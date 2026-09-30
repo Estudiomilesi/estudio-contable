@@ -234,16 +234,7 @@ export async function POST(request: Request) {
 </html>
     `;
 
-    if (!process.env.SMTP_USER) {
-      console.warn("SMTP no configurado. Simulado el envío de cuenta corriente a:", client.email);
-    } else {
-      await transporter.sendMail({
-        from: `"${firma}" <${process.env.SMTP_USER}>`,
-        to: correosDestino,
-        subject: `${reportTitle} - ${firma}`,
-        html: htmlEmail
-      });
-    }
+    await sendEmail(correosDestino, `${reportTitle} - ${firma}`, htmlEmail, undefined, senderEmail);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
