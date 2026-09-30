@@ -91,42 +91,54 @@ export async function POST(
     let pv = '0000';
     let nro = '00000000';
     
-          // Find all potential invoice numbers (00000-00000000)
-      const allMatches = [...text.matchAll(/(\d{4,5})[-_](\d{8})/g)];
-      let foundPv = null;
+          // NEWEST BULLETPROOF LOGIC
+      
+      // 1. Find Punto de Venta
+      const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i) || text.match(/(?:PV|Punto de Venta)[.\s:]*(\d{4,5})/i);
+      if (pvMatch) {
+        pv = pvMatch[1].padStart(4, '0');
+      }
+
+      // 2. Find Comprobante Nro
+      // AFIP can format it as "Comp. Nro: 00000654" or "00002-00000654"
+      
+      const nroMatches = [...text.matchAll(/Nro[.\s:]*(\d{8})/gi)];
       let foundNro = null;
       
-      for (const m of allMatches) {
-        // Look at only 15 chars back to avoid overlap
-        const precedingText = text.substring(Math.max(0, m.index - 15), m.index).toLowerCase();
+      for (const m of nroMatches) {
+        const precedingText = text.substring(Math.max(0, m.index - 25), m.index).toLowerCase();
         
+        // Skip if it is an Ingresos Brutos number
         if (precedingText.includes('brutos') || precedingText.includes('iibb')) {
           continue;
         }
         
-        if (precedingText.includes('comp') || precedingText.includes('cbte') || precedingText.includes('nro') || precedingText.includes('factura')) {
-          foundPv = m[1];
-          foundNro = m[2];
+        // Prioritize if it clearly says "Comp" or "Cbte"
+        if (precedingText.includes('comp') || precedingText.includes('cbte') || precedingText.includes('factura')) {
+          foundNro = m[1];
           break;
         }
-        if (!foundPv) {
-          foundPv = m[1];
-          foundNro = m[2];
+        
+        if (!foundNro) {
+          foundNro = m[1];
         }
       }
       
-      if (foundPv && foundNro) {
-        pv = foundPv.padStart(4, '0');
-        nro = foundNro;
-      } else {
-        const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
-        const nroMatch = text.match(/(?:Comp|Cbte)?[.\s]*Nro[.\s:]*(\d{8})/i);
-        if (pvMatch && nroMatch) {
-          pv = pvMatch[1].padStart(4, '0');
-          nro = nroMatch[1];
+      // Also look for explicit XXXX-XXXXXXXX pattern in case "Nro" is missing
+      if (!foundNro) {
+        const dashMatches = [...text.matchAll(/(\d{4,5})[-_](\d{8})/g)];
+        for (const m of dashMatches) {
+          const pre = text.substring(Math.max(0, m.index - 25), m.index).toLowerCase();
+          if (pre.includes('brutos') || pre.includes('iibb')) continue;
+          if (!pvMatch) pv = m[1].padStart(4, '0');
+          foundNro = m[2];
+          break;
         }
       }
-
+      
+      if (foundNro) {
+        nro = foundNro;
+      }
 
     const letra = getLetter(tx.billingProfile, isNotaCredito);
     const cbteStr = compCode ? ` Cod. ${compCode.toString().padStart(2, '0')} ` : ' ';
