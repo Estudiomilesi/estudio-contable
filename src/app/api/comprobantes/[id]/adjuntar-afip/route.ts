@@ -113,14 +113,13 @@ export async function POST(
 
     const letra = getLetter(tx.billingProfile, isNotaCredito);
     const cbteStr = compCode ? ` Cod. ${compCode.toString().padStart(2, '0')} ` : ' ';
-    const description = `${typeDesc} ${letra}${cbteStr}${pv}-${nro}`;
+    const afipDescription = `${typeDesc} ${letra}${cbteStr}${pv}-${nro}`;
 
     // Update the transaction in DB
     const updatedTx = await prisma.accountTransaction.update({
       where: { id: transactionId },
       data: {
         receiptNumber: `${pv}-${nro}`,
-        description,
         isEmailed: true // assume we will send it successfully
       }
     });
@@ -181,7 +180,7 @@ export async function POST(
           
           <!-- Recuadro llamativo del importe -->
           <div style="background-color: #f8fafc; border-left: 5px solid ${colorPrincipal}; padding: 20px; margin: 25px 0; border-radius: 0 8px 8px 0;">
-            <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px; line-height: 1.6;"><strong>Comprobante Oficial:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569; white-space: nowrap;">${description}</span></p>
+            <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px; line-height: 1.6;"><strong>Comprobante Oficial:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569; white-space: nowrap;">${afipDescription}</span></p>
             <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 1.8;">
               <strong>Concepto:</strong> 
               <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">${conceptoPrincipal} - ${conceptoSecundario}</span>
