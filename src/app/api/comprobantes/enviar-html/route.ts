@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
+import { sendEmail } from '@/lib/mailer';
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -13,6 +14,7 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function POST(request: Request) {
+  const senderEmail = request.headers.get('x-user-email') || undefined;
   try {
     const data = await request.json();
     const { id } = data;

@@ -4,6 +4,7 @@ import { parseToUtcNoon } from '@/lib/dateUtils';
 import { sendEmail } from '@/lib/mailer';
 
 export async function POST(request: Request) {
+  const senderEmail = request.headers.get('x-user-email') || undefined;
   try {
     const data = await request.json();
     const description = data.description || 'Abono Mensual';

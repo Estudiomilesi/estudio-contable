@@ -13,6 +13,7 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function POST(request: Request) {
+  const senderEmail = request.headers.get('x-user-email') || undefined;
   try {
     const data = await request.json();
     const { clientId, viewMode } = data; // viewMode: 'ALL' | 'PENDING'
