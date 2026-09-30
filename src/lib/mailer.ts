@@ -10,7 +10,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = async (to: string, subject: string, html: string) => {
+export const sendEmail = async (to: string, subject: string, html: string, attachments?: any[]) => {
   if (!process.env.SMTP_USER) {
     console.warn("SMTP no configurado. Simulando envío a:", to);
     return;
@@ -22,5 +22,6 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
     to,
     subject,
     html,
+    attachments,
   });
 };
