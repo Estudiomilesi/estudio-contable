@@ -1,17 +1,6 @@
 import { NextResponse } from 'next/server';
-import nodemailer from 'nodemailer';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/mailer';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_PORT === '465', 
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
 
 export async function POST(request: Request) {
   const senderEmail = request.headers.get('x-user-email') || undefined;
@@ -133,16 +122,7 @@ export async function POST(request: Request) {
       </div>
     `;
 
-    if (!process.env.SMTP_USER) {
-      console.warn("SMTP no configurado. Simulado el envío a:", tx.client.email);
-    } else {
-      await transporter.sendMail({
-        from: `"${firma}" <${process.env.SMTP_USER}>`,
-        to: correosDestino,
-        subject: `${titulo} - ${periodoStr} - ${firma}`,
-        html: htmlEmail
-      });
-    }
+    await sendEmail(correosDestino, `${titulo} - ${periodoStr} - ${firma}`, htmlEmail, undefined, senderEmail);
 
     // Marcar como enviado
     await prisma.accountTransaction.update({
