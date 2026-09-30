@@ -96,32 +96,39 @@ export async function POST(
       pv = fileNameMatch[2];
       nro = fileNameMatch[3];
     } else {
-      // Try to find FACTURA/NC followed by Nro explicitly to avoid matching "Ingresos Brutos Nro: XXXX"
-      const headerMatch = text.match(/(?:FACTURA|NOTA DE CR.DITO|RECIBO|CBTE|COMPROBANTE)[\s\S]{0,60}?Nro[.\s:]*(\d{4,5})[-_](\d{8})/i);
-      if (headerMatch) {
-        pv = headerMatch[1].padStart(4, '0');
-        nro = headerMatch[2];
+      // Find all potential invoice numbers (00000-00000000)
+      const allMatches = [...text.matchAll(/(\d{4,5})[-_](\d{8})/g)];
+      let foundPv = null;
+      let foundNro = null;
+      
+      for (const m of allMatches) {
+        // Look at only 15 chars back to avoid overlap
+        const precedingText = text.substring(Math.max(0, m.index - 15), m.index).toLowerCase();
+        
+        if (precedingText.includes('brutos') || precedingText.includes('iibb')) {
+          continue;
+        }
+        
+        if (precedingText.includes('comp') || precedingText.includes('cbte') || precedingText.includes('nro') || precedingText.includes('factura')) {
+          foundPv = m[1];
+          foundNro = m[2];
+          break;
+        }
+        if (!foundPv) {
+          foundPv = m[1];
+          foundNro = m[2];
+        }
+      }
+      
+      if (foundPv && foundNro) {
+        pv = foundPv.padStart(4, '0');
+        nro = foundNro;
       } else {
-        // Fallback to Punto de Venta structure
         const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
         const nroMatch = text.match(/(?:Comp|Cbte)?[.\s]*Nro[.\s:]*(\d{8})/i);
-        
         if (pvMatch && nroMatch) {
           pv = pvMatch[1].padStart(4, '0');
           nro = nroMatch[1];
-        } else {
-          // Last resort: find any Nro XXXX-XXXXXXXX that doesn't belong to Ingresos Brutos
-          const allNros = [...text.matchAll(/(?:(?<!Brutos\s*)(?<!Brutos\s*Nro[.\s:]*))Nro[.\s:]*(\d{4,5})[-_](\d{8})/gi)];
-          if (allNros.length > 0) {
-            pv = allNros[0][1].padStart(4, '0');
-            nro = allNros[0][2];
-          } else {
-            const fallback = text.match(/Nro[.\s:]*(\d{4,5})[-_](\d{8})/i);
-            if (fallback) {
-               pv = fallback[1].padStart(4, '0');
-               nro = fallback[2];
-            }
-          }
         }
       }
     }
