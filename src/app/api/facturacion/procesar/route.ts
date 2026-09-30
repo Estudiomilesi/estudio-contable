@@ -23,7 +23,7 @@ export async function POST(request: Request) {
     const clientes = await prisma.client.findMany({
       where: { 
         isActive: true,
-        currentFee: { gt: 0 },
+        currentFee: { gte: 0 },
         ...(clientIds.length > 0 ? { id: { in: clientIds } } : {})
       },
       include: {
@@ -72,7 +72,7 @@ export async function POST(request: Request) {
       nextAbonoNum++;
 
       // Enviar email si tiene perfil NO_FISCAL y un email válido
-      const debeEnviarEmailInmediato = profile === 'NO_FISCAL';
+      const debeEnviarEmailInmediato = profile === 'NO_FISCAL' || totalAmount === 0;
 
       const transaccion = await prisma.accountTransaction.create({
         data: {
