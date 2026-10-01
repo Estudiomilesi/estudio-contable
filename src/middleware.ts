@@ -26,6 +26,20 @@ export async function middleware(request: NextRequest) {
   try {
     // Verify token
     const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.email === 'luisina@estudiomilesi.com') {
+      const path = request.nextUrl.pathname;
+      if (
+        path === '/' ||
+        path.startsWith('/clientes') || 
+        path.startsWith('/comprobantes') || 
+        path.startsWith('/reportes') || 
+        path.startsWith('/configuracion') || 
+        path.startsWith('/sueldos')
+      ) {
+        return NextResponse.redirect(new URL('/cuentas-corrientes', request.url));
+      }
+    }
+
     
     // If trying to access login while authenticated, redirect to home
     if (isLoginPage) {
