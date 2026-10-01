@@ -61,6 +61,7 @@ export async function POST(request: Request) {
           amount: txAmount,
           clientId: clientId,
           incomingTxId: treasuryTx.id,
+          isEcheq: checkDetails.isEcheq === true,
           status: 'IN_PORTFOLIO'
         }
       });

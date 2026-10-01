@@ -212,7 +212,8 @@ export async function POST(request: Request) {
             dueDate: parseToUtcNoon(checkData.dueDate),
             amount: Math.abs(parseFloat(checkData.amount)),
             clientId: data.clientId || null,
-            incomingTxId: nuevaTransaccion.id
+            incomingTxId: nuevaTransaccion.id,
+            isEcheq: checkData.isEcheq === true
           }
         });
       }

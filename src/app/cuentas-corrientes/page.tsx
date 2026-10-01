@@ -1009,7 +1009,7 @@ export default function CuentasCorrientesPage() {
                         <input type="text" required value={qcCheckDetails.bank} onChange={e => setQcCheckDetails({...qcCheckDetails, bank: e.target.value})} className="w-full text-sm border rounded p-1" />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-gray-700">Número</label>
+                        <div className="flex justify-between items-center"><label className="block text-xs font-bold text-gray-700">Número</label><label className="flex items-center space-x-1 cursor-pointer"><input type="checkbox" checked={qcCheckDetails.isEcheq} onChange={e => setQcCheckDetails({...qcCheckDetails, isEcheq: e.target.checked})} className="rounded border-gray-300 text-indigo-600" /><span className="text-[10px] font-bold text-blue-800">Echeq</span></label></div>
                         <input type="text" required value={qcCheckDetails.number} onChange={e => setQcCheckDetails({...qcCheckDetails, number: e.target.value})} className="w-full text-sm border rounded p-1" />
                       </div>
                       <div>

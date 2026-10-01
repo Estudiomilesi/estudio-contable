@@ -492,7 +492,7 @@ export default function TesoreriaPage() {
                         }} className="mt-1 block w-full rounded border-gray-300 p-1.5 text-sm" placeholder="Ej: Galicia" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700">Número</label>
+                        <div className="flex justify-between items-center"><label className="block text-xs font-medium text-gray-700">Número</label><label className="flex items-center space-x-1 cursor-pointer"><input type="checkbox" checked={check.isEcheq} onChange={e => { const newChecks = [...incomingChecks]; newChecks[index].isEcheq = e.target.checked; setIncomingChecks(newChecks); }} className="rounded border-gray-300 text-indigo-600" /><span className="text-[10px] font-bold text-blue-800">Echeq</span></label></div>
                         <input type="text" required value={check.number} onChange={e => {
                           const newChecks = [...incomingChecks];
                           newChecks[index].number = e.target.value;
