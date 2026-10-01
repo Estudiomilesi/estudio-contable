@@ -146,7 +146,8 @@ export async function POST(
 
     // MECANISMO DE SEGURIDAD SOLICITADO POR FEDE
     if (nro === '00003000' || nro === '00002000' || nro === '00000000' || nro.includes('2000') || nro.includes('3000')) {
-      throw new Error(`Freno de emergencia: El sistema intentó procesar el comprobante como ${nro}. No se envió el mail ni se modificó nada.`);
+      const debugMatches = [...text.matchAll(/(\d{4,5})[-_](\d{8})/g)].map(m => m[0]).join(', ');
+      throw new Error(`Freno de emergencia: Intentó usar ${nro}. Matches: ${debugMatches}. Primeros 100 caracteres del texto: ${text.substring(0, 100)}`);
     }
 
     // Update the transaction in DB
