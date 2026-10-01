@@ -14,7 +14,7 @@ export default async function SueldosPage() {
 
   const salaries = salariesRaw.map(s => {
     const paidAmount = s.treasuryTxs.reduce((acc, tx) => acc + Math.abs(tx.amount), 0);
-    const effectivePaidAmount = s.isPaid && paidAmount === 0 ? s.amount : paidAmount;
+    const effectivePaidAmount = s.isPaid ? Math.max(s.amount, paidAmount) : paidAmount;
     const pendingAmount = Math.max(0, s.amount - effectivePaidAmount);
     const isFullyPaid = pendingAmount <= 1;
 
