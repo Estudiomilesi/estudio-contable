@@ -74,7 +74,8 @@ export async function GET(request: Request) {
         balance,
         unappliedPayments,
         unpaidCharges,
-        transactions: transactionsWithBalance.reverse()
+        transactions: transactionsWithBalance.reverse(),
+        defaultBankAccount: client.defaultBankAccount
       };
     });
 

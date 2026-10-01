@@ -468,7 +468,7 @@ export default function CuentasCorrientesPage() {
         textColor: [51, 65, 85]
       },
       columnStyles: { 
-        0: { halign: 'center', cellWidth: 25 },
+        0: { halign: 'center', cellWidth: 28 },
         1: { cellWidth: 'auto' },
         2: { halign: 'right', textColor: [220, 38, 38], fontStyle: 'bold', cellWidth: 30 },
         3: { halign: 'right', textColor: [22, 163, 74], fontStyle: 'bold', cellWidth: 30 },
@@ -537,7 +537,22 @@ export default function CuentasCorrientesPage() {
     }
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 65, 85);
     doc.text('¡Gracias por elegirnos y confiar en nuestro equipo!', 14, finalY);
+    
+    finalY += 15;
+    if (finalY > 270) {
+      doc.addPage();
+      finalY = 20;
+    }
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Atentamente,', 14, finalY);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(firma, 14, finalY + 6);
     
     doc.save(`${title.replace(/\s+/g, '_')}_${selectedClient.name.replace(/\s+/g, '_')}.pdf`);
   };
