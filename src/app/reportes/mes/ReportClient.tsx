@@ -3,9 +3,13 @@
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 type Transaccion = any;
 
-export default function ReportClient({ transacciones, isFacturado, initialLabel, isJuanma }: { transacciones: Transaccion[], isFacturado: boolean, initialLabel: string, isJuanma?: boolean }) {
+export default function ReportClient({ transacciones, isFacturado, initialLabel, isJuanma, currentMes, currentAnio }: { transacciones: Transaccion[], isFacturado: boolean, initialLabel: string, isJuanma?: boolean, currentMes?: number, currentAnio?: number }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
   const [filterLabel, setFilterLabel] = useState<string>(initialLabel || 'ALL');
   const [viewMode, setViewMode] = useState<'DETALLADO' | 'AGRUPADO'>('DETALLADO');
@@ -172,6 +176,21 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
     return <span className="ml-1 text-indigo-600">{sortConfig.direction === 'asc' ? '↑' : '↓'}</span>;
   };
 
+  const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('mes', e.target.value);
+    router.push(`?${params.toString()}`);
+  };
+
+  const handleYearChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('anio', e.target.value);
+    router.push(`?${params.toString()}`);
+  };
+
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const years = Array.from({length: 5}, (_, i) => new Date().getFullYear() - 2 + i);
+
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-end">
@@ -183,10 +202,30 @@ export default function ReportClient({ transacciones, isFacturado, initialLabel,
               </svg>
             </Link>
             <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-              Reporte: {isFacturado ? 'Facturado este mes' : 'Cobrado este mes'}
+              Reporte: {isFacturado ? 'Facturado' : 'Cobrado'}
             </h1>
+            <div className="flex items-center gap-2 ml-4">
+              <select 
+                value={currentMes || new Date().getMonth() + 1} 
+                onChange={handleMonthChange}
+                className="border-gray-300 rounded-md text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                {meses.map((m, i) => (
+                  <option key={m} value={i + 1}>{m}</option>
+                ))}
+              </select>
+              <select 
+                value={currentAnio || new Date().getFullYear()} 
+                onChange={handleYearChange}
+                className="border-gray-300 rounded-md text-sm font-medium text-gray-700 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+              >
+                {years.map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <p className="text-gray-600 mt-2">Detalle de movimientos que conforman el total del dashboard.</p>
+          <p className="text-gray-600 mt-2">Detalle de movimientos que conforman el total del periodo seleccionado.</p>
         </div>
         <div className="text-right tabular-nums">
           <p className="text-sm text-gray-500 uppercase tracking-wider font-semibold">Total {filterLabel !== 'ALL' ? 'Filtrado' : 'Acumulado'}</p>

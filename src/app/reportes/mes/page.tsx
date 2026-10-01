@@ -4,8 +4,8 @@ import ReportClient from './ReportClient';
 
 export const dynamic = 'force-dynamic';
 
-export default async function ReportesMesPage({ searchParams }: { searchParams: Promise<{ tipo?: string, label?: string }> }) {
-  const { tipo, label } = await searchParams;
+export default async function ReportesMesPage({ searchParams }: { searchParams: Promise<{ tipo?: string, label?: string, mes?: string, anio?: string }> }) {
+  const { tipo, label, mes, anio } = await searchParams;
   const { headers } = await import('next/headers');
   const isJuanma = (await headers()).get('x-is-juanma') === 'true';
 
@@ -23,8 +23,11 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
   };
 
   const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const selectedMes = mes ? parseInt(mes) - 1 : now.getMonth();
+  const selectedAnio = anio ? parseInt(anio) : now.getFullYear();
+  
+  const firstDayOfMonth = new Date(selectedAnio, selectedMes, 1);
+  const lastDayOfMonth = new Date(selectedAnio, selectedMes + 1, 0, 23, 59, 59);
 
   const whereClause: any = {
     date: { gte: firstDayOfMonth, lte: lastDayOfMonth },
@@ -66,5 +69,12 @@ export default async function ReportesMesPage({ searchParams }: { searchParams: 
   const totalNeto = transacciones.reduce((sum, t) => sum + (t.netAmount || t.amount), 0);
   const totalIva = transacciones.reduce((sum, t) => sum + (t.ivaAmount || 0), 0);
 
-  return <ReportClient transacciones={transacciones} isFacturado={isFacturado} initialLabel={currentLabel} isJuanma={isJuanma} />;
+  return <ReportClient 
+    transacciones={transacciones} 
+    isFacturado={isFacturado} 
+    initialLabel={currentLabel} 
+    isJuanma={isJuanma} 
+    currentMes={selectedMes + 1}
+    currentAnio={selectedAnio}
+  />;
 }
