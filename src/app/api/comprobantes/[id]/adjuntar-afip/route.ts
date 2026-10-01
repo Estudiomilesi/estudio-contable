@@ -101,8 +101,11 @@ export async function POST(
 
       // 2. Find Comprobante Nro
       // AFIP can format it as "Comp. Nro: 00000654" or "00002-00000654"
+      // CRITICAL FIX: The new ARCA PDFs glue the PV and Nro together on a new line!
+      // Example: "Punto de Venta:Comp. Nro:\n0000300000337"
+      // We must capture the last 8 digits of a 13-digit string, or just 8 digits.
       
-      const nroMatches = [...text.matchAll(/Nro[.\s:]*(\d{8})/gi)];
+      const nroMatches = [...text.matchAll(/Nro[.\s:]*(?:(\d{4,5})(\d{8})|(\d{8}))/gi)];
       let foundNro = null;
       
       for (const m of nroMatches) {
@@ -112,15 +115,17 @@ export async function POST(
         if (precedingText.includes('brutos') || precedingText.includes('iibb')) {
           continue;
         }
+
+        const extractedNro = m[2] || m[3]; // m[2] is from the glued 13-digit, m[3] is the standalone 8-digit
         
         // Prioritize if it clearly says "Comp" or "Cbte"
         if (precedingText.includes('comp') || precedingText.includes('cbte') || precedingText.includes('factura')) {
-          foundNro = m[1];
+          foundNro = extractedNro;
           break;
         }
         
         if (!foundNro) {
-          foundNro = m[1];
+          foundNro = extractedNro;
         }
       }
       
