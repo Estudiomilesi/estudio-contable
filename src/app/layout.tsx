@@ -19,6 +19,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let userRole = 'COLLABORATOR';
+  let userEmail = '';
   let isJuanma = false;
   const cookieStore = await cookies();
   const token = cookieStore.get('auth_token')?.value;
@@ -48,7 +49,7 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${inter.className} flex flex-col md:flex-row h-screen bg-gray-50 text-gray-900 overflow-hidden`}>
-        <Sidebar userRole={userRole} />
+        <Sidebar userRole={userRole} userEmail={userEmail} />
         <main className="flex-1 overflow-y-auto p-4 md:p-8">
           {children}
         </main>

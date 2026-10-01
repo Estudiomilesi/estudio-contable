@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { LayoutDashboard, Users, FileText, Wallet, BarChart3, UserCheck, Settings, Menu, X, LogOut } from 'lucide-react';
 
-export default function Sidebar({ userRole }: { userRole?: string }) {
+export default function Sidebar({ userRole, userEmail }: { userRole?: string, userEmail?: string }) {
   const pathname = usePathname();
   const [isHovered, setIsHovered] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
