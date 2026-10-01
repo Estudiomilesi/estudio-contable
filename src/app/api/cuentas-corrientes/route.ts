@@ -9,6 +9,7 @@ export async function GET(request: Request) {
     const clients = await prisma.client.findMany({
       where: whereClause,
       include: {
+        defaultBankAccount: true,
         accountTransactions: {
           include: {
             paymentsApplied: {

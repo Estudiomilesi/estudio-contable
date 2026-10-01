@@ -35,6 +35,7 @@ type ClientWithBalance = {
   unappliedPayments: number;
   unpaidCharges: number;
   transactions: Transaction[];
+  defaultBankAccount?: any;
 };
 
 const IS_SINGLE_USER = process.env.NEXT_PUBLIC_SINGLE_USER_MODE === 'true';
@@ -361,47 +362,66 @@ export default function CuentasCorrientesPage() {
     if (!selectedClient) return;
     const doc = new jsPDF();
     
-    // Configuración de tema
     const isMilesi = selectedClient.professionalLabel === 'F';
-    const primaryColor: [number, number, number] = isMilesi ? [2, 132, 199] : [79, 70, 229]; // sky-600 o indigo-600
+    const primaryColor: [number, number, number] = [124, 71, 81]; // #7C4751
     const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
       ? 'Estudio Jurídico Cicconi' 
       : (isMilesi ? 'Estudio Milesi' : 'Estudio Contable F&J');
     
-    // Título principal
     const title = viewMode === 'PENDING' ? 'Composición de Saldos' : 'Estado de Cuenta Corriente';
+    
+    // Título principal
     doc.setFontSize(18);
-    doc.setTextColor(30, 41, 59); // slate-800
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42); // slate-900
     doc.text(title, 14, 20);
     
     // Firma a la derecha
     doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 116, 139); // slate-500
     doc.text(firma, 196, 20, { align: 'right' });
     
     // Línea separadora
     doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-    doc.setLineWidth(0.5);
+    doc.setLineWidth(1.5);
     doc.line(14, 24, 196, 24);
     
-    // Datos del cliente
-    doc.setFontSize(11);
+    // Saludo
+    doc.setFontSize(12);
     doc.setTextColor(51, 65, 85); // slate-700
-    doc.text(`Cliente: ${selectedClient.name}`, 14, 32);
+    doc.text(`Hola `, 14, 34);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${selectedClient.name}`, 24, 34);
+    doc.setFont('helvetica', 'normal');
+    doc.text(',', 24 + doc.getTextWidth(selectedClient.name), 34);
     
-    // Saldo
+    doc.text('Te enviamos el reporte de estado de tu cuenta corriente actualizado a la fecha.', 14, 42);
+    
+    // Cuadro de saldo
     const isDebt = selectedClient.balance > 0;
-    doc.setFontSize(14);
+    
+    // Fondo del cuadro
+    doc.setFillColor(isDebt ? 254 : 240, isDebt ? 242 : 253, isDebt ? 242 : 244); // bg-red-50 : bg-green-50
+    doc.roundedRect(14, 50, 182, 28, 2, 2, 'F');
+    // Borde izquierdo
+    doc.setFillColor(isDebt ? 239 : 34, isDebt ? 68 : 197, isDebt ? 68 : 94); // text-red-500 : text-green-500
+    doc.rect(14, 50, 3, 28, 'F');
+    
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105); // slate-600
+    doc.text('Estado actual:', 22, 58);
+    
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     if (isDebt) {
-      doc.setTextColor(220, 38, 38); // red-600
-      doc.text(`Saldo a pagar: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 40);
+      doc.setTextColor(185, 28, 28); // red-700
+      doc.text(`Saldo a pagar: $${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 22, 68);
     } else {
-      doc.setTextColor(22, 163, 74); // green-600
-      doc.text(`Saldo a favor: $${Math.abs(selectedClient.balance).toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 14, 40);
+      doc.setTextColor(21, 128, 61); // green-700
+      doc.text(`Saldo a favor: $${Math.abs(selectedClient.balance).toLocaleString('es-AR', {minimumFractionDigits: 2})}`, 22, 68);
     }
     
-    // Restaurar fuente normal
     doc.setFont('helvetica', 'normal');
     
     const displayedTransactions = selectedClient.transactions.filter(tx => {
@@ -431,20 +451,20 @@ export default function CuentasCorrientesPage() {
     autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
-      startY: 48,
-      theme: 'grid',
+      startY: 85,
+      theme: 'plain',
       headStyles: { 
-        fillColor: primaryColor, 
-        textColor: [255, 255, 255], 
+        textColor: [148, 163, 184], // slate-400
         fontStyle: 'bold',
         halign: 'center'
       },
-      alternateRowStyles: { 
-        fillColor: [248, 250, 252] // slate-50
+      bodyStyles: {
+        lineColor: [226, 232, 240], // slate-200
+        lineWidth: { bottom: 0.5 }
       },
       styles: { 
         fontSize: 9, 
-        cellPadding: 4,
+        cellPadding: 6,
         textColor: [51, 65, 85]
       },
       columnStyles: { 
@@ -455,6 +475,69 @@ export default function CuentasCorrientesPage() {
         4: { halign: 'right', fontStyle: 'bold', cellWidth: 30 }
       }
     });
+    
+    let finalY = (doc as any).lastAutoTable.finalY + 15;
+    
+    // Check if we need new page for bank details
+    if (isDebt && selectedClient.defaultBankAccount) {
+      if (finalY > 240) {
+        doc.addPage();
+        finalY = 20;
+      }
+      
+      // Draw bank details box
+      doc.setDrawColor(226, 232, 240); // slate-200
+      doc.setFillColor(248, 250, 252); // slate-50
+      doc.roundedRect(14, finalY, 182, 35, 3, 3, 'FD');
+      
+      doc.setFontSize(11);
+      doc.setTextColor(51, 65, 85); // slate-700
+      doc.setFont('helvetica', 'bold');
+      doc.text('Datos para transferencia', 20, finalY + 10);
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Banco: `, 20, finalY + 18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${selectedClient.defaultBankAccount.name}`, 20 + doc.getTextWidth('Banco: '), finalY + 18);
+      
+      if (selectedClient.defaultBankAccount.cbu) {
+        doc.setFont('helvetica', 'normal');
+        doc.text(`CBU/CVU: `, 20, finalY + 24);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${selectedClient.defaultBankAccount.cbu}`, 20 + doc.getTextWidth('CBU/CVU: '), finalY + 24);
+      }
+      
+      if (selectedClient.defaultBankAccount.alias) {
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Alias: `, 20, finalY + 30);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${selectedClient.defaultBankAccount.alias}`, 20 + doc.getTextWidth('Alias: '), finalY + 30);
+      }
+      
+      finalY += 50;
+    }
+    
+    if (isDebt) {
+      if (finalY > 270) {
+        doc.addPage();
+        finalY = 20;
+      }
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(51, 65, 85);
+      doc.text('Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo', 14, finalY);
+      doc.text('correctamente en tu cuenta.', 14, finalY + 5);
+      finalY += 15;
+    }
+    
+    if (finalY > 270) {
+      doc.addPage();
+      finalY = 20;
+    }
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('¡Gracias por elegirnos y confiar en nuestro equipo!', 14, finalY);
     
     doc.save(`${title.replace(/\s+/g, '_')}_${selectedClient.name.replace(/\s+/g, '_')}.pdf`);
   };
