@@ -8,83 +8,45 @@ export async function POST(request: Request) {
     const data = await request.json();
     const { 
       clientId, 
+      date, 
+      selectedChargeIds,
+      // Legacy single payment
       amount, 
       account, 
       description, 
-      date, 
       checkDetails, 
-      selectedChargeIds 
+      // New multiple payments
+      payments: rawPayments
     } = data;
 
-    if (!clientId || !amount || !account || !selectedChargeIds || selectedChargeIds.length === 0) {
+    if (!clientId || !selectedChargeIds || selectedChargeIds.length === 0) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
 
-    const txAmount = parseFloat(amount);
-    if (isNaN(txAmount) || txAmount <= 0) {
-      return NextResponse.json({ error: 'Monto inválido' }, { status: 400 });
+    // Normalize to an array of payments
+    let payments = [];
+    if (rawPayments && Array.isArray(rawPayments) && rawPayments.length > 0) {
+      payments = rawPayments;
+    } else if (amount && account) {
+      payments = [{ amount, account, description, checkDetails }];
+    } else {
+      return NextResponse.json({ error: 'Faltan datos del pago' }, { status: 400 });
     }
-
-    if (account === 'CHEQUES' && (!checkDetails || !checkDetails.number || !checkDetails.bank || !checkDetails.dueDate)) {
-      return NextResponse.json({ error: 'Faltan detalles del cheque' }, { status: 400 });
-    }
-
-    const parseDate = (dString: string) => {
-      if (!dString) return new Date();
-      if (dString.includes('T')) return new Date(dString);
-      return new Date(`${dString}T12:00:00`);
-    };
 
     const txDate = parseToUtcNoon(date);
 
-    // 1. Crear el movimiento en Tesorería
-    const treasuryTx = await prisma.treasuryTransaction.create({
-      data: {
-        date: txDate,
-        amount: txAmount,
-        type: 'INCOME',
-        account: account,
-        category: 'Honorarios', // Fijo porque es un cobro de cuenta corriente
-        description: description || `Cobro rápido a facturas`,
-        clientId: clientId,
+    // Validate payments
+    for (const p of payments) {
+      const pAmount = parseFloat(p.amount);
+      if (isNaN(pAmount) || pAmount <= 0) {
+        return NextResponse.json({ error: 'Monto inválido en los pagos' }, { status: 400 });
       }
-    });
-
-    // 1b. Si es cheque, crear el registro en la tabla Check
-    if (account === 'CHEQUES' && checkDetails) {
-      await prisma.check.create({
-        data: {
-          number: checkDetails.number,
-          bank: checkDetails.bank,
-          issueDate: new Date(checkDetails.issueDate || txDate),
-          dueDate: new Date(checkDetails.dueDate),
-          amount: txAmount,
-          clientId: clientId,
-          incomingTxId: treasuryTx.id,
-          isEcheq: checkDetails.isEcheq === true,
-          status: 'IN_PORTFOLIO'
-        }
-      });
+      if (p.account === 'CHEQUES' && (!p.checkDetails || !p.checkDetails.number || !p.checkDetails.bank || !p.checkDetails.dueDate)) {
+        return NextResponse.json({ error: 'Faltan detalles del cheque en uno de los pagos' }, { status: 400 });
+      }
+      p.parsedAmount = pAmount;
     }
 
-    // 2. Crear el Payment en la Cuenta Corriente
-    const accountTx = await prisma.accountTransaction.create({
-      data: {
-        clientId: clientId,
-        date: txDate,
-        type: 'PAYMENT',
-        amount: txAmount,
-        description: `Pago ingresado en ${account} - ${description || ''}`,
-      }
-    });
-
-    // 2.5 Vincular el cobro a la caja
-    await prisma.treasuryTransaction.update({
-      where: { id: treasuryTx.id },
-      data: { accountTransactionId: accountTx.id }
-    });
-
-    // 3. Aplicar el pago a los cargos seleccionados secuencialmente
     // Primero traer los cargos con sus aplicaciones actuales para saber cuánto deben
     const charges = await prisma.accountTransaction.findMany({
       where: {
@@ -98,85 +60,143 @@ export async function POST(request: Request) {
       }
     });
 
-    let remainingPayment = txAmount;
+    const results = [];
 
-    const createdApplications = [];
-    for (const charge of charges) {
-      if (remainingPayment <= 0.001) break; // Ya se agotó el pago
+    // Process each payment sequentially
+    for (const payment of payments) {
+      const txAmount = payment.parsedAmount;
 
-      const appliedToCharge = charge.paymentsApplied.reduce((sum, app) => sum + app.amount, 0);
-      const chargeDebt = charge.amount - appliedToCharge;
+      // 1. Crear el movimiento en Tesorería
+      const treasuryTx = await prisma.treasuryTransaction.create({
+        data: {
+          date: txDate,
+          amount: txAmount,
+          type: 'INCOME',
+          account: payment.account,
+          category: 'Honorarios', // Fijo porque es un cobro de cuenta corriente
+          description: payment.description || `Cobro a facturas`,
+          clientId: clientId,
+        }
+      });
 
-      if (chargeDebt > 0.001) {
-        const amountToApply = Math.min(remainingPayment, chargeDebt);
-        
-        const newApp = await prisma.paymentApplication.create({
+      // 1b. Si es cheque, crear el registro en la tabla Check
+      if (payment.account === 'CHEQUES' && payment.checkDetails) {
+        await prisma.check.create({
           data: {
-            chargeId: charge.id,
-            paymentId: accountTx.id,
-            amount: amountToApply
+            number: payment.checkDetails.number,
+            bank: payment.checkDetails.bank,
+            issueDate: new Date(payment.checkDetails.issueDate || txDate),
+            dueDate: new Date(payment.checkDetails.dueDate),
+            amount: txAmount,
+            clientId: clientId,
+            incomingTxId: treasuryTx.id,
+            isEcheq: payment.checkDetails.isEcheq === true,
+            status: 'IN_PORTFOLIO'
           }
         });
-        createdApplications.push({ amount: amountToApply, charge });
-        remainingPayment -= amountToApply;
       }
-    }
 
-    // Recalcular IVA del pago en base a lo que cubrió
-    await recalculatePaymentIva(accountTx.id);
+      // 2. Crear el Payment en la Cuenta Corriente
+      const accountTx = await prisma.accountTransaction.create({
+        data: {
+          clientId: clientId,
+          date: txDate,
+          type: 'PAYMENT',
+          amount: txAmount,
+          description: `Pago ingresado en ${payment.account} - ${payment.description || ''}`,
+        }
+      });
 
-    // Obtener el pago actualizado con el neto calculado (sin IVA)
-    const updatedAccountTx = await prisma.accountTransaction.findUnique({
-      where: { id: accountTx.id }
-    });
-    const pagoNeto = updatedAccountTx?.netAmount || txAmount;
+      // 2.5 Vincular el cobro a la caja
+      await prisma.treasuryTransaction.update({
+        where: { id: treasuryTx.id },
+        data: { accountTransactionId: accountTx.id }
+      });
 
-    // 5. Automatización: Retiros automáticos en Bancos (neteando participaciones pagadas)
-    if (account === 'BANCOS FEDE' || account === 'BANCOS JUANMA') {
-      const retiroSocio = account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
-      
-      let participacionPaga = 0;
-      for (const app of createdApplications) {
-        if (app.charge.collaboratorAmount && app.charge.collaboratorAmount > 0) {
-          // Proporción de la participación basada en cuánto se pagó del cargo original
-          const proportion = app.amount / app.charge.amount;
-          participacionPaga += app.charge.collaboratorAmount * proportion;
+      let remainingPayment = txAmount;
+      const createdApplications = [];
+
+      for (const charge of charges) {
+        if (remainingPayment <= 0.001) break; // Ya se agotó este pago
+
+        const appliedToCharge = charge.paymentsApplied.reduce((sum, app) => sum + app.amount, 0) + ((charge as any).newlyApplied || 0);
+        const chargeDebt = charge.amount - appliedToCharge;
+
+        if (chargeDebt > 0.001) {
+          const amountToApply = Math.min(remainingPayment, chargeDebt);
+          
+          await prisma.paymentApplication.create({
+            data: {
+              chargeId: charge.id,
+              paymentId: accountTx.id,
+              amount: amountToApply
+            }
+          });
+          
+          createdApplications.push({ amount: amountToApply, charge });
+          remainingPayment -= amountToApply;
+          (charge as any).newlyApplied = ((charge as any).newlyApplied || 0) + amountToApply;
         }
       }
-      
-      const retiroNetoAmount = Math.max(0, pagoNeto - participacionPaga);
-      const ivaAmount = txAmount - pagoNeto;
 
-      if (retiroNetoAmount > 0) {
-        await prisma.treasuryTransaction.create({
-          data: {
-            date: txDate,
-            amount: -retiroNetoAmount,
-            type: 'EXPENSE',
-            account: account,
-            category: retiroSocio,
-            description: `Retiro automático s/ cobro ${description || ''}`,
-            clientId: clientId
+      // Recalcular IVA del pago en base a lo que cubrió
+      await recalculatePaymentIva(accountTx.id);
+
+      // Obtener el pago actualizado con el neto calculado (sin IVA)
+      const updatedAccountTx = await prisma.accountTransaction.findUnique({
+        where: { id: accountTx.id }
+      });
+      const pagoNeto = updatedAccountTx?.netAmount || txAmount;
+
+      // 5. Automatización: Retiros automáticos en Bancos (neteando participaciones pagadas)
+      if (payment.account === 'BANCOS FEDE' || payment.account === 'BANCOS JUANMA') {
+        const retiroSocio = payment.account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
+        
+        let participacionPaga = 0;
+        for (const app of createdApplications) {
+          if (app.charge.collaboratorAmount && app.charge.collaboratorAmount > 0) {
+            // Proporción de la participación basada en cuánto se pagó del cargo original
+            const proportion = app.amount / app.charge.amount;
+            participacionPaga += app.charge.collaboratorAmount * proportion;
           }
-        });
+        }
+        
+        const retiroNetoAmount = Math.max(0, pagoNeto - participacionPaga);
+        const ivaAmount = txAmount - pagoNeto;
+
+        if (retiroNetoAmount > 0) {
+          await prisma.treasuryTransaction.create({
+            data: {
+              date: txDate,
+              amount: -retiroNetoAmount,
+              type: 'EXPENSE',
+              account: payment.account,
+              category: retiroSocio,
+              description: `Retiro automático s/ cobro ${payment.description || ''}`,
+              clientId: clientId
+            }
+          });
+        }
+
+        if (ivaAmount > 0) {
+          await prisma.treasuryTransaction.create({
+            data: {
+              date: txDate,
+              amount: -ivaAmount,
+              type: 'EXPENSE',
+              account: payment.account,
+              category: retiroSocio,
+              description: `Retiro automático IVA s/ cobro ${payment.description || ''}`,
+              clientId: clientId
+            }
+          });
+        }
       }
 
-      if (ivaAmount > 0) {
-        await prisma.treasuryTransaction.create({
-          data: {
-            date: txDate,
-            amount: -ivaAmount,
-            type: 'EXPENSE',
-            account: account,
-            category: retiroSocio,
-            description: `Retiro automático IVA s/ cobro ${description || ''}`,
-            clientId: clientId
-          }
-        });
-      }
+      results.push({ treasuryTxId: treasuryTx.id, accountTxId: accountTx.id });
     }
 
-    return NextResponse.json({ success: true, treasuryTxId: treasuryTx.id, accountTxId: accountTx.id }, { status: 201 });
+    return NextResponse.json({ success: true, results }, { status: 201 });
   } catch (error) {
     console.error("Error en cobro rápido:", error);
     return NextResponse.json({ error: 'Error interno al registrar el cobro: ' + (error instanceof Error ? error.message : String(error)) }, { status: 500 });

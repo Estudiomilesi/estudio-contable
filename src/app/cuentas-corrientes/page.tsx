@@ -66,10 +66,7 @@ export default function CuentasCorrientesPage() {
   // Quick Collect state
   const [selectedChargeIds, setSelectedChargeIds] = useState<Set<string>>(new Set());
   const [isQuickCollectOpen, setIsQuickCollectOpen] = useState(false);
-  const [qcAccount, setQcAccount] = useState('CAJA');
-  const [qcAmount, setQcAmount] = useState('');
-  const [qcDescription, setQcDescription] = useState('');
-  const [qcCheckDetails, setQcCheckDetails] = useState({ bank: '', number: '', issueDate: '', dueDate: '', isEcheq: false });
+  const [qcPayments, setQcPayments] = useState([{ id: Date.now(), account: 'CAJA', amount: '', description: '', checkDetails: { bank: '', number: '', issueDate: '', dueDate: '', isEcheq: false } }]);
   const [isSubmittingQC, setIsSubmittingQC] = useState(false);
   const [isSubmittingApply, setIsSubmittingApply] = useState(false);
 
@@ -257,10 +254,13 @@ export default function CuentasCorrientesPage() {
       }
     });
 
-    setQcAmount(totalToCollect.toString());
-    setQcAccount('CAJA');
-    setQcDescription('');
-    setQcCheckDetails({ bank: '', number: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], isEcheq: false });
+    setQcPayments([{
+      id: Date.now(),
+      amount: totalToCollect.toString(),
+      account: 'CAJA',
+      description: '',
+      checkDetails: { bank: '', number: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], isEcheq: false }
+    }]);
     setIsQuickCollectOpen(true);
   };
 
@@ -276,10 +276,12 @@ export default function CuentasCorrientesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientId: selectedClientId,
-          amount: parseFloat(qcAmount),
-          account: qcAccount,
-          description: qcDescription,
-          checkDetails: qcAccount === 'CHEQUES' ? qcCheckDetails : undefined,
+          payments: qcPayments.map(p => ({
+            amount: parseFloat(p.amount),
+            account: p.account,
+            description: p.description,
+            checkDetails: p.account === 'CHEQUES' ? p.checkDetails : undefined
+          })),
           selectedChargeIds: Array.from(selectedChargeIds)
         })
       });
@@ -289,7 +291,8 @@ export default function CuentasCorrientesPage() {
         setSelectedChargeIds(new Set());
         fetchClientes();
         
-        if (qcAccount === 'CAJA' || qcAccount === 'CAJA IVA' || qcAccount === 'CHEQUES') {
+        const accountsUsed = qcPayments.map(p => p.account);
+        if (accountsUsed.includes('CAJA') || accountsUsed.includes('CAJA IVA') || accountsUsed.includes('CHEQUES')) {
           if (confirm('Cobro registrado exitosamente. ¿Deseás enviarle el recibo actualizado al cliente por email ahora?')) {
             try {
               fetch('/api/cuentas-corrientes/enviar-reporte', {
@@ -977,79 +980,111 @@ export default function CuentasCorrientesPage() {
         {/* Modal Quick Collect */}
         {isQuickCollectOpen && selectedClient && (
           <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-xl shadow-lg p-6 w-[450px]">
-              <h3 className="text-xl font-bold mb-4 text-gray-900">Cobro Rápido</h3>
+            <div className="bg-white rounded-xl shadow-lg p-6 w-[500px]">
+              <h3 className="text-xl font-bold mb-4 text-gray-900">Cobro Múltiple</h3>
               <p className="text-sm text-gray-700 mb-4">
                 Estás por registrar un cobro por <strong>{selectedChargeIds.size} comprobante(s)</strong>.
               </p>
               <form onSubmit={handleQuickCollectSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Monto a Cobrar ($)</label>
-                  <input 
-                    type="number"
-                    min="0.01" step="0.01"
-                    required
-                    value={qcAmount}
-                    onChange={e => setQcAmount(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-semibold"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Medio de Pago (Cuenta)</label>
-                  <select 
-                    required 
-                    value={qcAccount}
-                    onChange={e => setQcAccount(e.target.value)}
-                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                  >
-                      <option value="CAJA">Caja Efectivo</option>
-                      {process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? (
-                        <option value="BANCO CORI">Banco Cori</option>
-                      ) : (
-                        <>
-                          <option value="CAJA IVA">Caja IVA</option>
-                          <option value="BANCOS FEDE">Banco Fede</option>
-                          <option value="BANCOS JUANMA">Banco JuanMa</option>
-                        </>
+                
+                <div className="max-h-[50vh] overflow-y-auto pr-2 space-y-4">
+                  {qcPayments.map((payment, index) => (
+                    <div key={payment.id} className="p-4 border border-gray-200 rounded-lg bg-gray-50 relative shadow-sm">
+                      {qcPayments.length > 1 && (
+                        <button type="button" onClick={() => setQcPayments(qcPayments.filter(p => p.id !== payment.id))} className="absolute top-2 right-2 text-red-500 font-bold hover:text-red-700 text-sm">✕</button>
                       )}
-                      <option value="CHEQUES">Cheques de Terceros</option>
-                  </select>
-                </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-3 mt-2">
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Monto a Cobrar ($)</label>
+                          <input 
+                            type="number" min="0.01" step="0.01" required
+                            value={payment.amount}
+                            onChange={e => {
+                               const newP = [...qcPayments];
+                               newP[index].amount = e.target.value;
+                               setQcPayments(newP);
+                            }}
+                            className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm font-semibold focus:border-indigo-500 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-bold text-gray-700 mb-1">Medio de Pago</label>
+                          <select 
+                            required 
+                            value={payment.account}
+                            onChange={e => {
+                               const newP = [...qcPayments];
+                               newP[index].account = e.target.value;
+                               setQcPayments(newP);
+                            }}
+                            className="w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                          >
+                            <option value="CAJA">Caja Efectivo</option>
+                            {process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' ? (
+                              <option value="BANCO CORI">Banco Cori</option>
+                            ) : (
+                              <>
+                                <option value="CAJA IVA">Caja IVA</option>
+                                <option value="BANCOS FEDE">Banco Fede</option>
+                                <option value="BANCOS JUANMA">Banco JuanMa</option>
+                              </>
+                            )}
+                            <option value="CHEQUES">Cheques de Terceros</option>
+                          </select>
+                        </div>
+                      </div>
 
-                {qcAccount === 'CHEQUES' && (
-                  <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200 space-y-3">
-                    <h4 className="text-sm font-bold text-yellow-800">Detalles del Cheque</h4>
-                    <div className="grid grid-cols-2 gap-3">
+                      {payment.account === 'CHEQUES' && (
+                        <div className="p-3 bg-yellow-50 rounded-md border border-yellow-200 space-y-3 mb-3">
+                          <h4 className="text-xs font-bold text-yellow-800">Detalles del Cheque</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wide">Banco</label>
+                              <input type="text" required value={payment.checkDetails.bank} onChange={e => { const newP = [...qcPayments]; newP[index].checkDetails.bank = e.target.value; setQcPayments(newP); }} className="w-full text-sm border rounded p-1" />
+                            </div>
+                            <div>
+                              <div className="flex justify-between items-center"><label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wide">Número</label><label className="flex items-center space-x-1 cursor-pointer"><input type="checkbox" checked={payment.checkDetails.isEcheq} onChange={e => { const newP = [...qcPayments]; newP[index].checkDetails.isEcheq = e.target.checked; setQcPayments(newP); }} className="rounded border-gray-300 text-indigo-600 w-3 h-3" /><span className="text-[10px] font-bold text-blue-800">Echeq</span></label></div>
+                              <input type="text" required value={payment.checkDetails.number} onChange={e => { const newP = [...qcPayments]; newP[index].checkDetails.number = e.target.value; setQcPayments(newP); }} className="w-full text-sm border rounded p-1" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wide">F. Emisión</label>
+                              <input type="date" required value={payment.checkDetails.issueDate} onChange={e => { const newP = [...qcPayments]; newP[index].checkDetails.issueDate = e.target.value; setQcPayments(newP); }} className="w-full text-sm border rounded p-1" />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-gray-700 uppercase tracking-wide">F. Cobro</label>
+                              <input type="date" required value={payment.checkDetails.dueDate} onChange={e => { const newP = [...qcPayments]; newP[index].checkDetails.dueDate = e.target.value; setQcPayments(newP); }} className="w-full text-sm border rounded p-1" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div>
-                        <label className="block text-xs font-bold text-gray-700">Banco</label>
-                        <input type="text" required value={qcCheckDetails.bank} onChange={e => setQcCheckDetails({...qcCheckDetails, bank: e.target.value})} className="w-full text-sm border rounded p-1" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between items-center"><label className="block text-xs font-bold text-gray-700">Número</label><label className="flex items-center space-x-1 cursor-pointer"><input type="checkbox" checked={qcCheckDetails.isEcheq} onChange={e => setQcCheckDetails({...qcCheckDetails, isEcheq: e.target.checked})} className="rounded border-gray-300 text-indigo-600" /><span className="text-[10px] font-bold text-blue-800">Echeq</span></label></div>
-                        <input type="text" required value={qcCheckDetails.number} onChange={e => setQcCheckDetails({...qcCheckDetails, number: e.target.value})} className="w-full text-sm border rounded p-1" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700">F. Emisión</label>
-                        <input type="date" required value={qcCheckDetails.issueDate} onChange={e => setQcCheckDetails({...qcCheckDetails, issueDate: e.target.value})} className="w-full text-sm border rounded p-1" />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-gray-700">F. Cobro</label>
-                        <input type="date" required value={qcCheckDetails.dueDate} onChange={e => setQcCheckDetails({...qcCheckDetails, dueDate: e.target.value})} className="w-full text-sm border rounded p-1" />
+                        <label className="block text-xs font-bold text-gray-700 mb-1">Descripción / Detalle (Opcional)</label>
+                        <input 
+                          type="text" 
+                          value={payment.description}
+                          onChange={e => {
+                             const newP = [...qcPayments];
+                             newP[index].description = e.target.value;
+                             setQcPayments(newP);
+                          }}
+                          placeholder="Ej: Cobro parcial..."
+                          className="w-full rounded-md border border-gray-300 p-2 shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                        />
                       </div>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
 
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Descripción / Detalle (Opcional)</label>
-                  <input 
-                    type="text" 
-                    value={qcDescription}
-                    onChange={e => setQcDescription(e.target.value)}
-                    placeholder="Ej: Transferencia Santander..."
-                    className="w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm"
-                  />
+                <div className="flex justify-between items-center mt-2 px-2">
+                  <button type="button" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center" onClick={() => setQcPayments([...qcPayments, { id: Date.now(), amount: '', account: 'CAJA', description: '', checkDetails: { bank: '', number: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], isEcheq: false } }])}>
+                    <span className="text-lg mr-1 leading-none">+</span> Agregar pago
+                  </button>
+                  <div className="text-right">
+                    <span className="text-xs text-gray-500 uppercase tracking-wide">Total a cobrar: </span>
+                    <span className="font-bold text-lg text-gray-900 ml-2">${qcPayments.reduce((acc, p) => acc + (parseFloat(p.amount) || 0), 0).toLocaleString('es-AR', {minimumFractionDigits: 2})}</span>
+                  </div>
                 </div>
 
                 <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
