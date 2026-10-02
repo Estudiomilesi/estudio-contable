@@ -114,6 +114,7 @@ export async function POST(request: Request) {
       client.email,
       `Recibo de Pago - ${client.name}`,
       htmlContent,
+      [], // No attachments
       senderEmail
     );
 
