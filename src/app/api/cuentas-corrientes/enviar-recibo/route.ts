@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       where: { id: { in: accountTxIds } },
       include: {
         client: true,
-        paymentsApplied: {
+        chargesCovered: {
           include: {
             charge: true
           }
@@ -41,10 +41,9 @@ export async function POST(request: Request) {
     }
 
     // Detalle de comprobantes cancelados
-    // Consolidamos para no repetir
     const chargesMap = new Map();
     for (const tx of txs) {
-      for (const app of tx.paymentsApplied) {
+      for (const app of tx.chargesCovered) {
         if (!chargesMap.has(app.charge.id)) {
           chargesMap.set(app.charge.id, { desc: app.charge.description, applied: 0 });
         }
@@ -55,7 +54,7 @@ export async function POST(request: Request) {
     let comprobantesHtml = '';
     if (chargesMap.size > 0) {
       comprobantesHtml = `
-        <h3 style="margin: 25px 0 10px 0; color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Comprobantes Imputados</h3>
+        <h3 style="margin: 25px 0 10px 0; color: #334155; font-size: 15px;">Comprobantes Cancelados</h3>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
       `;
       
@@ -68,57 +67,96 @@ export async function POST(request: Request) {
       comprobantesHtml += `</table>`;
     }
 
+    const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
+      ? 'Estudio Jurídico Cicconi' 
+      : (client.professionalLabel === 'F' ? 'Estudio Milesi' : 'Estudio Contable F&J');
+    const colorPrincipal = '#7C4751'; 
+    const logoUrl = 'https://raw.githubusercontent.com/Estudiomilesi/estudio-contable/main/public/logo-dark.png';
+
     const htmlContent = `
-      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 30px;">
-        <table style="width: 100%; margin-bottom: 20px;">
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @media only screen and (max-width: 600px) {
+      .email-wrapper { padding: 10px !important; }
+      .email-container { padding: 15px !important; border-radius: 8px !important; }
+      .header-title { font-size: 18px !important; }
+      .header-logo { max-height: 45px !important; }
+      .text-content { font-size: 15px !important; }
+      .status-box { padding: 15px !important; }
+      .status-amount { font-size: 22px !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc;">
+  <div class="email-wrapper" style="padding: 20px; background-color: #f8fafc; font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;">
+    <div class="email-container" style="max-width: 800px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+      <div style="padding: 30px;" class="email-container">
+        
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 25px;">
           <tr>
-            <td>
-              <h2 style="margin: 0; color: #0f172a; font-size: 24px;">Recibo de Pago</h2>
-              <p style="margin: 5px 0 0 0; color: #64748b; font-size: 14px;">Fecha: ${dateStr}</p>
+            <td align="left" valign="middle">
+              <h2 class="header-title" style="color: #0f172a; margin: 0; font-size: 22px; border-bottom: 3px solid ${colorPrincipal}; padding-bottom: 5px; display: inline-block;">Recibo de Pago</h2>
             </td>
-            <td style="text-align: right;">
-              <div style="background-color: #7C4751; color: white; padding: 10px 20px; border-radius: 6px; display: inline-block;">
-                <p style="margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">Total Recibido</p>
-                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">$${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}</p>
-              </div>
+            <td align="right" valign="middle">
+              <img src="${logoUrl}" alt="${firma}" class="header-logo" style="max-height: 60px; opacity: 0.9;" />
             </td>
           </tr>
         </table>
 
-        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 6px; margin-bottom: 25px;">
-          <p style="margin: 0 0 5px 0; color: #64748b; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px;">Recibimos de</p>
-          <p style="margin: 0; color: #0f172a; font-size: 18px; font-weight: 500;">${client.name}</p>
+        <p class="text-content" style="color: #334155; font-size: 16px;">Hola <strong>${client.name}</strong>,</p>
+        <p class="text-content" style="color: #334155; font-size: 16px; margin-bottom: 25px; line-height: 1.6;">Acabamos de registrar tu pago. A continuación te dejamos el detalle.</p>
+        
+        <div class="status-box" style="background-color: #f0fdf4; border-left: 5px solid #22c55e; padding: 20px; margin: 25px 0; border-radius: 4px;">
+          <table width="100%">
+            <tr>
+              <td>
+                <p style="margin: 0 0 8px 0; color: #475569; font-size: 14px;"><strong>Fecha del pago:</strong> ${dateStr}</p>
+              </td>
+              <td align="right">
+                <p style="margin: 0 0 8px 0; color: #475569; font-size: 14px;"><strong>Total Recibido:</strong></p>
+                <p class="status-amount" style="margin: 0; font-size: 26px; color: #15803d;">
+                  <strong>$${totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}</strong>
+                </p>
+              </td>
+            </tr>
+          </table>
         </div>
 
-        <h3 style="margin: 0 0 10px 0; color: #334155; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Detalle del Pago</h3>
+        <h3 style="margin: 25px 0 10px 0; color: #334155; font-size: 15px;">Detalle del Pago</h3>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
           ${mediosPagoHtml}
         </table>
 
         ${comprobantesHtml}
         
-        <p style="color: #64748b; font-size: 14px; line-height: 1.5; margin-top: 30px; text-align: center;">
-          El presente recibo es comprobante válido por el pago realizado.<br>
-          ¡Gracias por confiar en nosotros!
-        </p>
+        <p class="text-content" style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 40px; text-align: center;">¡Gracias por confiar en nuestro equipo!</p>
         
-        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;" />
-        <div style="text-align: center; color: #94a3b8; font-size: 12px;">
-          <p style="margin: 0;">Estudio Milesi & Asociados</p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;" />
+        
+        <div style="text-align: center; color: #64748b; font-size: 13px;">
+          <p style="margin: 0 0 5px 0;"><strong>${firma}</strong></p>
+          <p style="margin: 0;">Este documento es generado automáticamente y sirve como comprobante válido de pago.</p>
         </div>
       </div>
+    </div>
+  </div>
+</body>
+</html>
     `;
 
     const senderEmail = request.headers.get('x-user-email') || userEmail || 'fedenilomilesi@gmail.com';
     await sendEmail(
       client.email,
-      `Recibo de Pago - ${client.name}`,
+      \`Recibo de Pago - \${client.name}\`,
       htmlContent,
-      [], // No attachments
+      [],
       senderEmail
     );
 
-    // Marcar como enviados
     await prisma.accountTransaction.updateMany({
       where: { id: { in: accountTxIds } },
       data: { isEmailed: true }
