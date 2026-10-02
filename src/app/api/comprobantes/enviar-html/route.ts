@@ -41,19 +41,16 @@ export async function POST(request: Request) {
     const colorTextoEtiqueta = '#55434F';
     const logoUrl = 'https://raw.githubusercontent.com/Estudiomilesi/estudio-contable/main/public/logo-dark.png';
 
-    // Extraer periodo de la descripción si existe, sino usar el mes de la fecha
-    let periodoStr = '';
-    const matchPeriodo = (tx.description || '').match(/- ([A-Za-z]+ \d{4})$/);
+        let periodoStr = '';
+    let conceptoStr = tx.description || 'Comprobante';
+    const matchPeriodo = (tx.description || '').match(/\s*-\s*([A-Za-z]+ \d{4})$/);
     if (matchPeriodo) {
       periodoStr = matchPeriodo[1];
+      conceptoStr = (tx.description || '').replace(matchPeriodo[0], '').trim();
     } else {
       const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       periodoStr = `${meses[tx.date.getMonth()]} ${tx.date.getFullYear()}`;
     }
-
-    // Dividir concepto de periodo si está en la descripción ("Honorarios - Septiembre 2026")
-    let conceptoPrincipal = 'Honorarios Contables';
-    let conceptoSecundario = 'Abono Mensual';
     
     const isNC = tx.type === 'PAYMENT';
     const titulo = isNC ? 'Aviso de Nota de Crédito' : 'Aviso de Honorarios';
