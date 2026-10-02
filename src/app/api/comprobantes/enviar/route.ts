@@ -64,8 +64,11 @@ export async function POST(request: Request) {
       periodoStr = `${meses[tx.date.getMonth()]} ${tx.date.getFullYear()}`;
     }
 
-    let conceptoPrincipal = 'Honorarios Contables';
-    let conceptoSecundario = 'Abono Mensual';
+    let conceptoStr = tx.description || 'Comprobante';
+    const matchConcepto = (tx.description || '').match(/\s*-\s*([A-Za-z]+ \d{4})$/);
+    if (matchConcepto) {
+      conceptoStr = (tx.description || '').replace(matchConcepto[0], '').trim();
+    }
     
     const isNC2 = tx.type === 'PAYMENT';
     const titulo = isNC2 ? 'Aviso de Nota de Crédito' : 'Aviso de Honorarios';
@@ -100,7 +103,7 @@ export async function POST(request: Request) {
           <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px; line-height: 1.6;"><strong>Comprobante interno:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569; white-space: nowrap;">${cbteStr}</span></p>
           <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 1.8;">
             <strong>Concepto:</strong> 
-            <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">${conceptoPrincipal} - ${conceptoSecundario}</span>
+            <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">${conceptoStr}</span>
           </p>
           <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>${labelTotal}: $${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
         </div>
