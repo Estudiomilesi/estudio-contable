@@ -220,7 +220,7 @@ export async function POST(request: Request) {
         </div>
         ` : ''}
         
-        <p class="text-content" style="color: #334155; font-size: 15px; line-height: 1.5; margin-top: 25px;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>
+        ${isDebt ? `<p class="text-content" style="color: #334155; font-size: 15px; line-height: 1.5; margin-top: 25px;">Por favor, recordá enviarnos el comprobante de transferencia una vez realizado el pago para poder imputarlo correctamente en tu cuenta.</p>` : ''}
         
         <p class="text-content" style="color: #334155; font-size: 16px; font-weight: 500; margin-top: 20px;">¡Gracias por elegirnos y confiar en nuestro equipo!</p>
         
