@@ -179,6 +179,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, treasuryTxId: treasuryTx.id, accountTxId: accountTx.id }, { status: 201 });
   } catch (error) {
     console.error("Error en cobro rápido:", error);
-    return NextResponse.json({ error: 'Error interno al registrar el cobro' }, { status: 500 });
+    return NextResponse.json({ error: 'Error interno al registrar el cobro: ' + (error instanceof Error ? error.message : String(error)) }, { status: 500 });
   }
 }
