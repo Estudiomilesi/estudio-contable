@@ -288,6 +288,23 @@ export default function CuentasCorrientesPage() {
         setIsQuickCollectOpen(false);
         setSelectedChargeIds(new Set());
         fetchClientes();
+        
+        if (qcAccount === 'CAJA' || qcAccount === 'CAJA IVA' || qcAccount === 'CHEQUES') {
+          if (confirm('Cobro registrado exitosamente. ¿Deseás enviarle el recibo actualizado al cliente por email ahora?')) {
+            try {
+              fetch('/api/cuentas-corrientes/enviar-reporte', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clientId: selectedClientId, viewMode: viewMode })
+              }).then(r => r.json()).then(data => {
+                if (data.success) alert('Recibo enviado correctamente.');
+                else alert('Error al enviar el recibo: ' + data.error);
+              });
+            } catch (e) {
+              alert('Error al enviar el recibo');
+            }
+          }
+        }
       } else {
         const err = await res.json();
         alert('Error: ' + (err.error || 'No se pudo cobrar'));
