@@ -39,6 +39,7 @@ const initialForm = {
   currentFee: 0,
   isActive: true,
   hasAbono: true,
+  wantsPdfAttachment: false,
   assignedCollaborator: '',
 };
 
@@ -294,6 +295,7 @@ export default function ClientesPage() {
       currentFee: c.currentFee,
       isActive: c.isActive,
       hasAbono: c.hasAbono,
+      wantsPdfAttachment: c.wantsPdfAttachment ?? false,
       assignedCollaborator: c.assignedCollaborator || '',
     });
     setIsEditing(true);
@@ -342,6 +344,10 @@ export default function ClientesPage() {
               <div className="flex items-center gap-2">
                 <input type="checkbox" id="hasAbono" checked={formData.hasAbono} onChange={e => setFormData({...formData, hasAbono: e.target.checked})} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                 <label htmlFor="hasAbono" className="text-sm font-medium text-gray-700">Incluir en Abono Mensual</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input type="checkbox" id="wantsPdfAttachment" checked={formData.wantsPdfAttachment} onChange={e => setFormData({...formData, wantsPdfAttachment: e.target.checked})} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                <label htmlFor="wantsPdfAttachment" className="text-sm font-medium text-gray-700">Adjuntar PDF de Abono</label>
               </div>
             </div>
 
