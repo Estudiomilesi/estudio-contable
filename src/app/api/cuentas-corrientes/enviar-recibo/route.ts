@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     const senderEmail = request.headers.get('x-user-email') || userEmail || 'fedenilomilesi@gmail.com';
     await sendEmail(
       client.email,
-      \`Recibo de Pago - \${client.name}\`,
+      `Recibo de Pago - ${client.name}`,
       htmlContent,
       [],
       senderEmail
