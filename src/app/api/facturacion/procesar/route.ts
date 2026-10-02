@@ -52,6 +52,7 @@ export async function POST(request: Request) {
     }
 
     let emailsEnviados = 0;
+    const requiresPdf: string[] = [];
     const transacciones = [];
 
     for (const cliente of clientes) {

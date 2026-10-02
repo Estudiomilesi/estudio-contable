@@ -26,6 +26,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         currentFee: data.currentFee !== undefined ? parseFloat(data.currentFee) : existingCliente.currentFee,
         isActive: data.isActive !== undefined ? data.isActive : existingCliente.isActive,
         hasAbono: data.hasAbono !== undefined ? data.hasAbono : existingCliente.hasAbono,
+        wantsPdfAttachment: data.wantsPdfAttachment !== undefined ? data.wantsPdfAttachment : existingCliente.wantsPdfAttachment,
         assignedCollaborator: data.assignedCollaborator !== undefined ? data.assignedCollaborator : existingCliente.assignedCollaborator,
       },
     });

@@ -17,6 +17,7 @@ type Client = {
   contact: string | null;
   isActive: boolean;
   hasAbono: boolean;
+  wantsPdfAttachment: boolean;
   defaultBillingProfile: string;
   defaultBankAccountId: string | null;
   assignedCollaborator: string | null;

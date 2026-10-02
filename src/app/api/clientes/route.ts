@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         defaultBankAccountId: data.defaultBankAccountId || null,
         currentFee: parseFloat(data.currentFee || 0),
         hasAbono: data.hasAbono ?? true,
+        wantsPdfAttachment: data.wantsPdfAttachment ?? false,
         assignedCollaborator: data.assignedCollaborator || null,
       },
     });
