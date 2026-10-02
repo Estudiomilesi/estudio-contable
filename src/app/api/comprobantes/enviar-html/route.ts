@@ -87,7 +87,7 @@ export async function POST(request: Request) {
             <p style="margin: 0 0 10px 0; color: #475569; font-size: 14px; line-height: 1.6;"><strong>Comprobante interno:</strong> <span style="background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #475569; white-space: nowrap;">${tx.receiptNumber || 'N/A'}</span></p>
             <p style="margin: 0 0 16px 0; color: #475569; font-size: 14px; line-height: 1.8;">
               <strong>Concepto:</strong> 
-              <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">${conceptoPrincipal} - ${conceptoSecundario}</span>
+              <span style="background-color: ${colorFondoEtiqueta}; color: ${colorTextoEtiqueta}; padding: 4px 10px; border-radius: 6px; font-weight: 600; font-size: 13px; display: inline-block; margin-top: 4px;">${conceptoStr}</span>
             </p>
             <p style="margin: 0; font-size: 24px; color: ${colorPrincipal};"><strong>${labelTotal}: $${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></p>
           </div>
