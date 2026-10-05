@@ -960,8 +960,14 @@ export default function CuentasCorrientesPage() {
         {/* Floating Bulk Collect Button */}
         {selectedChargeIds.size > 0 && selectedClient && (
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-4 z-20 animate-fade-in-up">
-            <span className="font-bold">
+            <span className="font-bold flex items-center gap-2">
               {selectedChargeIds.size} seleccionados
+              <span className="bg-indigo-800 text-indigo-100 px-2 py-0.5 rounded text-sm whitespace-nowrap">
+                ($ {Array.from(selectedChargeIds).reduce((sum, id) => {
+                  const charge = selectedClient.transactions.find(tx => tx.id === id);
+                  return sum + (charge ? charge.amount - getAppliedAmount(charge) : 0);
+                }, 0).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})})
+              </span>
             </span>
             <button 
               onClick={() => handleOpenQuickCollect()}
