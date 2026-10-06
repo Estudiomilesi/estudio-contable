@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { prisma } from '@/lib/prisma';
+import { AlertCircle } from 'lucide-react';
 import DashboardFilter from '@/components/DashboardFilter';
 
 export const dynamic = 'force-dynamic';
@@ -49,7 +50,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
     tesoreriaTxsAggr,
     groupedTxs,
     abonosPeriodData,
-    egresosData
+    egresosData,
+    checksEnCartera
   ] = await Promise.all([
     // 1. Abonos Activos
     prisma.client.count({ where: clientWhere }),
@@ -121,8 +123,30 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
         ]
       },
       select: { amount: true, type: true, category: true, client: { select: { professionalLabel: true } } }
-    })
+    }),
+    // 9. Cheques en cartera
+    prisma.check.findMany({ where: { status: 'IN_PORTFOLIO' }, orderBy: { dueDate: 'asc' } })
   ]);
+
+  
+  const getDaysUntilInvalid = (dueDate: Date) => {
+    const validityDate = new Date(dueDate);
+    validityDate.setDate(validityDate.getDate() + 30);
+    const diffTime = validityDate.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  
+  const expiringRedChecks = (checksEnCartera || []).filter((c: any) => {
+    const days = getDaysUntilInvalid(c.dueDate);
+    return days >= 0 && days <= 15;
+  });
+
+  const expiringYellowChecks = (checksEnCartera || []).filter((c: any) => {
+    const days = getDaysUntilInvalid(c.dueDate);
+    return days > 15 && days <= 30;
+  });
 
   const facturacionEstimada = facturacionEstimadaAggr._sum.currentFee || 0;
   const facturacionMesTotal = facturacionMesData.reduce((sum, t) => {
@@ -289,6 +313,60 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           </Link>
         </div>
       </div>
+
+      {(expiringYellowChecks.length > 0 || expiringRedChecks.length > 0) && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Atención Tesorería</h2>
+          <div className="space-y-3">
+            {expiringRedChecks.length > 0 && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      Atención: Hay {expiringRedChecks.length} {expiringRedChecks.length === 1 ? 'cheque' : 'cheques'} que pierden validez en los próximos 15 días.
+                    </h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        {expiringRedChecks.map((c: any) => (
+                          <li key={c.id}>
+                            {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            {expiringYellowChecks.length > 0 && (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertCircle className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">
+                      Atención: Hay {expiringYellowChecks.length} {expiringYellowChecks.length === 1 ? 'cheque' : 'cheques'} que pierden validez en los próximos 30 días.
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        {expiringYellowChecks.map((c: any) => (
+                          <li key={c.id}>
+                            {c.bank} N° {c.number} por ${c.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} - Vence el {new Date(c.dueDate).toLocaleDateString('es-AR')}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
