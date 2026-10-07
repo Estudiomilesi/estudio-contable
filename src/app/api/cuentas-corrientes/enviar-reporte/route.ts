@@ -117,10 +117,14 @@ export async function POST(request: Request) {
         const rowBg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
         const dateStr = new Date(tx.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const isCharge = tx.type === 'CHARGE';
-        const debeStr = isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
-        const haberStr = !isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
-        const amountStr = `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
-        const saldoStr = `$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+                const applied = tx.type === 'CHARGE' ? tx.paymentsApplied?.reduce((sum, app) => sum + app.amount, 0) || 0 : tx.chargesCovered?.reduce((sum, app) => sum + app.amount, 0) || 0;
+        const remaining = tx.amount - applied;
+        const displayAmount = viewMode === 'PENDING' ? remaining : tx.amount;
+        
+        const debeStr = isCharge ? `${displayAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
+        const haberStr = !isCharge ? `${displayAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}` : '-';
+        const amountStr = `${displayAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
+        const saldoStr = viewMode === 'PENDING' ? '-' : `${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2})}`;
         const descriptionStr = tx.description || (isCharge ? 'Cargo' : 'Pago');
 
         // Desktop Row

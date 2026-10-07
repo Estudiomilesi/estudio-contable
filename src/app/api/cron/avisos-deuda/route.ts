@@ -144,8 +144,10 @@ export async function GET(request: Request) {
         let label = tx.description || 'Comprobante';
         if (tx.receiptNumber) label += ` - N° ${tx.receiptNumber}`;
 
-        const debe = isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
-        const haber = !isCharge ? `$${tx.amount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
+                const applied = tx.type === 'CHARGE' ? tx.paymentsApplied?.reduce((sum, app) => sum + app.amount, 0) || 0 : tx.chargesCovered?.reduce((sum, app) => sum + app.amount, 0) || 0;
+        const displayAmount = tx.amount - applied;
+        const debe = isCharge ? `${displayAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
+        const haber = !isCharge ? `${displayAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
         
         const debeColor = isCharge ? '#dc2626' : '#64748b';
         const haberColor = !isCharge ? '#16a34a' : '#64748b';
