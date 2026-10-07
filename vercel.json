@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/avisos-deuda",
+      "schedule": "0 13 * * 1-5"
+    }
+  ]
+}
