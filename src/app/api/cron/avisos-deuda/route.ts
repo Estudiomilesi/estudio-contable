@@ -1,3 +1,4 @@
+export const maxDuration = 60;
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/mailer';
@@ -100,10 +101,17 @@ export async function GET(request: Request) {
     }
 
     // Tomar solo 10 para respetar limites de tiempo
-    const batch = forceClientName ? clientsToNotify : clientsToNotify.slice(0, 10);
+    const batch = clientsToNotify;
     
     let sentCount = 0;
-    for (const { client, balance, displayedTransactions } of batch) {
+        let chunks: any[][] = [];
+    for (let i = 0; i < batch.length; i += 10) {
+      chunks.push(batch.slice(i, i + 10));
+    }
+    
+
+    for (const chunk of chunks) {
+      const promises = chunk.map(async ({ client, balance, displayedTransactions }: any) => {
       const correosDestino = client.email.split(',').map((e: string) => e.trim()).join(', ');
       const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
         ? 'Estudio Jurídico Cicconi' 
@@ -125,7 +133,7 @@ export async function GET(request: Request) {
           <tbody>
       `;
 
-      displayedTransactions.forEach((tx, idx) => {
+      displayedTransactions.forEach((tx: any, idx: number) => {
         const isCharge = tx.type === 'CHARGE';
         const isOdd = idx % 2 === 1;
         const bg = isOdd ? '#f8fafc' : '#ffffff';
@@ -207,7 +215,11 @@ export async function GET(request: Request) {
       } catch(err) {
         console.error('Error sending debt notice to', client.email, err);
       }
-    }
+    });
+    await Promise.all(promises);
+    // wait 1 second between chunks to avoid SMTP rate limits
+    await new Promise(r => setTimeout(r, 1000));
+  }
 
     return NextResponse.json({ success: true, processed: batch.length, sentCount, pendingRemaining: clientsToNotify.length - batch.length });
   } catch (error) {

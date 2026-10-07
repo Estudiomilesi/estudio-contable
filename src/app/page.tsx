@@ -337,7 +337,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
             <div className="flex">
               <div className="ml-3 w-full">
                 <h3 className="text-sm font-medium text-blue-800">
-                  El sistema envió {recentDebtNotices.length} avisos de deuda el {new Date(recentDebtNotices[0].lastDebtNoticeSent).toLocaleDateString('es-AR')}.
+                  El sistema envió {recentDebtNotices.length} avisos de deuda el {new Date(recentDebtNotices[0].lastDebtNoticeSent!).toLocaleDateString('es-AR')}.
                 </h3>
                 <div className="mt-2 text-sm text-blue-700 max-h-40 overflow-y-auto">
                   <ul className="list-disc pl-5 space-y-1">
