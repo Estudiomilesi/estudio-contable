@@ -51,7 +51,8 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
     groupedTxs,
     abonosPeriodData,
     egresosData,
-    checksEnCartera
+    checksEnCartera,
+    recentDebtNotices
   ] = await Promise.all([
     // 1. Abonos Activos
     prisma.client.count({ where: clientWhere }),
@@ -313,6 +314,28 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
           </Link>
         </div>
       </div>
+
+      {(recentDebtNotices && recentDebtNotices.length > 0) && (
+        <div className="space-y-4 mb-8">
+          <h2 className="text-xl font-bold text-gray-800 border-b pb-2">Avisos de Deuda Enviados</h2>
+          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-md">
+            <div className="flex">
+              <div className="ml-3 w-full">
+                <h3 className="text-sm font-medium text-blue-800">
+                  El sistema envió {recentDebtNotices.length} avisos de deuda el {new Date(recentDebtNotices[0].lastDebtNoticeSent).toLocaleDateString('es-AR')}.
+                </h3>
+                <div className="mt-2 text-sm text-blue-700 max-h-40 overflow-y-auto">
+                  <ul className="list-disc pl-5 space-y-1">
+                    {recentDebtNotices.map((c, i) => (
+                      <li key={i}>{c.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {(expiringYellowChecks.length > 0 || expiringRedChecks.length > 0) && (
         <div className="space-y-4">
