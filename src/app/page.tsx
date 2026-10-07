@@ -126,7 +126,22 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
       select: { amount: true, type: true, category: true, client: { select: { professionalLabel: true } } }
     }),
     // 9. Cheques en cartera
-    prisma.check.findMany({ where: { status: 'IN_PORTFOLIO' }, orderBy: { dueDate: 'asc' } })
+    prisma.check.findMany({ where: { status: 'IN_PORTFOLIO' }, orderBy: { dueDate: 'asc' } }),
+    (async () => {
+      const latestNoticeClient = await prisma.client.findFirst({
+        where: { lastDebtNoticeSent: { not: null } },
+        orderBy: { lastDebtNoticeSent: 'desc' },
+        select: { lastDebtNoticeSent: true }
+      });
+      if (!latestNoticeClient?.lastDebtNoticeSent) return [];
+      const latestDateStr = latestNoticeClient.lastDebtNoticeSent.toISOString().split('T')[0];
+      const allNotices = await prisma.client.findMany({
+        where: { lastDebtNoticeSent: { not: null } },
+        select: { name: true, lastDebtNoticeSent: true },
+        orderBy: { lastDebtNoticeSent: 'desc' }
+      });
+      return allNotices.filter((c: any) => c.lastDebtNoticeSent.toISOString().split('T')[0] === latestDateStr);
+    })()
   ]);
 
   
