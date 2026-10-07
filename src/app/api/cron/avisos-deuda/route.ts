@@ -148,7 +148,7 @@ export async function GET(request: Request) {
             <td style="padding: 10px; color: #334155;">${label}</td>
             <td style="padding: 10px; text-align: right; color: ${debeColor}; font-weight: bold;">${debe}</td>
             <td style="padding: 10px; text-align: right; color: ${haberColor}; font-weight: bold;">${haber}</td>
-            <td style="padding: 10px; text-align: right; color: #0f172a; font-weight: bold;">$${tx.runningBalance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td style="padding: 10px; text-align: right; color: #64748b; font-weight: bold;">-</td>
           </tr>
         `;
       });
