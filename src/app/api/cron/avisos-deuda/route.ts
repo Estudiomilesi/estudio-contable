@@ -89,10 +89,10 @@ export async function GET(request: Request) {
 
       const displayedTransactions = transactionsWithBalance.filter(tx => {
         if (tx.type === 'CHARGE') {
-          const applied = tx.paymentsApplied.reduce((sum, app) => sum + app.amount, 0);
+          const applied = tx.paymentsApplied.reduce((sum: number, app: any) => sum + app.amount, 0);
           return applied < tx.amount;
         } else {
-          const used = tx.chargesCovered.reduce((sum, app) => sum + app.amount, 0);
+          const used = tx.chargesCovered.reduce((sum: number, app: any) => sum + app.amount, 0);
           return used < tx.amount;
         }
       });
@@ -144,7 +144,7 @@ export async function GET(request: Request) {
         let label = tx.description || 'Comprobante';
         if (tx.receiptNumber) label += ` - N° ${tx.receiptNumber}`;
 
-                const applied = tx.type === 'CHARGE' ? tx.paymentsApplied?.reduce((sum, app) => sum + app.amount, 0) || 0 : tx.chargesCovered?.reduce((sum, app) => sum + app.amount, 0) || 0;
+                const applied = tx.type === 'CHARGE' ? tx.paymentsApplied?.reduce((sum: number, app: any) => sum + app.amount, 0) || 0 : tx.chargesCovered?.reduce((sum: number, app: any) => sum + app.amount, 0) || 0;
         const displayAmount = tx.amount - applied;
         const debe = isCharge ? `${displayAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';
         const haber = !isCharge ? `${displayAmount.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '-';

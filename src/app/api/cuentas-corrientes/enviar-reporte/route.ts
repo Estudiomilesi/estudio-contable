@@ -65,10 +65,10 @@ export async function POST(request: Request) {
       if (viewMode === 'ALL') return true; // Mostrar todo
       // PENDING
       if (tx.type === 'CHARGE') {
-        const applied = tx.paymentsApplied.reduce((sum, app) => sum + app.amount, 0);
+        const applied = tx.paymentsApplied.reduce((sum: number, app: any) => sum + app.amount, 0);
         return applied < tx.amount;
       } else {
-        const used = tx.chargesCovered.reduce((sum, app) => sum + app.amount, 0);
+        const used = tx.chargesCovered.reduce((sum: number, app: any) => sum + app.amount, 0);
         return used < tx.amount;
       }
     });
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
         const rowBg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
         const dateStr = new Date(tx.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
         const isCharge = tx.type === 'CHARGE';
-                const applied = tx.type === 'CHARGE' ? tx.paymentsApplied?.reduce((sum, app) => sum + app.amount, 0) || 0 : tx.chargesCovered?.reduce((sum, app) => sum + app.amount, 0) || 0;
+                const applied = tx.type === 'CHARGE' ? tx.paymentsApplied?.reduce((sum: number, app: any) => sum + app.amount, 0) || 0 : tx.chargesCovered?.reduce((sum: number, app: any) => sum + app.amount, 0) || 0;
         const remaining = tx.amount - applied;
         const displayAmount = viewMode === 'PENDING' ? remaining : tx.amount;
         
