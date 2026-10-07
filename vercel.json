@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/avisos-deuda",
-      "schedule": "0 13 * * 1-5"
+      "schedule": "*/5 13-15 * * 1-5"
     }
   ]
 }

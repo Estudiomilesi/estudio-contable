@@ -52,6 +52,7 @@ model Client {
   currentFee        Float              @default(0)
   hasAbono          Boolean            @default(true)
   wantsPdfAttachment Boolean          @default(false)
+  lastDebtNoticeSent DateTime?
   isActive          Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt

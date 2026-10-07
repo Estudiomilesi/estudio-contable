@@ -2,12 +2,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/mailer';
 
-// Protegemos el cron endpoint (Vercel manda esto en el header o podemos correrlo manual)
-// Puedes invocarlo manualmente usando un secret o localmente sin secret.
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   
-  // Vercel Cron envia un Bearer con el CRON_SECRET, pero para testear podemos pasarlo por querystring
   const url = new URL(request.url);
   const isCronValid = authHeader === `Bearer ${process.env.CRON_SECRET}` || url.searchParams.get('key') === process.env.CRON_SECRET;
   
@@ -15,16 +12,14 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  // Verificar si hoy es dia de envio: 10 o 20 (o el dia habil posterior si cayo finde)
-  // Nota: ignorar esta verificacion si se llama forzado con ?force=true
   const isForce = url.searchParams.get('force') === 'true';
+  const forceClientName = url.searchParams.get('client');
   const today = new Date();
   
-  // Ajuste de zona horaria a Argentina (UTC-3)
   const argDateStr = today.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' });
   const argDate = new Date(argDateStr);
   const date = argDate.getDate();
-  const dayOfWeek = argDate.getDay(); // 0 is Sunday, 1 is Monday
+  const dayOfWeek = argDate.getDay(); 
 
   let shouldSend = false;
 
@@ -39,9 +34,13 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Buscar clientes activos que tengan deudas. Traemos transacciones para calcular.
+    let whereClause: any = { isActive: true };
+    if (forceClientName) {
+      whereClause.name = { contains: forceClientName, mode: 'insensitive' };
+    }
+
     const clients = await prisma.client.findMany({
-      where: { isActive: true },
+      where: whereClause,
       include: {
         defaultBankAccount: true,
         accountTransactions: {
@@ -56,16 +55,23 @@ export async function GET(request: Request) {
     for (const client of clients) {
       if (!client.email || client.email === 'falta@email.com') continue;
 
+      // Skip si ya se le envio el aviso HOY
+      if (client.lastDebtNoticeSent) {
+        const diffHours = (today.getTime() - client.lastDebtNoticeSent.getTime()) / (1000 * 60 * 60);
+        if (diffHours < 20 && !isForce) {
+          continue; // Ya se envio recientemente
+        }
+      }
+
       let balance = 0;
       client.accountTransactions.forEach(tx => {
         if (tx.type === 'CHARGE') balance += tx.amount;
         else balance -= tx.amount;
       });
 
-      // Solo enviar aviso si la deuda es mayor a $100 pesos
-      if (balance <= 100) continue;
+      // Saldo mayor a 10.000
+      if (balance <= 10000) continue;
 
-      // Armar la composicion de saldos (solo pendientes)
       let runningBalance = 0;
       const sortedTransactions = [...client.accountTransactions].sort((a, b) => {
         const timeDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
@@ -93,9 +99,11 @@ export async function GET(request: Request) {
       clientsToNotify.push({ client, balance, displayedTransactions });
     }
 
-    // Enviar correos en lotes para no saturar el SMTP
+    // Tomar solo 10 para respetar limites de tiempo
+    const batch = forceClientName ? clientsToNotify : clientsToNotify.slice(0, 10);
+    
     let sentCount = 0;
-    for (const { client, balance, displayedTransactions } of clientsToNotify) {
+    for (const { client, balance, displayedTransactions } of batch) {
       const correosDestino = client.email.split(',').map((e: string) => e.trim()).join(', ');
       const firma = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI' 
         ? 'Estudio Jurídico Cicconi' 
@@ -191,13 +199,17 @@ export async function GET(request: Request) {
 
       try {
         await sendEmail(correosDestino, `Aviso de Deuda - ${firma}`, htmlEmail);
+        await prisma.client.update({
+          where: { id: client.id },
+          data: { lastDebtNoticeSent: today }
+        });
         sentCount++;
       } catch(err) {
         console.error('Error sending debt notice to', client.email, err);
       }
     }
 
-    return NextResponse.json({ success: true, processed: clients.length, sentCount, message: `Notices sent to ${sentCount} clients.` });
+    return NextResponse.json({ success: true, processed: batch.length, sentCount, pendingRemaining: clientsToNotify.length - batch.length });
   } catch (error) {
     console.error('Cron error:', error);
     return NextResponse.json({ error: 'Error processing debt notices' }, { status: 500 });
