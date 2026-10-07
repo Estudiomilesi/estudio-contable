@@ -53,7 +53,7 @@ export async function POST(request: Request) {
         id: { in: selectedChargeIds }
       },
       include: {
-        paymentsApplied: true
+        paymentsApplied: true, client: true
       },
       orderBy: {
         date: 'asc' // Aplicar primero a los más viejos
@@ -61,6 +61,7 @@ export async function POST(request: Request) {
     });
 
     const results = [];
+    const alerts: any[] = [];
 
     // Process each payment sequentially
     for (const payment of payments) {
@@ -194,9 +195,17 @@ export async function POST(request: Request) {
       }
 
       results.push({ treasuryTxId: treasuryTx.id, accountTxId: accountTx.id });
+      
+      for (const app of createdApplications) {
+        if (app.charge.collaboratorAmount && app.charge.collaboratorAmount > 0) {
+          const proportion = app.amount / app.charge.amount;
+          const amountForCollab = app.charge.collaboratorAmount * proportion;
+          alerts.push({ collaborator: app.charge.collaboratorName || 'Colaborador sin nombre', amount: amountForCollab, client: app.charge.client?.name || 'Cliente' });
+        }
+      }
     }
 
-    return NextResponse.json({ success: true, results }, { status: 201 });
+    return NextResponse.json({ success: true, results, alerts }, { status: 201 });
   } catch (error) {
     console.error("Error en cobro rápido:", error);
     return NextResponse.json({ error: 'Error interno al registrar el cobro: ' + (error instanceof Error ? error.message : String(error)) }, { status: 500 });

@@ -292,6 +292,15 @@ export default function CuentasCorrientesPage() {
         setSelectedChargeIds(new Set());
         fetchClientes();
         
+        if (resData.alerts && resData.alerts.length > 0) {
+          let alertMsg = '⚠️ ATENCIÓN: El cobro realizado incluía honorarios con participación de colaboradores.\n\n';
+          resData.alerts.forEach((a: any) => {
+            alertMsg += `- A ${a.collaborator} le corresponden ${a.amount.toLocaleString('es-AR', {minimumFractionDigits: 2})} por el cliente ${a.client}\n`;
+          });
+          alertMsg += '\nPor favor, recordá registrar el pago al colaborador en Tesorería.';
+          alert(alertMsg);
+        }
+        
         const accountsUsed = qcPayments.map(p => p.account);
         if (accountsUsed.includes('CAJA') || accountsUsed.includes('CAJA IVA') || accountsUsed.includes('CHEQUES')) {
           if (confirm('Cobro registrado exitosamente. ¿Deseás enviarle el recibo actualizado al cliente por email ahora?')) {

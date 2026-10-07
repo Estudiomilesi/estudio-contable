@@ -71,6 +71,8 @@ export default function ComprobantesPage() {
   const [comprobantes, setComprobantes] = useState<Comprobante[]>([]);
   const [bancos, setBancos] = useState<any[]>([]);
   const [paymentConditions, setPaymentConditions] = useState<any[]>([]);
+  const [empleados, setEmpleados] = useState<any[]>([]);
+  const [colaboradores, setColaboradores] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Autocomplete state
