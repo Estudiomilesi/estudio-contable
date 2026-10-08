@@ -1,4 +1,5 @@
 "use client";
+import ClientNotesModal from '@/components/ClientNotesModal';
 
 import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
@@ -66,6 +67,7 @@ export default function CuentasCorrientesPage() {
   // Quick Collect state
   const [selectedChargeIds, setSelectedChargeIds] = useState<Set<string>>(new Set());
   const [isQuickCollectOpen, setIsQuickCollectOpen] = useState(false);
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
   const [qcPayments, setQcPayments] = useState([{ id: Date.now(), account: 'CAJA', amount: '', description: '', checkDetails: { bank: '', number: '', issueDate: '', dueDate: '', isEcheq: false } }]);
   const [isSubmittingQC, setIsSubmittingQC] = useState(false);
   const [isSubmittingApply, setIsSubmittingApply] = useState(false);
@@ -994,6 +996,13 @@ export default function CuentasCorrientesPage() {
         )}
 
         {/* Modal Quick Collect */}
+        {isNotesModalOpen && selectedClient && (
+          <ClientNotesModal 
+            client={selectedClient} 
+            onClose={() => setIsNotesModalOpen(false)} 
+          />
+        )}
+
         {isQuickCollectOpen && selectedClient && (
           <div className="absolute inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-lg p-6 w-[500px]">
