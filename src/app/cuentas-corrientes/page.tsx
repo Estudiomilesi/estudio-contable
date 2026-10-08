@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { FileSpreadsheet, FileText, Send } from 'lucide-react';
+import { FileSpreadsheet, FileText, Send, MessageSquare } from 'lucide-react';
 type PaymentApplication = {
   id: string;
   amount: number;
@@ -762,6 +762,7 @@ export default function CuentasCorrientesPage() {
                   Saldo: ${selectedClient.balance.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
                 <div className="flex justify-end gap-3 mb-3 text-gray-500">
+                  <button onClick={() => setIsNotesModalOpen(true)} title="Seguimiento (Notas)" className="hover:text-blue-600 transition-colors"><MessageSquare size={20} /></button>
                   <button onClick={exportClientExcel} title="Descargar en Excel" className="hover:text-green-600 transition-colors"><FileSpreadsheet size={20} /></button>
                   <button onClick={exportClientPDF} title="Descargar en PDF" className="hover:text-red-600 transition-colors"><FileText size={20} /></button>
                   <button onClick={handleSendEmail} title="Enviar por Email" className="hover:text-indigo-600 transition-colors text-indigo-500"><Send size={20} /></button>
