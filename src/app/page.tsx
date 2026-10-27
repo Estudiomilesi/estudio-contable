@@ -129,14 +129,20 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ l
     prisma.check.findMany({ where: { status: 'IN_PORTFOLIO' }, orderBy: { dueDate: 'asc' } }),
     (async () => {
       const latestNoticeClient = await prisma.client.findFirst({
-        where: { lastDebtNoticeSent: { not: null } },
+        where: {
+          lastDebtNoticeSent: { not: null },
+          ...(clientLabelFilter && { professionalLabel: clientLabelFilter })
+        },
         orderBy: { lastDebtNoticeSent: 'desc' },
         select: { lastDebtNoticeSent: true }
       });
       if (!latestNoticeClient?.lastDebtNoticeSent) return [];
       const latestDateStr = latestNoticeClient.lastDebtNoticeSent.toISOString().split('T')[0];
       const allNotices = await prisma.client.findMany({
-        where: { lastDebtNoticeSent: { not: null } },
+        where: {
+          lastDebtNoticeSent: { not: null },
+          ...(clientLabelFilter && { professionalLabel: clientLabelFilter })
+        },
         select: { name: true, lastDebtNoticeSent: true },
         orderBy: { lastDebtNoticeSent: 'desc' }
       });

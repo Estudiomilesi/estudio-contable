@@ -185,6 +185,7 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
     where: {
       type: 'PAYMENT',
       date: { gte: firstDay, lte: lastDay },
+      ...(isJuanma && { client: { professionalLabel: { in: ['FJ', 'JF'] } } }),
       paymentsApplied: {
         some: {
           charge: { collaboratorAmount: { gt: 0 } }

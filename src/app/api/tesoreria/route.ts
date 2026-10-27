@@ -61,7 +61,7 @@ export async function GET(request: Request) {
       filteredTxs = filteredTxs.filter(t => {
         if (t.category === 'Sueldos') return true;
         if (!t.client) return false;
-        return t.client.professionalLabel === 'FJ' || t.client.professionalLabel === 'JF';
+        return t.client.professionalLabel === 'F' || t.client.professionalLabel === 'FJ' || t.client.professionalLabel === 'JF';
       });
     }
 

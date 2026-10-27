@@ -89,8 +89,7 @@ export default function ClientesPage() {
         setIsJuanma(isJ); 
         if (isJ) {
           setFormData(prev => ({...prev, professionalLabel: 'FJ'}));
-          setFilterLabel('FJ_JF');
-        }
+          }
       } catch(e){}
     }
   }, []);
@@ -393,7 +392,7 @@ export default function ClientesPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Etiqueta</label>
                   <select value={formData.professionalLabel} onChange={e => setFormData({...formData, professionalLabel: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    {!isJuanma && <option value="F">F</option>}
+                    <option value="F">F</option>
                     <option value="FJ">FJ</option>
                     <option value="JF">JF</option>
                   </select>
@@ -489,8 +488,8 @@ export default function ClientesPage() {
                       <div className="flex items-center gap-1">
                         <span className="cursor-pointer hover:bg-gray-200 px-1 rounded" onClick={() => requestSort('professionalLabel')}>Etiqueta</span>
                         <select value={filterLabel} onChange={e => setFilterLabel(e.target.value)} className="text-[10px] border-gray-300 rounded p-0 h-5 bg-white font-normal shadow-sm">
-                          <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
-                          {!isJuanma && <option value="F">F</option>}
+                          <option value="ALL">Todas</option>
+                          <option value="F">F</option>
                           <option value="FJ">FJ</option>
                           <option value="JF">JF</option>
                         </select>

@@ -50,8 +50,7 @@ export default function CuentasCorrientesPage() {
       try { 
         const isJ = JSON.parse(info.innerText).isJuanma;
         setIsJuanma(isJ); 
-        if (isJ) setFilterLabel('FJ_JF');
-      } catch(e){}
+        } catch(e){}
     }
   }, []);
 
@@ -674,8 +673,8 @@ export default function CuentasCorrientesPage() {
                         onChange={e => setFilterLabel(e.target.value)}
                         className="text-[10px] border-gray-300 rounded focus:ring-indigo-500 font-normal p-0 h-4"
                       >
-                        <option value={isJuanma ? "FJ_JF" : "ALL"}>Todas</option>
-                        {!isJuanma && <option value="F">F</option>}
+                        <option value="ALL">Todas</option>
+                        <option value="F">F</option>
                         <option value="FJ">FJ</option>
                         <option value="JF">JF</option>
                       </select>
