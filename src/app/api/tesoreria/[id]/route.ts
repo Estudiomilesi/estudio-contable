@@ -61,6 +61,15 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     // Si tiene accountTransaction asociada (pago de honorarios), borrarla también para mantener integridad
     if (tx.accountTransactionId) {
+      await prisma.paymentApplication.deleteMany({
+        where: {
+          OR: [
+            { paymentId: tx.accountTransactionId },
+            { chargeId: tx.accountTransactionId }
+          ]
+        }
+      });
+
       // Como AccountTransaction puede tener items, los borramos primero
       await prisma.accountTransactionItem.deleteMany({
         where: { transactionId: tx.accountTransactionId }
@@ -83,9 +92,14 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       });
     }
 
-    // Finalmente borrar la transacción de tesorería
-    await prisma.treasuryTransaction.delete({
-      where: { id }
+    // Borrar transacciones hijas vinculadas (ej. retiros automáticos) y la transacción principal
+    await prisma.treasuryTransaction.deleteMany({
+      where: {
+        OR: [
+          { parentTransactionId: id },
+          { id }
+        ]
+      }
     });
 
     return NextResponse.json({ success: true });
