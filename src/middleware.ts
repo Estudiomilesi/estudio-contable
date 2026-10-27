@@ -31,7 +31,6 @@ export async function middleware(request: NextRequest) {
       const path = request.nextUrl.pathname;
       if (
         path === '/' ||
-        path.startsWith('/clientes') || 
         path.startsWith('/facturacion') || 
         path.startsWith('/reportes') || 
         path.startsWith('/configuracion') || 
