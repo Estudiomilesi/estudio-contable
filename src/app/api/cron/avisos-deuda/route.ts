@@ -208,7 +208,7 @@ export async function GET(request: Request) {
       `;
 
       try {
-        await sendEmail(correosDestino, `Aviso de Deuda - ${firma}`, htmlEmail);
+        await sendEmail(correosDestino, `Aviso de Deuda - ${firma}`, htmlEmail, undefined, 'luisina@estudiomilesi.com');
         await prisma.client.update({
           where: { id: client.id },
           data: { lastDebtNoticeSent: today }
