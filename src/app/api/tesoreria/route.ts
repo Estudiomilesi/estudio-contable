@@ -298,7 +298,7 @@ export async function POST(request: Request) {
     if (data.account === 'BANCOS FEDE' || data.account === 'BANCOS JUANMA') {
       const retiroSocio = data.account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
 
-      if (data.type === 'INCOME') {
+      if (data.type === 'INCOME' && data.category !== 'Retiro Fede' && data.category !== 'Retiro Juanma') {
         const retiroNetoAmount = Math.max(0, pagoNetoTesoreria - participacionPagaEnTesoreria);
         const ivaAmount = Math.abs(txAmount) - pagoNetoTesoreria;
 

@@ -586,6 +586,8 @@ export default function TesoreriaPage() {
                 ) : formData.type === 'INCOME' ? (
                   <>
                     <option value="Honorarios">Honorarios (Fijo)</option>
+                    {!IS_CORI && <option value="Retiro Fede">Aporte / Reintegro Fede (Fijo)</option>}
+                    {!IS_CORI && <option value="Retiro Juanma">Aporte / Reintegro Juanma (Fijo)</option>}
                     {treasuryConcepts.filter(c => c.type === 'TREASURY_INCOME').map(c => (
                       <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
@@ -888,7 +890,7 @@ export default function TesoreriaPage() {
                   {(() => {
                     const isIncome = editingTx.type === 'INCOME';
                     const fixedOptions = isIncome 
-                      ? ['Honorarios'] 
+                      ? ['Honorarios', 'Retiro Fede', 'Retiro Juanma'] 
                       : ['Gastos Generales', 'Retiro Fede', 'Retiro Juanma'];
                     const dynamicOptions = treasuryConcepts
                       .filter(c => isIncome ? c.type === 'TREASURY_INCOME' : c.type === 'TREASURY_EXPENSE')
