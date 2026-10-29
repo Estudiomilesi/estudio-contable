@@ -18,7 +18,7 @@ export async function GET(request: Request) {
             chargesCovered: {
               include: {
                 charge: {
-                  select: { id: true, description: true, receiptNumber: true, date: true }
+                  select: { id: true, description: true, receiptNumber: true, date: true, amount: true }
                 }
               }
             }

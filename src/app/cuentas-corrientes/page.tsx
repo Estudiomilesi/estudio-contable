@@ -18,6 +18,7 @@ type PaymentApplication = {
     description: string | null;
     receiptNumber?: string | null;
     date: string;
+    amount?: number;
   };
 };
 
@@ -468,7 +469,7 @@ export default function CuentasCorrientesPage() {
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(21, 128, 61);
-    doc.text(`${tx.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 190, 96, { align: 'right' });
+    doc.text(`$${tx.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 190, 96, { align: 'right' });
 
     // Tabla Detalle del Pago
     doc.setFontSize(11);
@@ -480,7 +481,7 @@ export default function CuentasCorrientesPage() {
       head: [['Medio / Concepto', 'Importe']],
       body: [[
         tx.description || 'Pago ingresado',
-        `${tx.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        `$${tx.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
       ]],
       startY: 118,
       theme: 'plain',
@@ -519,9 +520,22 @@ export default function CuentasCorrientesPage() {
           const d = new Date(ch.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
           label += ` (${d})`;
         }
+        const fullChargeTx = ch?.id ? selectedClient.transactions.find(t => t.id === ch.id) : undefined;
+        const totalChargeAmount = ch?.amount ?? fullChargeTx?.amount ?? 0;
+        const remainingDebt = fullChargeTx
+          ? Math.max(0, fullChargeTx.amount - getAppliedAmount(fullChargeTx))
+          : Math.max(0, totalChargeAmount - app.amount);
+
+        if (totalChargeAmount > 0 && app.amount < totalChargeAmount - 0.01) {
+          if (remainingDebt > 0.01) {
+            label += `\n[APLICACIÓN PARCIAL - Total comp.: $${totalChargeAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} | Saldo pendiente: $${remainingDebt.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}]`;
+          } else {
+            label += `\n[Cancelación de saldo parcial sobre total de $${totalChargeAmount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}]`;
+          }
+        }
         return [
           label,
-          `${app.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          `$${app.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
         ];
       });
 

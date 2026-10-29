@@ -16,7 +16,11 @@ export async function POST(request: Request) {
         client: true,
         chargesCovered: {
           include: {
-            charge: true
+            charge: {
+              include: {
+                paymentsApplied: true
+              }
+            }
           }
         }
       }
@@ -45,10 +49,13 @@ export async function POST(request: Request) {
     for (const tx of txs) {
       for (const app of tx.chargesCovered) {
         if (!chargesMap.has(app.charge.id)) {
+          const totalAppliedToCharge = app.charge.paymentsApplied?.reduce((s: number, a: any) => s + a.amount, 0) || 0;
           chargesMap.set(app.charge.id, { 
             desc: app.charge.description, 
             receiptNumber: app.charge.receiptNumber,
             date: app.charge.date,
+            totalAmount: app.charge.amount,
+            remainingDebt: Math.max(0, app.charge.amount - totalAppliedToCharge),
             applied: 0 
           });
         }
@@ -72,10 +79,17 @@ export async function POST(request: Request) {
            const d = new Date(charge.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
            label += ` (${d})`;
         }
+        if (charge.totalAmount > 0 && charge.applied < charge.totalAmount - 0.01) {
+          if (charge.remainingDebt > 0.01) {
+            label += `<br/><span style="color: #b45309; font-weight: 600; font-size: 12px;">[Aplicación parcial — Total comp.: $${charge.totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})} | Saldo pendiente: $${charge.remainingDebt.toLocaleString('es-AR', {minimumFractionDigits: 2})}]</span>`;
+          } else {
+            label += `<br/><span style="color: #64748b; font-style: italic; font-size: 12px;">[Cancelación de saldo parcial sobre total de $${charge.totalAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}]</span>`;
+          }
+        }
         
         comprobantesHtml += `<tr>
           <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 13px;">${label}</td>
-          <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; text-align: right;">${charge.applied.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
+          <td style="padding: 8px 10px; border-bottom: 1px solid #e2e8f0; color: #475569; text-align: right;">$${charge.applied.toLocaleString('es-AR', {minimumFractionDigits: 2})}</td>
         </tr>`;
       }
       comprobantesHtml += `</table>`;
