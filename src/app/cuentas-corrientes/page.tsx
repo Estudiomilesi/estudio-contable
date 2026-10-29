@@ -13,6 +13,12 @@ type PaymentApplication = {
   payment?: {
     description: string | null;
   };
+  charge?: {
+    id: string;
+    description: string | null;
+    receiptNumber?: string | null;
+    date: string;
+  };
 };
 
 type Transaction = {
