@@ -87,8 +87,7 @@ export async function POST(request: Request) {
     let txAmount = parseFloat(data.amount);
 
     if (data.type === 'TRANSFER') {
-      const parsedAmount = Math.abs(txAmount);
-      if (parsedAmount <= 0) return NextResponse.json({ error: 'Importe inválido' }, { status: 400 });
+      let parsedAmount = Math.abs(txAmount || 0);
       if (!data.toAccount || data.account === data.toAccount) {
         return NextResponse.json({ error: 'Cuenta destino inválida' }, { status: 400 });
       }
@@ -105,13 +104,23 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: 'Algunos cheques ya no están en cartera' }, { status: 400 });
         }
         const totalChecks = checksToPay.reduce((sum, c) => sum + c.amount, 0);
-        if (Math.abs(totalChecks - parsedAmount) > 0.01) {
-          return NextResponse.json({ error: 'El importe a transferir debe coincidir con el total de los cheques seleccionados' }, { status: 400 });
-        }
+        parsedAmount = totalChecks;
       }
 
+      // Validar cheques entrantes si el destino es CHEQUES
       if (data.toAccount === 'CHEQUES') {
-        return NextResponse.json({ error: 'No se puede transferir hacia CHEQUES mediante Pase de Caja. Registre un Ingreso.' }, { status: 400 });
+        if (!data.incomingChecks || !Array.isArray(data.incomingChecks) || data.incomingChecks.length === 0) {
+          return NextResponse.json({ error: 'Debe ingresar al menos un cheque recibido' }, { status: 400 });
+        }
+        const totalIncoming = data.incomingChecks.reduce((sum: number, c: any) => sum + (parseFloat(c.amount) || 0), 0);
+        if (totalIncoming <= 0) {
+          return NextResponse.json({ error: 'El monto de los cheques debe ser mayor a 0' }, { status: 400 });
+        }
+        parsedAmount = Math.abs(totalIncoming);
+      }
+
+      if (parsedAmount <= 0 || isNaN(parsedAmount)) {
+        return NextResponse.json({ error: 'Importe inválido' }, { status: 400 });
       }
 
       const txOut = await prisma.treasuryTransaction.create({
@@ -141,6 +150,24 @@ export async function POST(request: Request) {
           where: { id: { in: data.selectedCheckIds } },
           data: { status: 'DELIVERED', outgoingTxId: txOut.id }
         });
+      }
+
+      if (data.toAccount === 'CHEQUES') {
+        for (const checkData of data.incomingChecks) {
+          if (!checkData.number || !checkData.bank || !checkData.amount) continue;
+          await prisma.check.create({
+            data: {
+              number: checkData.number,
+              bank: checkData.bank,
+              issueDate: parseToUtcNoon(checkData.issueDate || data.date),
+              dueDate: parseToUtcNoon(checkData.dueDate),
+              amount: Math.abs(parseFloat(checkData.amount)),
+              clientId: data.clientId || null,
+              incomingTxId: txIn.id,
+              isEcheq: checkData.isEcheq === true
+            }
+          });
+        }
       }
 
       return NextResponse.json({ success: true }, { status: 201 });

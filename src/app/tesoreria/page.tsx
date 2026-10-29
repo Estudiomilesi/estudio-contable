@@ -187,7 +187,7 @@ export default function TesoreriaPage() {
       const payload = { 
         ...formData, 
         amount,
-        incomingChecks: formData.account === 'CHEQUES' && formData.type === 'INCOME' ? incomingChecks : undefined,
+        incomingChecks: (formData.account === 'CHEQUES' && formData.type === 'INCOME') || (formData.type === 'TRANSFER' && formData.toAccount === 'CHEQUES') ? incomingChecks : undefined,
         selectedCheckIds: formData.account === 'CHEQUES' && formData.type !== 'INCOME' ? selectedCheckIds : undefined,
         selectedChargeIds: Array.from(selectedChargeIds)
       };
@@ -450,7 +450,7 @@ export default function TesoreriaPage() {
               )}
             </div>
 
-            {formData.type === 'TRANSFER' && (
+            {formData.type === 'TRANSFER' && formData.account !== 'CHEQUES' && formData.toAccount !== 'CHEQUES' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700">Importe a transferir ($)</label>
                 <input type="number" required min="0.01" step="0.01" value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 font-bold" />
@@ -458,7 +458,7 @@ export default function TesoreriaPage() {
             )}
 
             {/* CHECK INCOME FIELDS */}
-            {formData.account === 'CHEQUES' && formData.type === 'INCOME' && (
+            {((formData.account === 'CHEQUES' && formData.type === 'INCOME') || (formData.type === 'TRANSFER' && formData.toAccount === 'CHEQUES')) && (
               <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200 space-y-4">
                 <div className="flex justify-between items-center">
                   <h4 className="text-sm font-bold text-yellow-800">Detalles de Cheques Recibidos</h4>
