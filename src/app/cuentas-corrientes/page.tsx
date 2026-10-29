@@ -5,7 +5,8 @@ import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { FileSpreadsheet, FileText, Send, MessageSquare } from 'lucide-react';
+import { FileSpreadsheet, FileText, Send, MessageSquare, Printer } from 'lucide-react';
+import { LOGO_BASE64 } from '@/lib/logo';
 type PaymentApplication = {
   id: string;
   amount: number;
@@ -387,6 +388,183 @@ export default function CuentasCorrientesPage() {
     } catch (error) {
       alert('Error de conexión al enviar el reporte.');
     }
+  };
+
+  const printReceiptPDF = (tx: Transaction) => {
+    if (!selectedClient) return;
+    const IS_CORI = process.env.NEXT_PUBLIC_STUDIO_NAME === 'CORI';
+    const isMilesi = selectedClient.professionalLabel === 'F';
+    const firma = IS_CORI
+      ? 'Estudio Jurídico Cicconi'
+      : (isMilesi ? 'Estudio Milesi' : 'Estudio Contable F&J');
+    const primaryColor: [number, number, number] = [124, 71, 81]; // #7C4751
+
+    const doc = new jsPDF({ compress: true });
+
+    // Logo y encabezado
+    try {
+      doc.addImage(LOGO_BASE64, 'PNG', 14, 14, 28, 19.8, undefined, 'FAST');
+    } catch (e) {}
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(firma, 14, 40);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(IS_CORI ? 'Servicios Jurídicos' : 'Servicios Contables e Impositivos', 14, 46);
+
+    // Recuadro Recibo
+    doc.setDrawColor(200);
+    doc.setFillColor(245, 247, 250);
+    doc.roundedRect(116, 14, 80, 24, 3, 3, 'FD');
+
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('RECIBO DE PAGO', 156, 24, { align: 'center' });
+
+    const dateStr = new Date(tx.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Fecha: ${dateStr}`, 156, 32, { align: 'center' });
+
+    // Línea divisoria
+    doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setLineWidth(1.2);
+    doc.line(14, 52, 196, 52);
+
+    // Datos del cliente
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text('DATOS DEL CLIENTE', 14, 62);
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(51, 65, 85);
+    doc.text(`Recibimos de: ${selectedClient.name}`, 14, 70);
+
+    // Cuadro Total Recibido
+    doc.setFillColor(240, 253, 244); // bg-green-50
+    doc.roundedRect(14, 78, 182, 24, 2, 2, 'F');
+    doc.setFillColor(34, 197, 94); // green-500
+    doc.rect(14, 78, 3, 24, 'F');
+
+    doc.setFontSize(10);
+    doc.setTextColor(71, 85, 105);
+    doc.text(`Fecha del pago: ${dateStr}`, 22, 87);
+    doc.text('Total Recibido:', 190, 86, { align: 'right' });
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(21, 128, 61);
+    doc.text(`${tx.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 190, 96, { align: 'right' });
+
+    // Tabla Detalle del Pago
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(51, 65, 85);
+    doc.text('Detalle del Pago', 14, 114);
+
+    autoTable(doc, {
+      head: [['Medio / Concepto', 'Importe']],
+      body: [[
+        tx.description || 'Pago ingresado',
+        `${tx.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      ]],
+      startY: 118,
+      theme: 'plain',
+      headStyles: {
+        fillColor: [241, 245, 249],
+        textColor: [51, 65, 85],
+        fontStyle: 'bold',
+        fontSize: 9
+      },
+      bodyStyles: {
+        lineColor: [226, 232, 240],
+        lineWidth: { bottom: 0.5 },
+        fontSize: 10,
+        textColor: [15, 23, 42]
+      },
+      columnStyles: {
+        0: { cellWidth: 'auto' },
+        1: { halign: 'right', fontStyle: 'bold', cellWidth: 45 }
+      }
+    });
+
+    let currentY = (doc as any).lastAutoTable.finalY + 14;
+
+    // Comprobantes Cancelados
+    if (tx.chargesCovered && tx.chargesCovered.length > 0) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(51, 65, 85);
+      doc.text('Comprobantes Cancelados / Imputados', 14, currentY);
+
+      const coveredRows = tx.chargesCovered.map(app => {
+        const ch = app.charge;
+        let label = ch?.description || 'Comprobante';
+        if (ch?.receiptNumber) label += ` - N° ${ch.receiptNumber}`;
+        if (ch?.date) {
+          const d = new Date(ch.date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          label += ` (${d})`;
+        }
+        return [
+          label,
+          `${app.amount.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        ];
+      });
+
+      autoTable(doc, {
+        head: [['Comprobante', 'Importe Imputado']],
+        body: coveredRows,
+        startY: currentY + 4,
+        theme: 'plain',
+        headStyles: {
+          fillColor: [241, 245, 249],
+          textColor: [51, 65, 85],
+          fontStyle: 'bold',
+          fontSize: 9
+        },
+        bodyStyles: {
+          lineColor: [226, 232, 240],
+          lineWidth: { bottom: 0.5 },
+          fontSize: 9,
+          textColor: [71, 85, 105]
+        },
+        columnStyles: {
+          0: { cellWidth: 'auto' },
+          1: { halign: 'right', fontStyle: 'bold', cellWidth: 45 }
+        }
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 20;
+    }
+
+    // Pie de página
+    const footerY = Math.max(currentY + 10, 265);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(14, footerY - 8, 196, footerY - 8);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(100, 116, 139);
+    doc.text('¡Muchas gracias por confiar en nuestro equipo!', 105, footerY, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(51, 65, 85);
+    const profText = IS_CORI ? 'Estudio Jurídico Cicconi' : (isMilesi ? 'CP. Federico Milesi' : 'CP. Federico Milesi - CP. Juan M. Brigi');
+    doc.text(profText, 105, footerY + 6, { align: 'center' });
+
+    const cleanName = selectedClient.name.replace(/[^a-zA-Z0-9]/g, '_');
+    const cleanDate = dateStr.replace(/\//g, '-');
+    doc.save(`Recibo_${cleanName}_${cleanDate}.pdf`);
   };
 
   const exportClientPDF = () => {
@@ -876,16 +1054,27 @@ export default function CuentasCorrientesPage() {
                                 </div>
                               )
                             ) : (
-                              isFullyApplied ? (
-                                <span className="inline-flex rounded-full bg-gray-200 px-2 py-1 text-xs font-bold text-gray-800">Aplicado</span>
-                              ) : (
-                                <button 
-                                  onClick={() => openApplyModal(tx)}
-                                  className="inline-flex rounded bg-indigo-100 hover:bg-indigo-200 px-2 py-1 text-[10px] font-bold text-indigo-800 transition-colors"
-                                >
-                                  Aplicar Pago
-                                </button>
-                              )
+                              <div className="flex items-center justify-center gap-1.5">
+                                {isFullyApplied ? (
+                                  <span className="inline-flex rounded-full bg-gray-200 px-2 py-1 text-xs font-bold text-gray-800">Aplicado</span>
+                                ) : (
+                                  <button 
+                                    onClick={() => openApplyModal(tx)}
+                                    className="inline-flex rounded bg-indigo-100 hover:bg-indigo-200 px-2 py-1 text-[10px] font-bold text-indigo-800 transition-colors"
+                                  >
+                                    Aplicar Pago
+                                  </button>
+                                )}
+                                {!tx.description?.startsWith('NC -') && (
+                                  <button
+                                    onClick={() => printReceiptPDF(tx)}
+                                    title="Descargar / Imprimir Recibo PDF"
+                                    className="inline-flex items-center gap-1 rounded border border-gray-300 bg-white hover:bg-gray-100 text-gray-700 hover:text-indigo-600 px-2 py-1 text-[10px] font-semibold shadow-sm transition-colors"
+                                  >
+                                    <Printer size={12} /> Recibo
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </td>
                         </tr>

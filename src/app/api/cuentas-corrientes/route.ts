@@ -15,7 +15,13 @@ export async function GET(request: Request) {
                 }
               }
             },
-            chargesCovered: true
+            chargesCovered: {
+              include: {
+                charge: {
+                  select: { id: true, description: true, receiptNumber: true, date: true }
+                }
+              }
+            }
           },
           orderBy: [
             { date: 'desc' },
