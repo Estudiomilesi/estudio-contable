@@ -6,9 +6,9 @@ import { jsPDF } from 'jspdf';
 import QRCode from 'qrcode';
 import { generatePdfDoc } from '@/lib/pdfGenerator';
 import { LOGO_BASE64 } from '@/lib/logo';
-import dynamic from 'next/dynamic';
 
-const ImportAFIPModal = dynamic(() => import('@/components/ImportAFIPModal'), { ssr: false });
+
+import ImportAFIPModal from '@/components/ImportAFIPModal';
 
 type Client = {
   id: string;

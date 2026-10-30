@@ -52,9 +52,8 @@ export default function ImportAFIPModal({
     return new Date(val); // fallback
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const processFiles = async (files: File[]) => {
     setError('');
-    const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
 
     // Check if they are PDFs
@@ -70,11 +69,17 @@ export default function ImportAFIPModal({
           method: 'POST',
           body: formData
         });
-        const data = await res.json();
+        const rawText = await res.text();
+        let data: any;
+        try {
+          data = JSON.parse(rawText);
+        } catch {
+          throw new Error('Error del servidor al procesar el PDF. Intentá nuevamente.');
+        }
         if (!res.ok) throw new Error(data.error || 'Error al procesar PDFs');
 
         // Match clients and determine billing profile
-        const parsed = data.parsed.map((tx: any, index: number) => {
+        const parsed = (data.parsed || []).map((tx: any) => {
           let matchedClient = null;
           let receptorCuitMatch = '';
           let issuerCuitMatch = '';
@@ -131,10 +136,14 @@ export default function ImportAFIPModal({
           
           return {
             ...tx,
+            amount: Number(tx.amount) || 0,
+            netAmount: Number(tx.netAmount) || 0,
+            ivaAmount: Number(tx.ivaAmount) || 0,
             _cuit: receptorCuitMatch, // for display
             clientId: matchedClient?.id || null,
             clientNameMatch: matchedClient?.name || null,
             billingProfile: derivedBillingProfile,
+            conceptName: tx.conceptName || (conceptos.length > 0 ? conceptos[0].name : 'Honorarios'),
             collaboratorName: matchedClient?.assignedCollaborator || null,
             collaboratorAmount: null,
             cae: tx.cae,
@@ -150,6 +159,7 @@ export default function ImportAFIPModal({
         setError(err.message || 'Error al procesar PDFs');
       } finally {
         setIsLoading(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
       return;
     }
@@ -263,9 +273,23 @@ export default function ImportAFIPModal({
       } catch (err) {
         console.error(err);
         setError('Error al procesar el archivo. Verificá que sea un Excel válido.');
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
     };
     reader.readAsBinaryString(selected);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    await processFiles(files);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = Array.from(e.dataTransfer?.files || []);
+    await processFiles(files);
   };
 
   
@@ -314,11 +338,15 @@ export default function ImportAFIPModal({
   const invalidCount = parsedData.length - validCount;
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+    <div 
+      className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50"
+      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onDrop={handleDrop}
+    >
       <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
         <div className="p-6 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-bold text-gray-900">Importar Comprobantes desde AFIP</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
+          <button onClick={() => { setParsedData([]); setError(''); onClose(); }} className="text-gray-400 hover:text-gray-500">
             ✕
           </button>
         </div>
@@ -327,12 +355,16 @@ export default function ImportAFIPModal({
           <div className="bg-blue-50 p-4 rounded-md">
             <h3 className="text-sm font-medium text-blue-800">Instrucciones:</h3>
             <ul className="mt-2 text-sm text-blue-700 list-disc list-inside">
-              <li>Podés seleccionar los <b>PDFs originales</b> de las Facturas/Notas de Crédito descargadas de AFIP (podés seleccionar varios a la vez).</li>
-              <li>O también, exportar desde "Mis Comprobantes &gt; Emitidos" a <b>Excel</b> y subir ese único archivo.</li>
+              <li>Podés seleccionar o arrastrar los <b>PDFs originales</b> de las Facturas/Notas de Crédito descargadas de AFIP (podés subir varios a la vez).</li>
+              <li>O también, exportar desde &quot;Mis Comprobantes &gt; Emitidos&quot; a <b>Excel</b> y subir ese único archivo.</li>
             </ul>
           </div>
 
-          <div>
+          <div 
+            onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            onDrop={handleDrop}
+            className="border-2 border-dashed border-indigo-200 rounded-lg p-4 bg-indigo-50/30 hover:bg-indigo-50/60 transition-colors"
+          >
             <input 
               type="file" 
               multiple
@@ -348,19 +380,34 @@ export default function ImportAFIPModal({
             />
           </div>
 
+          {isLoading && (
+            <div className="text-indigo-600 text-sm font-medium bg-indigo-50 p-3 rounded flex items-center gap-2">
+              Procesando archivos...
+            </div>
+          )}
+
           {error && <div className="text-red-600 text-sm font-medium bg-red-50 p-3 rounded">{error}</div>}
 
           {parsedData.length > 0 && (
             <div className="mt-4 space-y-4">
-              <div className="flex gap-4 text-sm">
-                <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
-                  {validCount} listos para importar
-                </span>
-                {invalidCount > 0 && (
-                  <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium">
-                    {invalidCount} sin cliente asociado (se ignorarán)
+              <div className="flex justify-between items-center text-sm">
+                <div className="flex gap-4">
+                  <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-medium">
+                    {validCount} listos para importar
                   </span>
-                )}
+                  {invalidCount > 0 && (
+                    <span className="bg-red-100 text-red-800 px-3 py-1 rounded-full font-medium">
+                      {invalidCount} sin cliente asociado (se ignorarán)
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setParsedData([]); setError(''); }}
+                  className="text-xs text-gray-500 hover:text-red-600 underline"
+                >
+                  Limpiar lista
+                </button>
               </div>
 
               <div className="border rounded-md overflow-x-auto max-h-64">
@@ -379,11 +426,15 @@ export default function ImportAFIPModal({
                   <tbody className="bg-white divide-y divide-gray-200">
                     {parsedData.map((tx, i) => (
                       <tr key={i} className={!tx.clientId ? 'bg-red-50' : ''}>
-                        <td className="px-3 py-2 whitespace-nowrap">{new Date(tx.date).toLocaleDateString('es-AR')}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">{tx.date ? new Date(tx.date).toLocaleDateString('es-AR') : '-'}</td>
                         <td className="px-3 py-2 whitespace-nowrap text-gray-500">{tx.receiptNumber}</td>
                         <td className="px-3 py-2">
-                          <select value={tx.conceptName || ''} onChange={(e) => handleConceptChange(i, e.target.value)} className="w-full text-xs border-gray-300 rounded p-1">
-                            {conceptos.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                          <select value={tx.conceptName || (conceptos.length > 0 ? conceptos[0].name : 'Honorarios')} onChange={(e) => handleConceptChange(i, e.target.value)} className="w-full text-xs border-gray-300 rounded p-1">
+                            {conceptos.length > 0 ? (
+                              conceptos.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)
+                            ) : (
+                              <option value="Honorarios">Honorarios</option>
+                            )}
                           </select>
                         </td>
                         <td className="px-3 py-2">
@@ -394,7 +445,7 @@ export default function ImportAFIPModal({
                           {tx.clientNameMatch || <span className="text-red-500 italic">No encontrado</span>}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap text-right font-medium">
-                          ${tx.amount.toLocaleString('es-AR', {minimumFractionDigits:2})}
+                          ${(Number(tx.amount) || 0).toLocaleString('es-AR', {minimumFractionDigits:2})}
                         </td>
                       </tr>
                     ))}
@@ -406,7 +457,7 @@ export default function ImportAFIPModal({
         </div>
         
         <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-          <button onClick={onClose} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          <button onClick={() => { setParsedData([]); setError(''); onClose(); }} className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
             Cancelar
           </button>
           <button 

@@ -68,21 +68,47 @@ export async function POST(request: Request) {
       
       const fileNameMatch = file.name.match(/^(\d{11})_\d{2,3}_(\d{4,5})_(\d{8})\.pdf$/i);
       if (fileNameMatch) {
-        pv = fileNameMatch[2];
+        pv = fileNameMatch[2].padStart(4, '0');
         nro = fileNameMatch[3];
       } else {
-        const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i);
-        const nroMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,150}?(\d{8})/i);
-        
-        if (pvMatch && nroMatch) {
+        const pvMatch = text.match(/Punto\s+de\s+Venta[\s\S]{0,50}?(\d{4,5})/i) || text.match(/(?:PV|Punto de Venta)[.\s:]*(\d{4,5})/i);
+        if (pvMatch) {
           pv = pvMatch[1].padStart(4, '0');
-          nro = nroMatch[1];
-        } else {
-          const directNroMatch = text.match(/Nro[.\s:]*(\d{4,5})[-_](\d{8})/i);
-          if (directNroMatch) {
-            pv = directNroMatch[1].padStart(4, '0');
-            nro = directNroMatch[2];
+        }
+
+        const nroMatches = [...text.matchAll(/Nro[.\s:]*(?:(\d{4,5})(\d{8})|(\d{8}))/gi)];
+        let foundNro = null;
+
+        for (const m of nroMatches) {
+          const precedingText = text.substring(Math.max(0, (m.index || 0) - 25), m.index || 0).toLowerCase();
+          if (precedingText.includes('brutos') || precedingText.includes('iibb')) {
+            continue;
           }
+          const extractedNro = m[2] || m[3];
+          if (precedingText.includes('comp') || precedingText.includes('cbte') || precedingText.includes('factura')) {
+            if (m[1] && !pvMatch) pv = m[1].padStart(4, '0');
+            foundNro = extractedNro;
+            break;
+          }
+          if (!foundNro) {
+            if (m[1] && !pvMatch) pv = m[1].padStart(4, '0');
+            foundNro = extractedNro;
+          }
+        }
+
+        if (!foundNro) {
+          const dashMatches = [...text.matchAll(/(\d{4,5})[-_](\d{8})/g)];
+          for (const m of dashMatches) {
+            const pre = text.substring(Math.max(0, (m.index || 0) - 25), m.index || 0).toLowerCase();
+            if (pre.includes('brutos') || pre.includes('iibb')) continue;
+            if (!pvMatch) pv = m[1].padStart(4, '0');
+            foundNro = m[2];
+            break;
+          }
+        }
+
+        if (foundNro) {
+          nro = foundNro;
         }
       }
       
@@ -112,12 +138,14 @@ export async function POST(request: Request) {
       // 5. Total Amounts
       // "Importe Total: $ 15.000,00"
       const parseAmt = (str: string) => {
-        return parseFloat(str.replace(/\./g, '').replace(/,/g, '.'));
+        if (!str) return 0;
+        const val = parseFloat(str.replace(/\./g, '').replace(/,/g, '.'));
+        return isNaN(val) ? 0 : val;
       };
 
-      const totalMatch = text.match(/Importe Total[^\d]*?([\d\.,]+)/i);
-      const netoMatch = text.match(/Importe Neto Gravado[^\d]*?([\d\.,]+)/i);
-      const ivaMatch = text.match(/IVA \d+%[^\d]*?([\d\.,]+)/i);
+      const totalMatch = text.match(/Importe Total[^\d]*(\d[\d\.,]*)/i);
+      const netoMatch = text.match(/Importe Neto Gravado[^\d]*(\d[\d\.,]*)/i);
+      const ivaMatch = text.match(/IVA \d+%[^\d]*(\d[\d\.,]*)/i);
 
       let total = 0;
       let neto = 0;
