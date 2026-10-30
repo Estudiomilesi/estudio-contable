@@ -136,24 +136,45 @@ export async function POST(request: Request) {
       }
 
       // 5. Total Amounts
-      // "Importe Total: $ 15.000,00"
       const parseAmt = (str: string) => {
         if (!str) return 0;
         const val = parseFloat(str.replace(/\./g, '').replace(/,/g, '.'));
         return isNaN(val) ? 0 : val;
       };
 
-      const totalMatch = text.match(/Importe Total[^\d]*(\d[\d\.,]*)/i);
-      const netoMatch = text.match(/Importe Neto Gravado[^\d]*(\d[\d\.,]*)/i);
-      const ivaMatch = text.match(/IVA \d+%[^\d]*(\d[\d\.,]*)/i);
+      const firstPageText = text.split(/DUPLICADO/i)[0] || text;
+
+      const totalInlineMatch = firstPageText.match(/Importe Total[ \t.:$]*([\d\.]*,\d{2})/i);
+      const netoInlineMatch = firstPageText.match(/Importe Neto Gravado[ \t.:$]*([\d\.]*,\d{2})/i);
 
       let total = 0;
       let neto = 0;
       let iva = 0;
 
-      if (totalMatch) total = parseAmt(totalMatch[1]);
-      if (netoMatch) neto = parseAmt(netoMatch[1]);
-      if (ivaMatch) iva = parseAmt(ivaMatch[1]);
+      if (totalInlineMatch) {
+        total = parseAmt(totalInlineMatch[1]);
+      } else {
+        // En las Facturas C de ARCA los importes aparecen en las líneas inmediatamente anteriores a "Subtotal: $"
+        const beforeSubtotalMatch = firstPageText.match(/([\d\.]*,\d{2})\s*\r?\n\s*([\d\.]*,\d{2})\s*\r?\n\s*Subtotal:\s*\$/i);
+        if (beforeSubtotalMatch) {
+          total = parseAmt(beforeSubtotalMatch[1]);
+          neto = parseAmt(beforeSubtotalMatch[2]);
+        } else {
+          const singleBeforeSubtotal = firstPageText.match(/([\d\.]*,\d{2})\s*\r?\n\s*Subtotal:\s*\$/i);
+          if (singleBeforeSubtotal) {
+            total = parseAmt(singleBeforeSubtotal[1]);
+          }
+        }
+      }
+
+      if (netoInlineMatch) {
+        neto = parseAmt(netoInlineMatch[1]);
+      }
+
+      const ivaMatches = [...firstPageText.matchAll(/IVA\s+\d+(?:[\.,]\d+)?%[ \t.:$]*([\d\.]*,\d{2})/gi)];
+      for (const m of ivaMatches) {
+        iva += parseAmt(m[1]);
+      }
 
       if (!neto) neto = total - iva;
 
