@@ -256,8 +256,8 @@ export default function FacturacionPage() {
     }
   };
 
-  // Extraer los últimos 12 meses (agrupados por fecha de transacción para los headers de la tabla)
-  const historyDates = useMemo(() => {
+  // Extraer todos los meses disponibles ordenados de más reciente a más antiguo
+  const allHistoryDates = useMemo(() => {
     const dates = new Set<string>();
     clientes.forEach(c => {
       c.accountTransactions?.forEach(t => {
@@ -268,8 +268,21 @@ export default function FacturacionPage() {
       });
     });
     // Sort newest to oldest (left to right)
-    return Array.from(dates).sort((a, b) => b.localeCompare(a)).slice(0, 12);
+    return Array.from(dates).sort((a, b) => b.localeCompare(a));
   }, [clientes]);
+
+  // Mostrar los últimos 12 meses en las columnas de la tabla
+  const historyDates = useMemo(() => {
+    return allHistoryDates.slice(0, 12);
+  }, [allHistoryDates]);
+
+  const getClientMonthAmount = (c: Client, monthStr: string): number => {
+    const tx = c.accountTransactions?.find(
+      t => t.description && t.description.startsWith('Abono Mensual') && t.date.startsWith(monthStr)
+    );
+    if (!tx) return 0;
+    return (tx.netAmount === 0 && tx.amount !== 0) ? tx.amount : (tx.netAmount || 0);
+  };
 
   // Totals
   const totales = useMemo(() => {
@@ -419,6 +432,9 @@ export default function FacturacionPage() {
                 filteredAndSortedClientes.map((c) => {
                   const currentValue = ediciones[c.id] !== undefined ? ediciones[c.id] : c.currentFee;
                   const isEdited = ediciones[c.id] !== undefined;
+                  const latestMonth = historyDates[0];
+                  const latestMonthAmt = latestMonth ? getClientMonthAmount(c, latestMonth) : null;
+                  const isCurrentFeeModified = latestMonthAmt !== null && Math.round(currentValue) !== Math.round(latestMonthAmt);
 
                   return (
                     <tr key={c.id} className={`${isEdited ? 'bg-yellow-50' : 'hover:bg-gray-50'}`}>
@@ -460,7 +476,16 @@ export default function FacturacionPage() {
                           <option value="JUANMA_MONO">{IS_CORI ? 'Monotributo' : 'JuanMa Mono'}</option>
                         </select>
                       </td>
-                      <td className="px-2 py-1 whitespace-nowrap text-right tabular-nums">
+                      <td
+                        className={`px-2 py-1 whitespace-nowrap text-right tabular-nums ${
+                          isCurrentFeeModified ? 'bg-[#c5d3f8]' : ''
+                        }`}
+                        title={
+                          isCurrentFeeModified && latestMonthAmt !== null
+                            ? `Modificado respecto a ${latestMonth} ($${latestMonthAmt.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+                            : undefined
+                        }
+                      >
                         <input 
                           type="number"
                           min="0"
@@ -479,12 +504,27 @@ export default function FacturacionPage() {
                           <Trash2 className="h-4 w-4 mx-auto" />
                         </button>
                       </td>
-                      {historyDates.map(month => {
-                        // Buscar si el cliente tiene un cargo de Abono Mensual en este mes
-                        const tx = c.accountTransactions?.find(t => t.description && t.description.startsWith('Abono Mensual') && t.date.startsWith(month));
+                      {historyDates.map((month, idx) => {
+                        const currentAmt = getClientMonthAmount(c, month);
+                        const prevMonth = allHistoryDates[idx + 1];
+                        const prevAmt = prevMonth ? getClientMonthAmount(c, prevMonth) : null;
+                        const isModified = prevAmt !== null && Math.round(currentAmt) !== Math.round(prevAmt);
+
                         return (
-                          <td key={month} className="px-2 py-1 whitespace-nowrap text-right tabular-nums text-gray-800 font-semibold">
-                            {tx ? ((tx.netAmount === 0 && tx.amount !== 0) ? tx.amount : (tx.netAmount || 0)).toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}
+                          <td
+                            key={month}
+                            className={`px-2 py-1 whitespace-nowrap text-right tabular-nums font-semibold ${
+                              isModified
+                                ? 'bg-[#c5d3f8] text-indigo-950 font-bold'
+                                : 'text-gray-800'
+                            }`}
+                            title={
+                              isModified && prevAmt !== null
+                                ? `Modificado respecto a ${prevMonth} ($${prevAmt.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`
+                                : undefined
+                            }
+                          >
+                            {currentAmt !== 0 ? currentAmt.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '-'}
                           </td>
                         );
                       })}

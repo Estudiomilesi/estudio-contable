@@ -13,9 +13,12 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         accountTransactions: {
-          where: { type: 'CHARGE' },
+          where: {
+            type: 'CHARGE',
+            description: { startsWith: 'Abono Mensual' }
+          },
           orderBy: { date: 'desc' },
-          take: 12
+          take: 15
         }
       },
       orderBy: { code: 'asc' },
