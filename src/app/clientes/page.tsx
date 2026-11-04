@@ -523,7 +523,7 @@ export default function ClientesPage() {
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('currentFee')}>Abono</th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-gray-200" onClick={() => requestSort('isActive')}>Est.</th>
-                  <th className="px-3 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase tracking-wider">Acciones</th>
+                  <th className="px-3 py-2 text-right tabular-nums text-xs font-medium text-gray-700 uppercase tracking-wider sticky right-0 bg-gray-100 z-10 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">Acciones</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -535,7 +535,7 @@ export default function ClientesPage() {
                   filteredAndSortedClientes.map((c: Client) => (
                     <tr key={c.id} className={!c.isActive ? 'opacity-50 bg-gray-50' : ''}>
                       <td className="px-3 py-2 whitespace-nowrap text-xs font-medium text-gray-900">{c.code}</td>
-                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">{c.name}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700 max-w-[200px] truncate" title={c.name}>{c.name}</td>
                       {!IS_SINGLE_USER && (
                         <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-700">
                           <span className={`inline-flex rounded-full px-2 text-[10px] font-bold leading-5 border ${
@@ -573,9 +573,11 @@ export default function ClientesPage() {
                           <span className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-red-500"></span> Inactivo</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 whitespace-nowrap text-right tabular-nums text-xs font-medium flex justify-end gap-1">
-                        <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 p-1"><Pencil size={14} /></button>
-                        <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 p-1"><Trash2 size={14} /></button>
+                      <td className="px-3 py-2 whitespace-nowrap text-right tabular-nums text-xs font-medium sticky right-0 bg-white shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)]">
+                        <div className="flex justify-end gap-1">
+                          <button onClick={() => handleEdit(c)} className="text-indigo-600 hover:text-indigo-900 p-1" title="Editar cliente"><Pencil size={14} /></button>
+                          <button onClick={() => handleDelete(c.id)} className="text-red-600 hover:text-red-900 p-1" title="Eliminar cliente"><Trash2 size={14} /></button>
+                        </div>
                       </td>
                     </tr>
                   ))

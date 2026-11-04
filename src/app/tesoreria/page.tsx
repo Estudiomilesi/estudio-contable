@@ -70,6 +70,73 @@ export default function TesoreriaPage() {
   const [selectedChargeIds, setSelectedChargeIds] = useState<Set<string>>(new Set());
   const [isFetchingCharges, setIsFetchingCharges] = useState(false);
 
+  // Estados para dividir un mismo cobro/cheque entre 2 o más clientes
+  const [primaryClientAmount, setPrimaryClientAmount] = useState<string>('');
+  const [extraAllocations, setExtraAllocations] = useState<{
+    clientId: string;
+    amount: string;
+    pendingCharges: any[];
+    selectedChargeIds: string[];
+    isFetchingCharges?: boolean;
+  }[]>([]);
+
+  const handleAddExtraClient = () => {
+    setExtraAllocations(prev => [
+      ...prev,
+      { clientId: '', amount: '', pendingCharges: [], selectedChargeIds: [], isFetchingCharges: false }
+    ]);
+  };
+
+  const handleRemoveExtraClient = (idx: number) => {
+    setExtraAllocations(prev => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleExtraClientSelect = async (idx: number, clientId: string) => {
+    setExtraAllocations(prev => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], clientId, pendingCharges: [], selectedChargeIds: [], isFetchingCharges: !!clientId };
+      return next;
+    });
+    if (clientId) {
+      try {
+        const res = await fetch(`/api/cuentas-corrientes/pendientes/${clientId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setExtraAllocations(prev => {
+            const next = [...prev];
+            if (next[idx] && next[idx].clientId === clientId) {
+              next[idx] = { ...next[idx], pendingCharges: data, isFetchingCharges: false };
+            }
+            return next;
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const toggleExtraChargeSelection = (idx: number, chargeId: string) => {
+    setExtraAllocations(prev => {
+      const next = [...prev];
+      const item = { ...next[idx] };
+      const set = new Set(item.selectedChargeIds);
+      if (set.has(chargeId)) set.delete(chargeId);
+      else set.add(chargeId);
+      item.selectedChargeIds = Array.from(set);
+      let total = 0;
+      item.selectedChargeIds.forEach(cid => {
+        const ch = item.pendingCharges.find((c: any) => c.id === cid);
+        if (ch) total += ch.debt;
+      });
+      if (total > 0 && (!item.amount || parseFloat(item.amount) === 0)) {
+        item.amount = total.toString();
+      }
+      next[idx] = item;
+      return next;
+    });
+  };
+
   const [selectedFilterAccount, setSelectedFilterAccount] = useState<string | null>(null);
 
   const [alertDays, setAlertDays] = useState(15);
@@ -156,7 +223,10 @@ export default function TesoreriaPage() {
       const charge = pendingCharges.find(c => c.id === chargeId);
       if (charge) total += charge.debt;
     });
-    if (total > 0 && formData.account !== 'CHEQUES') {
+    if (total > 0 && (!primaryClientAmount || parseFloat(primaryClientAmount) === 0)) {
+      setPrimaryClientAmount(total.toString());
+    }
+    if (total > 0 && formData.account !== 'CHEQUES' && extraAllocations.length === 0) {
       setFormData(prev => {
         const currentAmount = parseFloat(prev.amount || '0');
         if (currentAmount === 0 || isNaN(currentAmount)) {
@@ -183,13 +253,50 @@ export default function TesoreriaPage() {
     try {
       const parsedAmount = parseFloat(formData.amount || '0');
       const amount = formData.type === 'EXPENSE' ? -Math.abs(parsedAmount) : Math.abs(parsedAmount);
+
+      let clientAllocations: any = undefined;
+      if (formData.type === 'INCOME' && formData.category === 'Honorarios' && extraAllocations.length > 0) {
+        if (!formData.clientId) {
+          alert('Seleccioná el primer cliente.');
+          return;
+        }
+        const firstAmt = parseFloat(primaryClientAmount || '0');
+        if (isNaN(firstAmt) || firstAmt <= 0) {
+          alert('Ingresá un importe válido para el primer cliente.');
+          return;
+        }
+        for (const extra of extraAllocations) {
+          if (!extra.clientId) {
+            alert('Seleccioná el cliente en todas las filas agregadas.');
+            return;
+          }
+          const eAmt = parseFloat(extra.amount || '0');
+          if (isNaN(eAmt) || eAmt <= 0) {
+            alert('Ingresá un importe válido para cada cliente.');
+            return;
+          }
+        }
+        clientAllocations = [
+          {
+            clientId: formData.clientId,
+            amount: firstAmt,
+            selectedChargeIds: Array.from(selectedChargeIds)
+          },
+          ...extraAllocations.map(e => ({
+            clientId: e.clientId,
+            amount: parseFloat(e.amount),
+            selectedChargeIds: e.selectedChargeIds
+          }))
+        ];
+      }
       
       const payload = { 
         ...formData, 
         amount,
         incomingChecks: (formData.account === 'CHEQUES' && formData.type === 'INCOME') || (formData.type === 'TRANSFER' && formData.toAccount === 'CHEQUES') ? incomingChecks : undefined,
         selectedCheckIds: formData.account === 'CHEQUES' && formData.type !== 'INCOME' ? selectedCheckIds : undefined,
-        selectedChargeIds: Array.from(selectedChargeIds)
+        selectedChargeIds: Array.from(selectedChargeIds),
+        clientAllocations
       };
 
       const res = await fetch('/api/tesoreria', {
@@ -200,6 +307,8 @@ export default function TesoreriaPage() {
 
       if (res.ok) {
         setFormData({ ...formData, amount: '', description: '', clientId: '' });
+        setPrimaryClientAmount('');
+        setExtraAllocations([]);
         setIncomingChecks([{ number: '', bank: '', amount: '', issueDate: new Date().toISOString().split('T')[0], dueDate: new Date().toISOString().split('T')[0], isEcheq: false }]);
         setSelectedCheckIds([]);
         fetchData();
@@ -629,7 +738,20 @@ export default function TesoreriaPage() {
             {(formData.category === 'Honorarios' || formData.category === 'Participacion') && (
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Cliente (Para Cta. Corriente / Etiqueta P&L)</label>
+                  <div className="flex justify-between items-center">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {extraAllocations.length > 0 ? 'Cliente 1' : 'Cliente (Para Cta. Corriente / Etiqueta P&L)'}
+                    </label>
+                    {formData.type === 'INCOME' && formData.category === 'Honorarios' && (
+                      <button
+                        type="button"
+                        onClick={handleAddExtraClient}
+                        className="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-semibold hover:bg-indigo-200"
+                      >
+                        + Dividir con otro cliente
+                      </button>
+                    )}
+                  </div>
                   <select value={formData.clientId} onChange={e => setFormData({...formData, clientId: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                     <option value="">-- Seleccionar Cliente --</option>
                     {clientes.map(c => (
@@ -637,6 +759,22 @@ export default function TesoreriaPage() {
                     ))}
                   </select>
                 </div>
+
+                {extraAllocations.length > 0 && formData.type === 'INCOME' && (
+                  <div>
+                    <label className="block text-xs font-semibold text-indigo-900">Importe a imputar a Cliente 1 ($)</label>
+                    <input
+                      type="number"
+                      min="0.01"
+                      step="0.01"
+                      required
+                      value={primaryClientAmount}
+                      onChange={e => setPrimaryClientAmount(e.target.value)}
+                      placeholder="0.00"
+                      className="mt-1 block w-full rounded-md border border-indigo-300 p-1.5 text-sm font-bold text-indigo-900 bg-white"
+                    />
+                  </div>
+                )}
 
                 {formData.clientId && formData.type === 'INCOME' && (
                   <div className="bg-indigo-50 p-4 rounded-md border border-indigo-200 space-y-2">
@@ -680,7 +818,7 @@ export default function TesoreriaPage() {
                           </div>
                           {(() => {
                             const totalDebt = Array.from(selectedChargeIds).reduce((acc, id) => acc + (pendingCharges.find(p => p.id === id)?.debt || 0), 0);
-                            const currentInputAmount = parseFloat(formData.amount || '0');
+                            const currentInputAmount = extraAllocations.length > 0 ? parseFloat(primaryClientAmount || '0') : parseFloat(formData.amount || '0');
                             if (totalDebt > currentInputAmount && currentInputAmount > 0) {
                               return <p className="text-[10px] text-blue-700 mt-1 italic text-right">Se aplicará un pago parcial por ${currentInputAmount.toLocaleString('es-AR', {minimumFractionDigits: 2})}. El resto quedará impago.</p>
                             }
@@ -689,6 +827,98 @@ export default function TesoreriaPage() {
                         </div>
                       </>
                     )}
+                  </div>
+                )}
+
+                {extraAllocations.map((extra, idx) => (
+                  <div key={idx} className="p-3 rounded-md border-2 border-indigo-200 bg-white space-y-3 relative">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-indigo-900 uppercase">Cliente {idx + 2} (Cobro compartido)</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExtraClient(idx)}
+                        className="text-xs text-red-600 hover:text-red-800 font-bold"
+                      >
+                        ✕ Quitar
+                      </button>
+                    </div>
+                    <div>
+                      <select
+                        value={extra.clientId}
+                        onChange={e => handleExtraClientSelect(idx, e.target.value)}
+                        required
+                        className="block w-full rounded-md border border-gray-300 p-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                      >
+                        <option value="">-- Seleccionar Cliente {idx + 2} --</option>
+                        {clientes.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-indigo-900">Importe a imputar a Cliente {idx + 2} ($)</label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        required
+                        value={extra.amount}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setExtraAllocations(prev => {
+                            const next = [...prev];
+                            next[idx] = { ...next[idx], amount: val };
+                            return next;
+                          });
+                        }}
+                        placeholder="0.00"
+                        className="mt-1 block w-full rounded-md border border-indigo-300 p-1.5 text-sm font-bold text-indigo-900"
+                      />
+                    </div>
+                    {extra.clientId && (
+                      <div className="bg-indigo-50 p-3 rounded-md border border-indigo-200 space-y-2">
+                        <h5 className="text-xs font-bold text-indigo-800">Comprobantes Pendientes (Cliente {idx + 2})</h5>
+                        {extra.isFetchingCharges ? (
+                          <p className="text-xs text-indigo-600">Buscando deuda...</p>
+                        ) : extra.pendingCharges.length === 0 ? (
+                          <p className="text-xs text-green-700 font-bold">Sin cargos pendientes</p>
+                        ) : (
+                          <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                            {extra.pendingCharges.map((c: any) => {
+                              const isSel = extra.selectedChargeIds.includes(c.id);
+                              return (
+                                <label key={c.id} className={`flex items-center p-1.5 rounded cursor-pointer border ${isSel ? 'bg-indigo-100 border-indigo-400' : 'bg-white border-gray-200'}`}>
+                                  <input
+                                    type="checkbox"
+                                    className="mr-2"
+                                    checked={isSel}
+                                    onChange={() => toggleExtraChargeSelection(idx, c.id)}
+                                  />
+                                  <div className="flex-1 text-xs font-medium text-gray-900">
+                                    {new Date(c.date).toLocaleDateString('es-AR')} - {c.description}
+                                  </div>
+                                  <div className="text-xs font-bold text-red-700">
+                                    Debe ${c.debt.toLocaleString('es-AR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {extraAllocations.length > 0 && formData.type === 'INCOME' && (
+                  <div className="bg-indigo-100 p-2.5 rounded-md border border-indigo-300 flex justify-between items-center text-xs font-bold text-indigo-950">
+                    <span>Total distribuido entre clientes:</span>
+                    <span>
+                      ${(
+                        (parseFloat(primaryClientAmount) || 0) +
+                        extraAllocations.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0)
+                      ).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
                   </div>
                 )}
               </div>

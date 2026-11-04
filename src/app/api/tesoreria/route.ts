@@ -213,6 +213,168 @@ export async function POST(request: Request) {
       return new Date(`${dString}T12:00:00`);
     };
 
+    // Caso especial: Cobro de Honorarios dividido entre 2 o más clientes (ej. 1 cheque cancela 2 cuentas corrientes)
+    if (
+      data.type === 'INCOME' &&
+      data.category === 'Honorarios' &&
+      Array.isArray(data.clientAllocations) &&
+      data.clientAllocations.length > 1
+    ) {
+      const sumAlloc = data.clientAllocations.reduce(
+        (sum: number, a: any) => sum + Math.abs(parseFloat(a.amount) || 0),
+        0
+      );
+      if (sumAlloc <= 0) {
+        return NextResponse.json({ error: 'La suma de importes asignados debe ser mayor a 0' }, { status: 400 });
+      }
+      if (data.account === 'CHEQUES' && Math.abs(sumAlloc - Math.abs(txAmount)) > 1) {
+        return NextResponse.json(
+          {
+            error: `La suma distribuida entre los clientes ($${sumAlloc.toLocaleString('es-AR')}) debe coincidir con el total del cheque ($${Math.abs(txAmount).toLocaleString('es-AR')})`
+          },
+          { status: 400 }
+        );
+      }
+
+      let mainTreasuryTx: any = null;
+
+      for (let i = 0; i < data.clientAllocations.length; i++) {
+        const alloc = data.clientAllocations[i];
+        const allocAmount = Math.abs(parseFloat(alloc.amount) || 0);
+        if (!alloc.clientId || allocAmount <= 0) continue;
+
+        const allocTx = await prisma.treasuryTransaction.create({
+          data: {
+            date: parseToUtcNoon(data.date),
+            amount: allocAmount,
+            type: 'INCOME',
+            account: data.account,
+            category: 'Honorarios',
+            description: data.description || 'Cobro compartido',
+            clientId: alloc.clientId,
+            parentTransactionId: mainTreasuryTx ? mainTreasuryTx.id : null,
+          }
+        });
+
+        if (!mainTreasuryTx) {
+          mainTreasuryTx = allocTx;
+          if (data.account === 'CHEQUES' && Array.isArray(data.incomingChecks)) {
+            for (const checkData of data.incomingChecks) {
+              if (!checkData.number || !checkData.bank || !checkData.amount) continue;
+              await prisma.check.create({
+                data: {
+                  number: checkData.number,
+                  bank: checkData.bank,
+                  issueDate: parseToUtcNoon(checkData.issueDate || data.date),
+                  dueDate: parseToUtcNoon(checkData.dueDate),
+                  amount: Math.abs(parseFloat(checkData.amount)),
+                  clientId: alloc.clientId,
+                  incomingTxId: mainTreasuryTx.id,
+                  isEcheq: checkData.isEcheq === true
+                }
+              });
+            }
+          }
+        }
+
+        const accountTx = await prisma.accountTransaction.create({
+          data: {
+            clientId: alloc.clientId,
+            date: parseToUtcNoon(data.date),
+            type: 'PAYMENT',
+            amount: allocAmount,
+            description: `Pago ingresado en ${data.account} - ${data.description || ''}`,
+          }
+        });
+
+        await prisma.treasuryTransaction.update({
+          where: { id: allocTx.id },
+          data: { accountTransactionId: accountTx.id }
+        });
+
+        let allocParticipacion = 0;
+        let allocPagoNeto = allocAmount;
+
+        if (Array.isArray(alloc.selectedChargeIds) && alloc.selectedChargeIds.length > 0) {
+          const charges = await prisma.accountTransaction.findMany({
+            where: { id: { in: alloc.selectedChargeIds } },
+            include: { paymentsApplied: true },
+            orderBy: { date: 'asc' }
+          });
+
+          let remainingPayment = allocAmount;
+          const createdApps = [];
+
+          for (const charge of charges) {
+            if (remainingPayment <= 0.001) break;
+            const appliedToCharge = charge.paymentsApplied.reduce((s, app) => s + app.amount, 0);
+            const chargeDebt = charge.amount - appliedToCharge;
+            if (chargeDebt > 0.001) {
+              const amountToApply = Math.min(remainingPayment, chargeDebt);
+              await prisma.paymentApplication.create({
+                data: {
+                  chargeId: charge.id,
+                  paymentId: accountTx.id,
+                  amount: amountToApply
+                }
+              });
+              createdApps.push({ amount: amountToApply, charge });
+              remainingPayment -= amountToApply;
+            }
+          }
+
+          await recalculatePaymentIva(accountTx.id);
+          const updatedAccTx = await prisma.accountTransaction.findUnique({ where: { id: accountTx.id } });
+          allocPagoNeto = updatedAccTx?.netAmount || allocAmount;
+
+          for (const app of createdApps) {
+            if (app.charge.collaboratorAmount && app.charge.collaboratorAmount > 0) {
+              const proportion = app.amount / app.charge.amount;
+              allocParticipacion += app.charge.collaboratorAmount * proportion;
+            }
+          }
+        }
+
+        if (data.account === 'BANCOS FEDE' || data.account === 'BANCOS JUANMA') {
+          const retiroSocio = data.account === 'BANCOS FEDE' ? 'Retiro Fede' : 'Retiro Juanma';
+          const retiroNetoAmount = Math.max(0, allocPagoNeto - allocParticipacion);
+          const ivaAmount = allocAmount - allocPagoNeto;
+
+          if (retiroNetoAmount > 0) {
+            await prisma.treasuryTransaction.create({
+              data: {
+                date: parseToUtcNoon(data.date),
+                amount: -retiroNetoAmount,
+                type: 'EXPENSE',
+                account: data.account,
+                category: retiroSocio,
+                description: `Retiro automático s/ cobro ${data.description || ''}`,
+                clientId: alloc.clientId,
+                parentTransactionId: mainTreasuryTx.id
+              }
+            });
+          }
+
+          if (ivaAmount > 0) {
+            await prisma.treasuryTransaction.create({
+              data: {
+                date: parseToUtcNoon(data.date),
+                amount: -ivaAmount,
+                type: 'EXPENSE',
+                account: data.account,
+                category: retiroSocio,
+                description: `Retiro automático IVA s/ cobro ${data.description || ''}`,
+                clientId: alloc.clientId,
+                parentTransactionId: mainTreasuryTx.id
+              }
+            });
+          }
+        }
+      }
+
+      return NextResponse.json(mainTreasuryTx, { status: 201 });
+    }
+
     const nuevaTransaccion = await prisma.treasuryTransaction.create({
       data: {
         date: parseToUtcNoon(data.date),
