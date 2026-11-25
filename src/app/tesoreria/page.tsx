@@ -177,7 +177,7 @@ export default function TesoreriaPage() {
 
       const resEmp = await fetch('/api/empleados');
       const dataEmp = await resEmp.json();
-      setEmpleados(dataEmp.filter((e: any) => e.name !== 'Gessi' && e.name !== 'Juanma' && e.name !== 'Fede'));
+      setEmpleados(dataEmp.filter((e: any) => e.name !== 'Juanma' && e.name !== 'Fede'));
     } catch (error) {
       console.error(error);
     } finally {
