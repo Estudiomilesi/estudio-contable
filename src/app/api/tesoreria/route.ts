@@ -1,3 +1,4 @@
+import { checkClosedMonth } from '@/lib/monthLock';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseToUtcNoon } from '@/lib/dateUtils';
@@ -84,6 +85,10 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const data = await request.json();
+    const lockCheck = await checkClosedMonth(data.date);
+    if (lockCheck.isClosed) {
+      return NextResponse.json({ error: lockCheck.errorMsg }, { status: 400 });
+    }
     let txAmount = parseFloat(data.amount);
 
     if (data.type === 'TRANSFER') {

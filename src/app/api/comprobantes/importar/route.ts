@@ -1,3 +1,4 @@
+import { checkClosedMonth } from '@/lib/monthLock';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -11,6 +12,13 @@ export async function POST(request: Request) {
     }
 
     let count = 0;
+
+    for (const tx of transactions) {
+      const lockCheck = await checkClosedMonth(tx.date);
+      if (lockCheck.isClosed) {
+        return NextResponse.json({ error: lockCheck.errorMsg }, { status: 400 });
+      }
+    }
 
     // Procesar cada comprobante
     for (const tx of transactions) {

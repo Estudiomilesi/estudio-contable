@@ -33,10 +33,26 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
   const firstDay = new Date(year, month - 1, 1);
   const lastDay = new Date(year, month, 0, 23, 59, 59);
 
-  // Determinar mes anterior (para proporciones de abonos)
+  // Determinar mes anterior (para proporciones de abonos y arrastre de cierre)
   const prevMonthDate = new Date(year, month - 2, 1);
+  const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
   const firstDayPrev = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 1);
   const lastDayPrev = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0, 23, 59, 59);
+
+  // 0. Consultar cierres de mes guardados (MonthClosing)
+  let allClosings: any[] = [];
+  let currentClosing: any = null;
+  let prevClosing: any = null;
+  try {
+    allClosings = await prisma.monthClosing.findMany({
+      orderBy: { month: 'desc' }
+    });
+    currentClosing = allClosings.find(c => c.month === targetMonthStr) || null;
+    // Buscar el cierre del mes anterior (o el último mes cerrado anterior a targetMonthStr)
+    prevClosing = allClosings.find(c => c.month < targetMonthStr && c.isClosed) || null;
+  } catch (e) {
+    // Si la tabla aún no fue migrada
+  }
 
   // 1. Proporción de Abonos
   let abonosPeriod = await prisma.accountTransaction.findMany({
@@ -179,8 +195,6 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
   });
 
   // 4. Participaciones Pendientes (Alerta)
-  // Cobros de este mes aplicados a facturas que tenían "Participación"
-  // Para esto, buscaremos los PAYMENT de este mes, sus applications, y si el CHARGE original tenía participacion
   const paymentsConParticipacion = await prisma.accountTransaction.findMany({
     where: {
       type: 'PAYMENT',
@@ -202,7 +216,6 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
     }
   });
 
-  // Mapear alertas
   const alertasParticipacion: any[] = [];
   paymentsConParticipacion.forEach(p => {
     p.paymentsApplied.forEach(app => {
@@ -218,6 +231,12 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
       }
     });
   });
+
+  // Saldos iniciales arrastrados del último cierre anterior (o del cierre guardado si este mes ya fue cerrado)
+  const saldoInicialFedeF = currentClosing ? currentClosing.saldoInicialFedeF : (prevClosing ? prevClosing.saldoFinalFedeF : 0);
+  const saldoInicialFedeFJ = currentClosing ? currentClosing.saldoInicialFedeFJ : (prevClosing ? prevClosing.saldoFinalFedeFJ : 0);
+  const saldoInicialJuanmaFJ = currentClosing ? currentClosing.saldoInicialJuanmaFJ : (prevClosing ? prevClosing.saldoFinalJuanmaFJ : 0);
+  const prevClosedMonthLabel = prevClosing ? prevClosing.month : prevMonthStr;
 
   return (
     <FinDeMesClient 
@@ -237,6 +256,12 @@ export default async function FinDeMesPage({ searchParams }: { searchParams: Pro
       retirosJuanmaDetalle={retirosJuanmaDetalle}
       alertasParticipacion={alertasParticipacion}
       isJuanma={isJuanma}
+      currentClosing={currentClosing}
+      allClosings={allClosings}
+      saldoInicialFedeF={saldoInicialFedeF}
+      saldoInicialFedeFJ={saldoInicialFedeFJ}
+      saldoInicialJuanmaFJ={saldoInicialJuanmaFJ}
+      prevClosedMonthLabel={prevClosedMonthLabel}
     />
   );
 }

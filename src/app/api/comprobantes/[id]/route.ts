@@ -1,3 +1,4 @@
+import { checkClosedMonth } from '@/lib/monthLock';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -13,6 +14,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     if (!tx) {
       return NextResponse.json({ error: 'Comprobante no encontrado' }, { status: 404 });
+    }
+    const lockCheck = await checkClosedMonth(tx.date);
+    if (lockCheck.isClosed) {
+      return NextResponse.json({ error: lockCheck.errorMsg }, { status: 400 });
     }
 
     if (tx.isEmailed) {

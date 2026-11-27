@@ -1,3 +1,4 @@
+import { checkClosedMonth } from '@/lib/monthLock';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseToUtcNoon } from '@/lib/dateUtils';
@@ -12,6 +13,10 @@ export async function POST(request: Request) {
     // Usar la URL cruda de GitHub garantiza que el logo siempre cargue en Gmail y otros clientes
     const logoUrl = 'https://raw.githubusercontent.com/Estudiomilesi/estudio-contable/main/public/logo-dark.png';
 
+    const lockCheck = await checkClosedMonth(data.billingDate);
+    if (lockCheck.isClosed) {
+      return NextResponse.json({ error: lockCheck.errorMsg }, { status: 400 });
+    }
     const billingDate = parseToUtcNoon(data.billingDate);
     const clientIds = data.clientIds || [];
     const billingProfileOverrides = data.billingProfileOverrides || {};

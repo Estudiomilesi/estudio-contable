@@ -1,3 +1,4 @@
+import { checkClosedMonth } from '@/lib/monthLock';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -7,6 +8,14 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     const data = await request.json();
     
     // Only allow updating category, description, and employeeId for safety.
+    const existingTx = await prisma.treasuryTransaction.findUnique({ where: { id } });
+    if (existingTx) {
+      const lockCheck = await checkClosedMonth(existingTx.date);
+      if (lockCheck.isClosed) {
+        return NextResponse.json({ error: lockCheck.errorMsg }, { status: 400 });
+      }
+    }
+
     const { category, description, employeeId } = data;
 
     const tx = await prisma.treasuryTransaction.update({
@@ -39,6 +48,10 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     if (!tx) {
       return NextResponse.json({ error: 'Transacción no encontrada' }, { status: 404 });
+    }
+    const lockCheck = await checkClosedMonth(tx.date);
+    if (lockCheck.isClosed) {
+      return NextResponse.json({ error: lockCheck.errorMsg }, { status: 400 });
     }
 
     // Si tiene cheques entrantes, borrarlos

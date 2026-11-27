@@ -279,3 +279,27 @@ model ClientNote {
   createdBy String
   createdAt DateTime @default(now())
 }
+
+model MonthClosing {
+  id                 String   @id @default(cuid())
+  month              String   @unique // Format YYYY-MM
+  isClosed           Boolean  @default(true)
+
+  saldoInicialFedeF    Float  @default(0)
+  saldoInicialFedeFJ   Float  @default(0)
+  saldoInicialJuanmaFJ Float  @default(0)
+
+  resultadoF         Float    @default(0)
+  resultadoFJ        Float    @default(0)
+  retirosFedeF       Float    @default(0)
+  retirosFedeFJ      Float    @default(0)
+  retirosJuanmaFJ    Float    @default(0)
+
+  saldoFinalFedeF    Float    @default(0)
+  saldoFinalFedeFJ   Float    @default(0)
+  saldoFinalJuanmaFJ Float    @default(0)
+
+  closedAt           DateTime @default(now())
+  closedBy           String?
+  updatedAt          DateTime @updatedAt
+}

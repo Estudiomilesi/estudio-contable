@@ -1,3 +1,4 @@
+import { checkClosedMonth } from '@/lib/monthLock';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseToUtcNoon } from '@/lib/dateUtils';
@@ -60,6 +61,10 @@ export async function POST(request: Request) {
 
     if (!clientId || !date || !amount || !comprobanteType || !items || !items.length) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
+    }
+    const lockCheck = await checkClosedMonth(date);
+    if (lockCheck.isClosed) {
+      return NextResponse.json({ error: lockCheck.errorMsg }, { status: 400 });
     }
 
     const txDate = parseToUtcNoon(date);
