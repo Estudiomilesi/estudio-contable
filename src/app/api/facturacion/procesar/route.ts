@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { parseToUtcNoon } from '@/lib/dateUtils';
 import { sendEmail } from '@/lib/mailer';
+import { generatePdfDoc } from '@/lib/pdfGenerator';
 
 export async function POST(request: Request) {
   const senderEmail = request.headers.get('x-user-email') || undefined;
@@ -32,10 +33,15 @@ export async function POST(request: Request) {
       }
     });
 
-    // Obtener condición de pago predeterminada
-    const defaultCondition = await prisma.paymentCondition.findFirst({
-      where: { isDefault: true, isActive: true }
-    });
+    // Obtener condición de pago predeterminada y cuentas bancarias (para adjuntar PDF a clientes que lo requieran)
+    const [defaultCondition, bancos] = await Promise.all([
+      prisma.paymentCondition.findFirst({
+        where: { isDefault: true, isActive: true }
+      }),
+      prisma.bankAccount.findMany({
+        where: { isActive: true }
+      })
+    ]);
     
     // Obtener el último número de comprobante ABON- para seguir la secuencia
     const lastAbono = await prisma.accountTransaction.findFirst({
@@ -160,10 +166,33 @@ export async function POST(request: Request) {
         `;
 
         try {
+          let attachments = undefined;
+          if (cliente.wantsPdfAttachment) {
+            const doc = await generatePdfDoc(
+              {
+                ...transaccion,
+                client: cliente,
+                paymentCondition: defaultCondition,
+                items: [{ concept: `${description} - ${periodoStr}`, amount: netAmount }]
+              },
+              bancos
+            );
+            const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+            attachments = [
+              {
+                filename: `Comprobante_${receiptNumber}.pdf`,
+                content: pdfBuffer,
+                contentType: 'application/pdf'
+              }
+            ];
+          }
+
           await sendEmail(
             correosDestino, 
             `Aviso de Honorarios - ${periodoStr} - ${firma}`, 
-            htmlEmail
+            htmlEmail,
+            attachments,
+            senderEmail
           );
           emailsEnviados++;
         } catch (mailErr) {

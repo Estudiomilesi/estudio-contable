@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendEmail } from '@/lib/mailer';
+import { generatePdfDoc } from '@/lib/pdfGenerator';
 
 export async function POST(request: Request) {
   const senderEmail = request.headers.get('x-user-email') || undefined;
@@ -18,7 +19,8 @@ export async function POST(request: Request) {
         client: {
           include: { defaultBankAccount: true }
         },
-        paymentCondition: true
+        paymentCondition: true,
+        items: true
       }
     });
 
@@ -119,7 +121,21 @@ export async function POST(request: Request) {
       </div>
     `;
 
-    await sendEmail(correosDestino, `${titulo} - ${periodoStr} - ${firma}`, htmlEmail, undefined, senderEmail);
+    let attachments = undefined;
+    if (cliente.wantsPdfAttachment) {
+      const bancos = await prisma.bankAccount.findMany({ where: { isActive: true } });
+      const doc = await generatePdfDoc(tx, bancos);
+      const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+      attachments = [
+        {
+          filename: `Comprobante_${tx.receiptNumber || 'Honorarios'}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf'
+        }
+      ];
+    }
+
+    await sendEmail(correosDestino, `${titulo} - ${periodoStr} - ${firma}`, htmlEmail, attachments, senderEmail);
 
     // Marcar como enviado
     await prisma.accountTransaction.update({

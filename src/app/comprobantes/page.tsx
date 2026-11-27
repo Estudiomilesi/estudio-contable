@@ -18,7 +18,7 @@ type Client = {
   professionalLabel: string;
   defaultBankAccountId: string | null;
   cuit: string | null;
-  assignedCollaborator: string | null; email?: string | null;
+  assignedCollaborator: string | null; email?: string | null; wantsPdfAttachment?: boolean;
 };
 
 type Comprobante = {
@@ -82,6 +82,7 @@ export default function ComprobantesPage() {
 
   // Table state
   const [filterLabel, setFilterLabel] = useState('ALL');
+  const [tableClientFilter, setTableClientFilter] = useState('');
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>({ key: 'date', direction: 'desc' });
 
   const [form, setForm] = useState({
@@ -155,6 +156,9 @@ export default function ComprobantesPage() {
       clientId: c.id,
       billingProfile: c.defaultBillingProfile || 'NO_FISCAL'
     }));
+    if (c.wantsPdfAttachment) {
+      setSendEmail(true);
+    }
   };
 
   const filteredClientes = clientes.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
@@ -219,7 +223,7 @@ export default function ComprobantesPage() {
       if (res.ok) {
         const createdComp = await res.json();
         
-        if (sendEmail && createdComp.billingProfile === 'NO_FISCAL' && createdComp.client?.email) {
+        if ((sendEmail || createdComp.client?.wantsPdfAttachment) && createdComp.billingProfile === 'NO_FISCAL' && createdComp.client?.email) {
           try {
             const doc = await generatePdfDoc(createdComp, bancos);
             const pdfBase64 = doc.output('datauristring');
@@ -383,6 +387,14 @@ export default function ComprobantesPage() {
       } else {
         result = result.filter(c => c.client?.professionalLabel === filterLabel);
       }
+    }
+    if (tableClientFilter.trim() !== '') {
+      const q = tableClientFilter.trim().toLowerCase();
+      result = result.filter(c =>
+        (c.client?.name?.toLowerCase().includes(q) || false) ||
+        (c.receiptNumber?.toLowerCase().includes(q) || false) ||
+        (c.description?.toLowerCase().includes(q) || false)
+      );
     }
     if (sortConfig) {
       result.sort((a: any, b: any) => {
@@ -705,8 +717,41 @@ export default function ComprobantesPage() {
 
         {/* LISTADO LATERAL (TABLA) */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col max-h-[800px]">
-          <div className="p-4 border-b bg-gray-50">
-            <h2 className="font-semibold text-gray-800">Últimos Comprobantes</h2>
+          <div className="p-4 border-b bg-gray-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold text-gray-800">Últimos Comprobantes</h2>
+              <span className="text-xs text-gray-500 bg-gray-200/70 px-2 py-0.5 rounded-full font-medium">
+                {processedComprobantes().length}
+              </span>
+            </div>
+            <div className="relative w-full sm:w-72">
+              <input
+                type="text"
+                list="comprobantes-clientes-list"
+                placeholder="Filtrar por cliente o N° cbte..."
+                value={tableClientFilter}
+                onChange={e => setTableClientFilter(e.target.value)}
+                className="w-full text-xs border border-gray-300 rounded-md py-1.5 pl-8 pr-7 focus:ring-indigo-500 focus:border-indigo-500 bg-white shadow-sm"
+              />
+              <datalist id="comprobantes-clientes-list">
+                {clientes.map(cli => (
+                  <option key={cli.id} value={cli.name} />
+                ))}
+              </datalist>
+              <svg className="w-3.5 h-3.5 text-gray-400 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {tableClientFilter && (
+                <button
+                  type="button"
+                  onClick={() => setTableClientFilter('')}
+                  className="absolute right-2 top-1.5 text-gray-400 hover:text-gray-600 text-xs font-bold"
+                  title="Limpiar filtro"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           
           <div className="overflow-auto flex-1 p-0">
